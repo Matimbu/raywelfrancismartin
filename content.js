@@ -97,6 +97,18 @@ const SITE = {
       ]
     },
     {
+      label: "My starting five",
+      section: "hobbies",
+      intro: "My all-time five, if I got to pick.",
+      words: [
+        { text: "Rondo", note: "PG · the passer", link: "https://en.wikipedia.org/wiki/Rajon_Rondo" },
+        { text: "Kobe", note: "SG · Mamba mentality", link: "https://en.wikipedia.org/wiki/Kobe_Bryant" },
+        { text: "MJ", note: "SF · six rings", link: "https://en.wikipedia.org/wiki/Michael_Jordan" },
+        { text: "LeBron", note: "PF · the King", link: "https://en.wikipedia.org/wiki/LeBron_James" },
+        { text: "Yao / Shaq", note: "C · co-starters" }
+      ]
+    },
+    {
       label: "Agents I main",
       section: "hobbies",
       intro: "Sova main. Some of the clips are on my YouTube.",
