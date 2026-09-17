@@ -612,6 +612,12 @@ if (gallery.length && instagram) {
     el("span", "shot-more-handle", instagram.value),
     el("span", "shot-more-arrow", "↗")
   );
+  // Size this tile so the grid always ends on a full row: 3 columns on
+  // desktop, 2 on phones, where wide photos take a whole row
+  const cells = gallery.reduce((n, p) => n + (p.wide ? 2 : 1), 0);
+  const singles = gallery.filter((p) => !p.wide).length;
+  more.style.setProperty("--span", (3 - (cells % 3)) % 3 || 3);
+  more.style.setProperty("--span-m", singles % 2 ? 1 : 2);
   $("galleryGrid").appendChild(more);
 }
 
@@ -631,6 +637,8 @@ function showShot(i) {
   large.src = shotSrc(p, 1600);
   $("lbCount").textContent = `${pad2(lbIndex + 1)} / ${pad2(gallery.length)}`;
   $("lbText").textContent = p.caption;
+  $("lbStory").textContent = p.story || "";
+  $("lbStory").hidden = !p.story;
   // Warm up the neighbours so arrowing through feels instant
   [lbIndex - 1, lbIndex + 1].forEach((j) => {
     new Image().src = shotSrc(gallery[(j + gallery.length) % gallery.length], 1600);

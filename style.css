@@ -799,7 +799,9 @@ button { font: inherit; color: inherit; }
   background: var(--card);
   cursor: zoom-in;
 }
-.shot.wide, .shot-more { grid-column: span 2; aspect-ratio: auto; }
+/* a wide photo takes its row's height from the tall photos beside it */
+.shot.wide { grid-column: span 2; aspect-ratio: auto; min-height: 240px; }
+.shot.wide img { position: absolute; inset: 0; }
 .shot img {
   display: block;
   width: 100%;
@@ -829,6 +831,9 @@ button { font: inherit; color: inherit; }
 }
 
 .shot-more {
+  grid-column: span var(--span, 2);
+  aspect-ratio: auto;
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -844,7 +849,7 @@ button { font: inherit; color: inherit; }
 .shot-more-handle {
   font-family: var(--serif);
   font-style: italic;
-  font-size: clamp(48px, 8vw, 120px);
+  font-size: clamp(28px, 15cqi, 120px);
   line-height: 0.95;
   letter-spacing: -0.02em;
   transition: transform 0.7s var(--ease);
@@ -892,12 +897,22 @@ button { font: inherit; color: inherit; }
 .lb-figure img {
   display: block;
   max-width: 100%;
-  max-height: calc(100dvh - 170px);
+  max-height: calc(100dvh - 220px);
   object-fit: contain;
   border-radius: 6px;
 }
-.lb-caption { display: flex; align-items: baseline; gap: 14px; }
-.lb-caption .mono { color: #ff5a1f; }
+.lb-caption { display: grid; justify-items: center; gap: 8px; text-align: center; }
+.lb-line { display: flex; align-items: baseline; gap: 14px; }
+.lb-line .mono { color: #ff5a1f; }
+.lb-story {
+  max-width: 46ch;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(18px, 2vw, 24px);
+  line-height: 1.25;
+  color: rgba(242, 240, 235, 0.75);
+}
+.lb-story[hidden] { display: none; }
 .lb-btn {
   position: absolute;
   color: #f2f0eb;
@@ -1027,6 +1042,8 @@ button { font: inherit; color: inherit; }
   .channel { grid-template-columns: 1fr; }
   .playlist { grid-template-columns: 1fr; }
   .gallery { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .shot-more { grid-column: span var(--span-m, 2); }
+  .shot.wide { aspect-ratio: 6 / 5; min-height: 0; }
   .lightbox { padding: 56px 12px 84px; }
   .lb-prev, .lb-next { top: auto; bottom: 18px; margin-top: 0; }
   .lb-prev { left: calc(50% - 60px); }
