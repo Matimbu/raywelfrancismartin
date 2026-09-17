@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Raywel Martin</title>
+  <meta name="description" content="Raywel Francis Martin: student, builder, designer, hooper. Crafts, hobbies, beliefs and videos.">
+  <meta name="theme-color" content="#0a0a0a">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Raywel Martin">
+  <meta property="og:description" content="Student, builder, designer, hooper. Crafts, hobbies, beliefs and videos.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏀</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lenis@1.3.26/dist/lenis.css">
+  <link rel="stylesheet" href="style.css">
+  <script>
+    document.documentElement.classList.add("js");
+    try { var t = localStorage.getItem("theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
+</head>
+<body>
+  <header class="header" id="header">
+    <a class="brand mono" href="#top" id="brand"></a>
+    <nav class="nav" aria-label="Main navigation">
+      <a class="mono active" href="#top">Intro</a>
+      <a class="mono" href="#about">About</a>
+      <a class="mono" href="#crafts">Crafts</a>
+      <a class="mono" href="#beliefs">Beliefs</a>
+      <a class="mono" href="#connect">Contact</a>
+    </nav>
+    <div class="header-right">
+      <span class="clock mono" id="clock"></span>
+      <button class="theme-toggle" id="themeToggle" aria-label="Switch light or dark theme"><span></span></button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="top">
+      <div class="floaters" id="floaters" aria-hidden="true"></div>
+
+      <div class="hero-center">
+        <h1 class="hero-name" id="heroName"></h1>
+        <p class="roles mono scramble" id="roles"></p>
+        <p class="statement mono scramble" id="statement"></p>
+      </div>
+
+      <div class="place mono" id="place"></div>
+      <a class="scroll-hint mono" href="#about">Scroll <span>↓</span></a>
+    </section>
+
+    <div class="marquee mono" aria-hidden="true">
+      <div class="marquee-track" id="marquee"></div>
+    </div>
+
+    <section class="section" id="about">
+      <p class="eyebrow mono">01 — About</p>
+      <h2 class="title split">Who I Am</h2>
+      <div class="about-grid">
+        <div class="about-text" id="aboutText"></div>
+        <aside class="now reveal">
+          <p class="now-label mono">Right now</p>
+          <ul id="nowList"></ul>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section" id="crafts">
+      <p class="eyebrow mono">02 — Selected crafts</p>
+      <h2 class="title split">Things I've Made</h2>
+      <ol class="craft-list" id="craftList"></ol>
+      <div class="preview" id="preview" aria-hidden="true"><div class="preview-in" id="previewIn"></div></div>
+    </section>
+
+    <section class="section" id="hobbies">
+      <p class="eyebrow mono">03 — Off the clock</p>
+      <h2 class="title split">What I Do For Fun</h2>
+      <div class="hobby-grid" id="hobbyGrid"></div>
+    </section>
+
+    <section class="section" id="beliefs">
+      <p class="eyebrow mono">04 — What I believe</p>
+      <div class="beliefs" id="beliefList"></div>
+    </section>
+
+    <section class="section" id="channels">
+      <p class="eyebrow mono">05 — On YouTube</p>
+      <h2 class="title split">Watch Me</h2>
+      <div class="channel-grid" id="channelList"></div>
+    </section>
+
+    <section class="section contact" id="connect">
+      <p class="eyebrow mono">06 — Contact</p>
+      <h2 class="contact-title split">Let's <em>talk.</em></h2>
+      <p class="contact-line reveal">Want to collab, talk basketball, or just say hi? Pick whichever is easiest.</p>
+      <div class="link-list" id="linkList"></div>
+    </section>
+  </main>
+
+  <footer class="footer mono">
+    <span>© <span id="year"></span> <span id="footName"></span></span>
+    <span id="footClock"></span>
+    <a href="#top">Back to top ↑</a>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/lenis@1.3.26/dist/lenis.min.js"></script>
+  <script src="content.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
