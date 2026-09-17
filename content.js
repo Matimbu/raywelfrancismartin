@@ -53,6 +53,7 @@ const SITE = {
   // `link` (the word becomes a link), `face` (small round photo by the note),
   // `image` (larger photo that follows the cursor on hover) and `credit`
   // (required for Creative Commons photos; listed under the wall).
+  // `section` picks where a wall goes (default: the About section).
   // Add more walls to the list and they show up in the same style.
   walls: [
     {
@@ -91,6 +92,22 @@ const SITE = {
         { text: "Jenduks", note: "Valorant · YouTube" },
         { text: "Wel", note: "from Raywel" },
         { text: "Martin", note: "the last name" }
+      ]
+    },
+    {
+      label: "Agents I main",
+      section: "hobbies",
+      intro: "Sova main. Some of the clips are on my YouTube.",
+      words: [
+        { text: "Sova", note: "main · Initiator", top: true },
+        { text: "Recon Bolt", note: "reveals enemies" },
+        {
+          text: "Owl Drone",
+          note: "or my teammate, apparently",
+          link: "https://www.youtube.com/shorts/1QQ4ncdYBoA"
+        },
+        { text: "Shock Bolt", note: "the explosive one" },
+        { text: "Hunter's Fury", note: "ultimate · hits through walls" }
       ]
     }
   ],

@@ -333,7 +333,7 @@ SITE.now.forEach((text) => {
     });
     block.appendChild(line);
   }
-  $("about").appendChild(block);
+  $(wall.section || "about").appendChild(block);
 });
 
 // ============================================================
