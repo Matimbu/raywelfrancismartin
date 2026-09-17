@@ -818,6 +818,7 @@ button { font: inherit; color: inherit; }
   .floater:nth-child(4) { right: 6%; bottom: 25%; width: 96px; }
   .floater:nth-child(n + 5) { display: none; }
   .floater-badge { width: 32px; height: 32px; font-size: 17px; top: -12px; right: -12px; }
+  .floater:nth-child(3) .floater-badge { width: 26px; height: 26px; font-size: 13px; top: -10px; right: -10px; }
   .name-line + .name-line { padding-left: 0.3em; }
   .hero-name { font-size: clamp(88px, 24vw, 140px); }
   .roles { letter-spacing: 0.14em; }

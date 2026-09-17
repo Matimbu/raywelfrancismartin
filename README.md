@@ -16,6 +16,12 @@ Built with plain HTML, CSS and JavaScript, plus [Lenis](https://github.com/darkr
 
 Everything the site says is in `content.js`. Entries containing `TODO` show up (outlined in yellow) only when previewing locally; the live site skips them.
 
+## Photos
+
+- `images/` holds original, full-size photos. It's in `.gitignore`, so originals are never published.
+- `assets/` holds the web-ready copies the site uses: rule-of-thirds crops, lightly colour-graded, resized and stripped of metadata (no GPS).
+- Edited a photo in Lightroom? Export a full-size JPEG into `images/` and re-crop it, or export straight to the matching file in `assets/` at the same size (`me-shop.jpg` 480×640, `me-cafe.jpg` 480×600, `still-flowers.jpg` 480×480, `me-sofa.jpg` 640×480).
+
 ## Preview locally
 
 ```bash
