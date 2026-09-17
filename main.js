@@ -580,6 +580,96 @@ SITE.youtube.forEach((ch, i) => {
 addEventListener("resize", () => stageFits.forEach((fit) => fit()));
 
 // ============================================================
+//  Gallery (click a photo to see it large)
+// ============================================================
+const gallery = SITE.gallery || [];
+const shotSrc = (p, width) => `assets/gallery/${p.file}-${width}.jpg`;
+
+gallery.forEach((p, i) => {
+  const tile = el("button", p.wide ? "shot wide reveal" : "shot reveal");
+  tile.type = "button";
+  tile.style.setProperty("--d", i % 3);
+  tile.setAttribute("aria-label", `View photo: ${p.caption}`);
+  const img = el("img");
+  img.src = shotSrc(p, 800);
+  img.srcset = `${shotSrc(p, 400)} 400w, ${shotSrc(p, 800)} 800w`;
+  img.sizes = p.wide ? "(max-width: 760px) 100vw, 800px" : "(max-width: 760px) 50vw, 400px";
+  img.alt = p.alt || p.caption;
+  img.loading = "lazy";
+  img.decoding = "async";
+  tile.append(img, el("span", "shot-caption mono", p.caption));
+  tile.addEventListener("click", () => openShot(i));
+  $("galleryGrid").appendChild(tile);
+});
+
+// The last tile points to Instagram for the rest
+const instagram = SITE.links.find((l) => l.label === "Instagram" && l.url);
+if (gallery.length && instagram) {
+  const more = el("a", "shot shot-more reveal");
+  linkify(more, instagram.url);
+  more.append(
+    el("span", "mono shot-more-label", "More on Instagram"),
+    el("span", "shot-more-handle", instagram.value),
+    el("span", "shot-more-arrow", "↗")
+  );
+  $("galleryGrid").appendChild(more);
+}
+
+const lightbox = $("lightbox");
+const lbImg = $("lbImg");
+let lbIndex = 0;
+
+function showShot(i) {
+  lbIndex = (i + gallery.length) % gallery.length;
+  const p = gallery[lbIndex];
+  // Show the grid-size copy right away, then swap in the large one
+  lbImg.src = shotSrc(p, 800);
+  lbImg.alt = p.alt || p.caption;
+  const large = new Image();
+  const wanted = lbIndex;
+  large.onload = () => { if (wanted === lbIndex) lbImg.src = large.src; };
+  large.src = shotSrc(p, 1600);
+  $("lbCount").textContent = `${pad2(lbIndex + 1)} / ${pad2(gallery.length)}`;
+  $("lbText").textContent = p.caption;
+  // Warm up the neighbours so arrowing through feels instant
+  [lbIndex - 1, lbIndex + 1].forEach((j) => {
+    new Image().src = shotSrc(gallery[(j + gallery.length) % gallery.length], 1600);
+  });
+}
+
+function openShot(i) {
+  showShot(i);
+  lightbox.showModal();
+  if (lenis) lenis.stop();
+}
+
+lightbox.addEventListener("close", () => { if (lenis) lenis.start(); });
+$("lbClose").addEventListener("click", () => lightbox.close());
+$("lbPrev").addEventListener("click", () => showShot(lbIndex - 1));
+$("lbNext").addEventListener("click", () => showShot(lbIndex + 1));
+lightbox.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowLeft") showShot(lbIndex - 1);
+  if (e.key === "ArrowRight") showShot(lbIndex + 1);
+});
+
+// Swipe on touch screens; a plain tap on the dark area closes the viewer
+let swipeX = null;
+let swiped = false;
+lightbox.addEventListener("pointerdown", (e) => { swipeX = e.clientX; swiped = false; });
+lightbox.addEventListener("pointerup", (e) => {
+  if (swipeX === null) return;
+  const dx = e.clientX - swipeX;
+  swipeX = null;
+  if (Math.abs(dx) > 50) {
+    swiped = true;
+    showShot(lbIndex + (dx < 0 ? 1 : -1));
+  }
+});
+lightbox.addEventListener("click", (e) => {
+  if (!swiped && (e.target === lightbox || e.target.classList.contains("lb-figure"))) lightbox.close();
+});
+
+// ============================================================
 //  Contact links (entries without a URL copy their value)
 // ============================================================
 SITE.links.forEach((l, i) => {
@@ -603,7 +693,7 @@ SITE.links.forEach((l, i) => {
 });
 
 // Hide sections that have nothing in them
-[["crafts", SITE.crafts], ["hobbies", SITE.hobbies], ["beliefs", SITE.beliefs], ["channels", SITE.youtube]]
+[["crafts", SITE.crafts], ["hobbies", SITE.hobbies], ["beliefs", SITE.beliefs], ["channels", SITE.youtube], ["gallery", gallery]]
   .forEach(([id, list]) => {
     if (!list.length) {
       $(id).hidden = true;

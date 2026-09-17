@@ -132,6 +132,20 @@ const SITE = {
     }
   ],
 
+  // "Snapshots" gallery. `file` is the name in assets/gallery/ (each photo
+  // has -400, -800 and -1600 versions). `wide` photos span two columns.
+  gallery: [
+    { file: "studio-chair", caption: "Studio day", alt: "Ray sitting on an orange chair in front of a graffiti wall" },
+    { file: "under-the-lights", caption: "Under the lights", alt: "Ray looking up under a tree strung with lights at night" },
+    { file: "custom-jersey", caption: "Custom jersey", alt: "Ray in sunglasses holding a blue jersey with RAYWEL on it" },
+    { file: "valorant-champs", caption: "Syntax Valorant Cup champions", alt: "LED screen announcing Parokya ni Manoy as Syntax Valorant Cup champions", wide: true },
+    { file: "cat-cameo", caption: "Cat cameo", alt: "Ray holding a black cat" },
+    { file: "behind-the-camera", caption: "Behind the camera", alt: "A hand on a camera whose screen shows the lens" },
+    { file: "the-squad", caption: "The squad", alt: "A big group selfie with friends" },
+    { file: "fit-check", caption: "Fit check", alt: "Ray standing in a studio with posters and a floor lamp" },
+    { file: "flower-wall", caption: "Flower wall", alt: "Ray standing in front of a giant red flower installation" }
+  ],
+
   links: [
     { label: "Email", value: "raywelfrancismartin@gmail.com", url: "mailto:raywelfrancismartin@gmail.com" },
     { label: "Instagram", value: "@_matimbu", url: "https://instagram.com/_matimbu" },
