@@ -45,34 +45,19 @@ const SITE = {
   about: [
     "I'm Ray, also known as Matimbu. On the court, some people call me Yao Ming, The Court's Coder.",
     "My professional side lives in my [portfolio](https://matimbu.github.io/portfolio/). This page is everything else: the things I make for fun, what I do with my free time, what I believe in, and where to find me online.",
-    "TODO: add a few lines a recruiter wouldn't hear. Where you grew up, what got you into tech, what your friends know you for."
+    "Off the clock, I'm on the court, in a Valorant lobby with the squad, or filming my friends. People change, memories don't, so I keep the moments on camera and cut them into videos."
   ],
 
   now: [
     "Studying BSIT at STI College Malolos",
     "Looking for OJT / junior dev roles",
-    "TODO: a show, game or song on repeat"
+    "Building Malolos Rush, my capstone game in Unity"
   ],
 
+  // Oldest first, so the numbers read like a timeline.
   // `image` is optional (shows when you hover the row). Use a link or a
   // file in the assets/ folder, e.g. "assets/poster.png".
   crafts: [
-    {
-      title: "The Hive Kiosk",
-      tags: ["Code", "C#", "GDI+"],
-      year: "2025",
-      emoji: "🐝",
-      image: "https://matimbu.github.io/portfolio/images/kiosk/01-welcome.png",
-      link: "https://matimbu.github.io/portfolio/"
-    },
-    {
-      title: "Cheesy Potato Balls",
-      tags: ["Poster", "Photoshop"],
-      year: "2025",
-      emoji: "🎨",
-      image: "https://matimbu.github.io/portfolio/images/CHEESY%20POTATO%20BALLS.png",
-      link: "https://matimbu.github.io/portfolio/#featured"
-    },
     {
       title: "Memory videos",
       tags: ["Video", "Editing"],
@@ -82,12 +67,28 @@ const SITE = {
       link: "https://www.youtube.com/@Jenduks"
     },
     {
-      title: "TODO: Unity project",
-      tags: ["Game", "Unity 3D"],
-      year: "TODO",
-      emoji: "🎮",
+      title: "Cheesy Potato Balls",
+      tags: ["Poster", "Photoshop"],
+      year: "2023",
+      emoji: "🎨",
+      image: "https://matimbu.github.io/portfolio/images/CHEESY%20POTATO%20BALLS.png",
+      link: "https://matimbu.github.io/portfolio/#featured"
+    },
+    {
+      title: "The Hive Kiosk",
+      tags: ["Code", "C#", "GDI+"],
+      year: "2026",
+      emoji: "🐝",
+      image: "https://matimbu.github.io/portfolio/images/kiosk/01-welcome.png",
+      link: "https://matimbu.github.io/portfolio/"
+    },
+    {
+      title: "Malolos Rush",
+      tags: ["Game", "Unity 3D", "Capstone"],
+      year: "2026",
+      emoji: "🏃",
       image: "",
-      link: ""
+      link: "" // repo is private
     }
   ],
 
