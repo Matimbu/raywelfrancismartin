@@ -14,7 +14,7 @@ Built with plain HTML, CSS and JavaScript, plus [Lenis](https://github.com/darkr
 
 ## Editing
 
-Everything the site says is in `content.js`. Entries containing `TODO` show up (outlined in yellow) only when previewing locally; the live site skips them.
+Everything the site says is in `content.js`. After changing `content.js`, `main.js` or `style.css`, bump the `?v=` number on them in `index.html` so returning visitors don't get old cached copies (GitHub Pages caches files for 10 minutes). Entries containing `TODO` show up (outlined in yellow) only when previewing locally; the live site skips them.
 
 ## Photos
 
