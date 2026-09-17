@@ -557,6 +557,40 @@ button { font: inherit; color: inherit; }
 }
 .hobby-text { color: var(--muted); font-size: 15px; }
 
+/* Spotify player */
+.playlist {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 24px 48px;
+  align-items: center;
+  margin-top: clamp(48px, 7vw, 80px);
+  padding-top: 28px;
+  border-top: 1px solid var(--line);
+}
+.playlist-kicker { color: var(--muted); }
+.playlist-title {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(40px, 5vw, 64px);
+  line-height: 1;
+  margin: 10px 0 12px;
+}
+.playlist-note { color: var(--muted); font-size: 15px; }
+.playlist-open {
+  display: inline-block;
+  margin-top: 16px;
+  color: var(--muted);
+  transition: color 0.3s ease;
+}
+.playlist-open:hover { color: var(--fg); }
+.playlist iframe {
+  width: 100%;
+  height: 152px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--card);
+}
+
 /* ============================================================
    Beliefs
    ============================================================ */
@@ -804,6 +838,7 @@ button { font: inherit; color: inherit; }
   .header { grid-template-columns: 1fr auto; }
   .nav { display: none; }
   .channel { grid-template-columns: 1fr; }
+  .playlist { grid-template-columns: 1fr; }
   .link { grid-template-columns: 1fr auto; row-gap: 4px; }
   .link-label { grid-column: 1; }
   .link-value { grid-column: 1; grid-row: 2; }

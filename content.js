@@ -96,8 +96,16 @@ const SITE = {
     { emoji: "🏀", title: "Basketball", text: "Where I switch off from code. Want to talk hoops? Message me." },
     { emoji: "🖌️", title: "Graphic design", text: "Posters, layouts, and messing around in Photoshop and Figma." },
     { emoji: "🎮", title: "Valorant", text: "Playing with friends and clipping the moments worth keeping, like using a teammate as a Sova drone." },
-    { emoji: "🎧", title: "TODO: Music?", text: "TODO: what's on your playlist." }
+    { emoji: "🎧", title: "Music", text: "Hip-hop on repeat, mostly Drake, Travis Scott and 21 Savage. Press play on my playlist below." }
   ],
+
+  // Spotify player under the hobbies. Use the link from Share > Copy link
+  // (playlists, albums, tracks and artists all work). Set to null to hide.
+  playlist: {
+    title: "IM BUSY",
+    note: "100 tracks · Drake, Travis Scott, 21 Savage, Jack Harlow and more",
+    url: "https://open.spotify.com/playlist/4Y8w4bIWDu7ryf8ejl4O5V"
+  },
 
   beliefs: [
     "*Learn by building.* Things stick when I make something and work out where I got stuck.",

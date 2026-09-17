@@ -351,6 +351,26 @@ SITE.hobbies.forEach((h, i) => {
   $("hobbyGrid").appendChild(card);
 });
 
+// Spotify player under the hobby cards
+const spotify = SITE.playlist && SITE.playlist.url.match(/open\.spotify\.com\/(playlist|album|track|artist)\/([A-Za-z0-9]+)/);
+if (spotify) {
+  const block = el("div", "playlist reveal");
+  const label = el("div", "playlist-label");
+  label.append(el("p", "mono playlist-kicker", "On repeat"), el("p", "playlist-title", SITE.playlist.title));
+  if (SITE.playlist.note) label.appendChild(el("p", "playlist-note", SITE.playlist.note));
+  const open = el("a", "playlist-open mono", "Open in Spotify ↗");
+  linkify(open, SITE.playlist.url);
+  label.appendChild(open);
+
+  const frame = el("iframe");
+  frame.src = `https://open.spotify.com/embed/${spotify[1]}/${spotify[2]}?theme=0`;
+  frame.title = `${SITE.playlist.title} on Spotify`;
+  frame.loading = "lazy";
+  frame.allow = "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture";
+  block.append(label, frame);
+  $("hobbies").appendChild(block);
+}
+
 // ============================================================
 //  Beliefs (words light up as you scroll)
 // ============================================================
