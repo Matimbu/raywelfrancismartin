@@ -422,7 +422,13 @@ function youtubeThumb(v) {
 
 function youtubeFrame(v) {
   const frame = el("iframe");
-  frame.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(v.id)}?autoplay=1&rel=0`;
+  const params = new URLSearchParams({ autoplay: 1, rel: 0, playsinline: 1, iv_load_policy: 3 });
+  // Shorts loop the way they do on YouTube, so the end screen never covers them
+  if (v.short) {
+    params.set("loop", 1);
+    params.set("playlist", v.id);
+  }
+  frame.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(v.id)}?${params}`;
   // YouTube only plays embeds when the page sends its address (the HTTP
   // Referer); without it viewers get "error 153"
   frame.referrerPolicy = "strict-origin-when-cross-origin";

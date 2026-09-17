@@ -40,7 +40,7 @@ const SITE = {
     { emoji: "🏀", photo: "assets/me-sofa.jpg", badge: "🏀" }
   ],
 
-  marquee: ["C#", "Graphic design", "Basketball", "Valorant", "WinForms", "Photoshop", "Video editing", "Unity", "Figma", "The Court's Coder"],
+  marquee: ["C#", "Graphic design", "Basketball", "Valorant", "WinForms", "Photoshop", "Video editing", "Unity", "The Court's Coder"],
 
   about: [
     "I'm Ray, also known as Matimbu. On the court, some people call me Yao Ming, The Court's Coder.",
@@ -94,7 +94,7 @@ const SITE = {
 
   hobbies: [
     { emoji: "🏀", title: "Basketball", text: "Where I switch off from code. Want to talk hoops? Message me." },
-    { emoji: "🖌️", title: "Graphic design", text: "Posters, layouts, and messing around in Photoshop and Figma." },
+    { emoji: "🖌️", title: "Graphic design", text: "Posters, layouts, and messing around in Photoshop." },
     { emoji: "🎮", title: "Valorant", text: "Playing with friends and clipping the moments worth keeping, like using a teammate as a Sova drone." },
     { emoji: "🎧", title: "Music", text: "Hip-hop on repeat, mostly Drake, Travis Scott and 21 Savage. Press play on my playlist below." }
   ],

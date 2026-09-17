@@ -19,7 +19,7 @@ Everything the site says is in `content.js`. After changing `content.js`, `main.
 ## Photos
 
 - `images/` holds original, full-size photos. It's in `.gitignore`, so originals are never published.
-- `assets/` holds the web-ready copies the site uses: rule-of-thirds crops, lightly colour-graded, resized and stripped of metadata (no GPS).
+- `assets/` holds the web-ready copies the site uses: rule-of-thirds crops, lightly colour-graded, resized and stripped of metadata (no GPS). They're exported once, straight from the originals, as JPEG quality 97 with full colour detail (4:4:4); at top quality JPEG keeps more detail than lossy WebP, and PNG/BMP would be 3–25× heavier.
 - Edited a photo in Lightroom? Export a full-size JPEG into `images/` and re-crop it, or export straight to the matching file in `assets/` at the same size (`me-shop.jpg` 480×640, `me-cafe.jpg` 480×600, `still-flowers.jpg` 480×480, `me-sofa.jpg` 640×480).
 
 ## Preview locally
