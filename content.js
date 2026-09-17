@@ -31,11 +31,13 @@ const SITE = {
   // of the emoji; `badge` adds a little sticker on the card's corner.
   // Web-ready pictures live in assets/. (images/ is for your original
   // photos and never gets published.)
+  // Order = position: 1 top-left (tall), 2 top-right, 3 bottom-left (small
+  // square), 4 bottom-right (wide). Photos face toward the name.
   floaters: [
-    { emoji: "🏀", photo: "assets/me.jpg", badge: "🏀" },
-    { emoji: "🎨", photo: "" },
+    { emoji: "🎨", photo: "assets/me-shop.jpg", badge: "🎨" },
+    { emoji: "🎮", photo: "assets/me-cafe.jpg", badge: "🎮" },
     { emoji: "🐝", photo: "" },
-    { emoji: "🎮", photo: "" }
+    { emoji: "🏀", photo: "assets/me-sofa.jpg", badge: "🏀" }
   ],
 
   marquee: ["C#", "Graphic design", "Basketball", "Valorant", "WinForms", "Photoshop", "Video editing", "Unity", "Figma", "The Court's Coder"],
