@@ -285,6 +285,26 @@ SITE.now.forEach((text) => {
   $("nowList").appendChild(li);
 });
 
+// First impressions: what classmates wrote about me
+const impressions = SITE.impressions;
+if (impressions && impressions.words && impressions.words.length) {
+  const block = el("div", "impressions");
+  const head = el("div", "impressions-head reveal");
+  head.append(el("p", "now-label mono", "First impressions"), el("p", "impressions-intro", impressions.intro || ""));
+  const cloud = el("div", "impressions-cloud");
+  impressions.words.forEach((w, i) => {
+    const item = el("span", w.count > 1 ? "imp imp-top reveal" : "imp reveal");
+    item.style.setProperty("--d", i);
+    const line = el("span", "imp-text", w.text);
+    if (w.count > 1) line.appendChild(el("span", "imp-count mono", `×${w.count}`));
+    item.appendChild(line);
+    if (w.note) item.appendChild(el("span", "imp-note mono", w.note));
+    cloud.appendChild(item);
+  });
+  block.append(head, cloud);
+  $("about").appendChild(block);
+}
+
 // ============================================================
 //  Crafts (hover a row to see a floating preview)
 // ============================================================

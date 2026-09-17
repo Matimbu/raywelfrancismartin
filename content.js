@@ -48,6 +48,27 @@ const SITE = {
     "Off the clock, I'm on the court, in a Valorant lobby with the squad, or filming my friends. People change, memories don't, so I keep the moments on camera and cut them into videos."
   ],
 
+  // What classmates wrote as their first impression of me, word for word.
+  // `note` is an English translation shown under Tagalog phrases;
+  // `count` marks words that came up more than once.
+  impressions: {
+    intro: "My classmates' first impressions of me, word for word.",
+    words: [
+      { text: "Friendly", count: 4 },
+      { text: "Calm" },
+      { text: "Tahimik", note: "quiet" },
+      { text: "Nonchalant" },
+      { text: "Pwede na", note: "he'll do" },
+      { text: "Nice voice" },
+      { text: "Saks lang", note: "just right" },
+      { text: "Tahimik, parang si Mark", note: "quiet, like Mark" },
+      { text: "Ayos lang", note: "he's alright" },
+      { text: "Palahi" },
+      { text: "Super friendly, grabe, 'di ko inexpect", note: "super friendly, wow, didn't expect that" },
+      { text: "Mukhang tamad, masipag", note: "looks lazy, actually hardworking" }
+    ]
+  },
+
   now: [
     "Studying BSIT at STI College Malolos",
     "Looking for OJT / junior dev roles",
