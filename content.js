@@ -184,9 +184,19 @@ const SITE = {
   // `story` (optional) shows under the caption when the photo is opened.
   // `fit: "contain"` shows the whole image (for screenshots and notes).
   gallery: [
-    { file: "studio-chair", caption: "Studio day", alt: "Raywel sitting on an orange chair in front of a graffiti wall" },
+    {
+      file: "studio-chair",
+      caption: "Channel inner energy",
+      alt: "Raywel sitting on an orange chair in front of a graffiti wall",
+      story: "Just finding the vibe."
+    },
     { file: "under-the-lights", caption: "Under the lights", alt: "Raywel looking up under a tree strung with lights at night" },
-    { file: "custom-jersey", caption: "Custom jersey", alt: "Raywel in sunglasses holding a blue jersey with RAYWEL on it" },
+    {
+      file: "custom-jersey",
+      caption: "Custom jacket",
+      alt: "Raywel in sunglasses holding a blue jacket with RAYWEL on it",
+      story: "Made it my own."
+    },
     { file: "valorant-champs", caption: "Syntax Valorant Cup champions", alt: "LED screen announcing Parokya ni Manoy as Syntax Valorant Cup champions", wide: true },
     {
       file: "senior-high",
@@ -218,9 +228,24 @@ const SITE = {
       wide: true,
       fit: "contain"
     },
-    { file: "synthetix", caption: "Synthetix", alt: "Raywel in sunglasses holding up a Synthetix flyer at an event" },
-    { file: "fit-check", caption: "Fit check", alt: "Raywel standing in a studio with posters and a floor lamp" },
-    { file: "flower-wall", caption: "Flower wall", alt: "Raywel standing in front of a giant red flower installation" }
+    {
+      file: "synthetix",
+      caption: "Synthetix",
+      alt: "Raywel in sunglasses holding up a flyer at Synthetix, our senior high school expo",
+      story: "Our senior high school expo."
+    },
+    {
+      file: "fit-check",
+      caption: "Maybe",
+      alt: "Raywel standing in a studio with posters and a floor lamp",
+      story: "It's you."
+    },
+    {
+      file: "flower-wall",
+      caption: "You noticed my favourite sweater, huh?",
+      alt: "Raywel in his favourite sweater in front of a giant red flower installation",
+      story: "Yeah, I wear it a lot."
+    }
   ],
 
   links: [
