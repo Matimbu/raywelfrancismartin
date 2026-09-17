@@ -27,10 +27,12 @@ const SITE = {
     coords: "14.8527° N, 120.8160° E"
   },
 
-  // Small cards floating around your name. Add a photo path to show a
-  // picture instead of the emoji, e.g. { emoji: "🏀", photo: "images/court.jpg" }
+  // Small cards floating around your name. `photo` shows a picture instead
+  // of the emoji; `badge` adds a little sticker on the card's corner.
+  // Web-ready pictures live in assets/. (images/ is for your original
+  // photos and never gets published.)
   floaters: [
-    { emoji: "🏀", photo: "" },
+    { emoji: "🏀", photo: "assets/me.jpg", badge: "🏀" },
     { emoji: "🎨", photo: "" },
     { emoji: "🐝", photo: "" },
     { emoji: "🎮", photo: "" }
@@ -51,7 +53,7 @@ const SITE = {
   ],
 
   // `image` is optional (shows when you hover the row). Use a link or a
-  // file in an images/ folder, e.g. "images/poster.png".
+  // file in the assets/ folder, e.g. "assets/poster.png".
   crafts: [
     {
       title: "The Hive Kiosk",

@@ -264,6 +264,31 @@ button { font: inherit; color: inherit; }
 }
 .ready .floater-in { opacity: 1; transform: rotate(var(--r)); }
 
+/* little sticker on a card's corner */
+.floater-badge {
+  position: absolute;
+  top: -16px;
+  right: -16px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  transform: rotate(14deg);
+}
+.js .floater-badge {
+  opacity: 0;
+  transform: scale(0) rotate(-40deg);
+  transition:
+    opacity 0.6s var(--ease) calc(1200ms + var(--i) * 140ms),
+    transform 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) calc(1200ms + var(--i) * 140ms);
+}
+.ready .floater-badge { opacity: 1; transform: rotate(14deg); }
+
 /* location card + scroll hint */
 .place, .scroll-hint {
   position: absolute;
@@ -617,6 +642,14 @@ button { font: inherit; color: inherit; }
 .thumb:hover img { transform: scale(1.04); filter: none; }
 .thumb:hover .play { transform: scale(1.14); background: var(--accent); color: #fff; }
 
+.watch-fallback {
+  display: inline-block;
+  margin-top: 12px;
+  color: var(--muted);
+  transition: color 0.3s ease;
+}
+.watch-fallback:hover { color: var(--fg); }
+
 .channel-handle { color: var(--muted); margin-bottom: 10px; }
 .channel-name {
   font-size: clamp(44px, 5.4vw, 72px);
@@ -748,6 +781,7 @@ button { font: inherit; color: inherit; }
     transition: none;
   }
   .js .floater-in { transform: rotate(var(--r)); }
+  .js .floater-badge { opacity: 1; transform: rotate(14deg); transition: none; }
   .nl-in { transform: none; }
   .hero-center { opacity: 1; }
   .marquee-track, .scroll-hint span { animation: none; }
@@ -783,6 +817,7 @@ button { font: inherit; color: inherit; }
   .floater:nth-child(3) { left: auto; right: 10%; bottom: 25%; width: 58px; }
   .floater:nth-child(4) { right: auto; left: 8%; bottom: 29%; width: 88px; }
   .floater:nth-child(n + 5) { display: none; }
+  .floater-badge { width: 32px; height: 32px; font-size: 17px; top: -12px; right: -12px; }
   .name-line + .name-line { padding-left: 0.3em; }
   .hero-name { font-size: clamp(88px, 24vw, 140px); }
   .roles { letter-spacing: 0.14em; }

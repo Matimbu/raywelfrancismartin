@@ -234,17 +234,20 @@ const place = $("place");
 // Floating cards
 const floaterEls = SITE.floaters.map((f, i) => {
   const card = el("div", "floater");
+  card.style.setProperty("--i", i);
   const inner = el("div", "floater-in");
-  inner.style.setProperty("--i", i);
   if (f.photo) {
     const img = el("img");
     img.src = f.photo;
     img.alt = "";
+    // If the photo is missing, fall back to the emoji
+    img.onerror = () => img.replaceWith(el("span", "", f.emoji));
     inner.appendChild(img);
   } else {
     inner.appendChild(el("span", "", f.emoji));
   }
   card.appendChild(inner);
+  if (f.badge) card.appendChild(el("span", "floater-badge", f.badge));
   $("floaters").appendChild(card);
   return card;
 });
@@ -400,21 +403,37 @@ SITE.youtube.forEach((ch, i) => {
 
   // Featured video: shows the thumbnail, plays in place when clicked
   const id = ch.featuredVideo ? encodeURIComponent(ch.featuredVideo) : "";
+  const media = el("div", "channel-media");
   const thumb = el(id ? "button" : "a", "thumb");
+  media.appendChild(thumb);
   if (id) {
     const featured = (ch.videos || []).find((v) => v.id === ch.featuredVideo);
+    const watchUrl = `https://www.youtube.com/watch?v=${id}`;
     thumb.type = "button";
     thumb.setAttribute("aria-label", `Play ${featured ? featured.title : "featured video"}`);
     thumb.appendChild(youtubeThumb(id));
     thumb.addEventListener("click", () => {
+      // YouTube only plays embeds when the page sends its address (the HTTP
+      // Referer, "error 153" otherwise). A page opened straight from disk
+      // has no address, so send those viewers to YouTube instead.
+      if (!location.protocol.startsWith("http")) {
+        window.open(watchUrl, "_blank", "noopener");
+        return;
+      }
       const frame = el("iframe");
       frame.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0`;
+      frame.referrerPolicy = "strict-origin-when-cross-origin";
       frame.title = featured ? featured.title : `${ch.name} video`;
       frame.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
       frame.allowFullscreen = true;
       const holder = el("div", "thumb playing");
       holder.appendChild(frame);
       thumb.replaceWith(holder);
+
+      // Some browsers and privacy extensions still strip the Referer
+      const fallback = el("a", "watch-fallback mono", "Video not playing? Watch on YouTube ↗");
+      linkify(fallback, watchUrl);
+      media.appendChild(fallback);
     });
   } else {
     linkify(thumb, ch.url);
@@ -443,7 +462,7 @@ SITE.youtube.forEach((ch, i) => {
   linkify(visit, ch.url);
   info.appendChild(visit);
 
-  card.append(thumb, info);
+  card.append(media, info);
   $("channelList").appendChild(card);
 });
 
