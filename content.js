@@ -43,7 +43,7 @@ const SITE = {
   marquee: ["C#", "Graphic design", "Basketball", "Valorant", "WinForms", "Photoshop", "Video editing", "Unity", "The Court's Coder"],
 
   about: [
-    "I'm Ray, also known as Matimbu. On the court, some people call me Yao Ming, The Court's Coder.",
+    "I'm Raywel, also known as Matimbu. On the court, some people call me Yao Ming, The Court's Coder.",
     "My professional side lives in my [portfolio](https://matimbu.github.io/portfolio/). This page is everything else: the things I make for fun, what I do with my free time, what I believe in, and where to find me online.",
     "Off the clock, I'm on the court, in a Valorant lobby with the squad, or filming my friends. People change, memories don't, so I keep the moments on camera and cut them into videos."
   ],
@@ -184,23 +184,23 @@ const SITE = {
   // `story` (optional) shows under the caption when the photo is opened.
   // `fit: "contain"` shows the whole image (for screenshots and notes).
   gallery: [
-    { file: "studio-chair", caption: "Studio day", alt: "Ray sitting on an orange chair in front of a graffiti wall" },
-    { file: "under-the-lights", caption: "Under the lights", alt: "Ray looking up under a tree strung with lights at night" },
-    { file: "custom-jersey", caption: "Custom jersey", alt: "Ray in sunglasses holding a blue jersey with RAYWEL on it" },
+    { file: "studio-chair", caption: "Studio day", alt: "Raywel sitting on an orange chair in front of a graffiti wall" },
+    { file: "under-the-lights", caption: "Under the lights", alt: "Raywel looking up under a tree strung with lights at night" },
+    { file: "custom-jersey", caption: "Custom jersey", alt: "Raywel in sunglasses holding a blue jersey with RAYWEL on it" },
     { file: "valorant-champs", caption: "Syntax Valorant Cup champions", alt: "LED screen announcing Parokya ni Manoy as Syntax Valorant Cup champions", wide: true },
     {
       file: "senior-high",
       caption: "Senior high, 2022–2023",
-      alt: "Ray posing behind a frosted glass window",
+      alt: "Raywel posing behind a frosted glass window",
       story: "The days you don't even think about having a bad day. You just live your life. Good times."
     },
     {
       file: "first-1x1",
       caption: "My first 1x1",
-      alt: "Ray's first 1x1 ID photo from senior high, lying on a brown envelope",
+      alt: "Raywel's first 1x1 ID photo from senior high, lying on a brown envelope",
       story: "My very first 1x1, from senior high. I still use it now that I'm in college."
     },
-    { file: "cat-cameo", caption: "Cat cameo", alt: "Ray holding a black cat" },
+    { file: "cat-cameo", caption: "Cat cameo", alt: "Raywel holding a black cat" },
     { file: "nubi", caption: "Nubi, my cat", alt: "Nubi, a black cat, next to a blurred bunch of sunflowers" },
     { file: "behind-the-camera", caption: "Behind the camera", alt: "A hand on a camera whose screen shows the lens" },
     { file: "the-squad", caption: "The squad", alt: "A big group selfie with friends" },
@@ -218,9 +218,9 @@ const SITE = {
       wide: true,
       fit: "contain"
     },
-    { file: "synthetix", caption: "Synthetix", alt: "Ray in sunglasses holding up a Synthetix flyer at an event" },
-    { file: "fit-check", caption: "Fit check", alt: "Ray standing in a studio with posters and a floor lamp" },
-    { file: "flower-wall", caption: "Flower wall", alt: "Ray standing in front of a giant red flower installation" }
+    { file: "synthetix", caption: "Synthetix", alt: "Raywel in sunglasses holding up a Synthetix flyer at an event" },
+    { file: "fit-check", caption: "Fit check", alt: "Raywel standing in a studio with posters and a floor lamp" },
+    { file: "flower-wall", caption: "Flower wall", alt: "Raywel standing in front of a giant red flower installation" }
   ],
 
   links: [
