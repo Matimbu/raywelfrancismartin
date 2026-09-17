@@ -401,76 +401,149 @@ function updateBeliefs() {
 // ============================================================
 //  YouTube
 // ============================================================
-function youtubeThumb(id) {
+// Pick a video from the list and it plays on the stage. Shorts get a tall
+// 9:16 frame, regular videos a wide 16:9 one.
+const watchUrl = (v) =>
+  v.short ? `https://www.youtube.com/shorts/${v.id}` : `https://www.youtube.com/watch?v=${v.id}`;
+
+// Shorts have a tall thumbnail ("oar2"), videos a max-res one. When a size is
+// missing YouTube serves a tiny placeholder, so fall back to the standard one.
+function youtubeThumb(v) {
   const img = el("img");
   img.alt = "";
   img.loading = "lazy";
-  // Not every video has a max-res thumbnail; YouTube serves a tiny
-  // placeholder instead, so fall back to the standard one.
-  const fallback = () => {
-    if (!img.src.includes("hqdefault")) img.src = `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
-  };
-  img.onerror = fallback;
-  img.onload = () => { if (img.naturalWidth <= 120) fallback(); };
-  img.src = `https://i.ytimg.com/vi/${id}/maxresdefault.jpg`;
+  const fallback = `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`;
+  const useFallback = () => { if (img.src !== fallback) img.src = fallback; };
+  img.onerror = useFallback;
+  img.onload = () => { if (img.naturalWidth <= 120) useFallback(); };
+  img.src = `https://i.ytimg.com/vi/${v.id}/${v.short ? "oar2" : "maxresdefault"}.jpg`;
   return img;
 }
+
+function youtubeFrame(v) {
+  const frame = el("iframe");
+  frame.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(v.id)}?autoplay=1&rel=0`;
+  // YouTube only plays embeds when the page sends its address (the HTTP
+  // Referer); without it viewers get "error 153"
+  frame.referrerPolicy = "strict-origin-when-cross-origin";
+  frame.title = v.title;
+  frame.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+  frame.allowFullscreen = true;
+  return frame;
+}
+
+const stageFits = [];
 
 SITE.youtube.forEach((ch, i) => {
   const card = el("article", "channel reveal");
   card.style.setProperty("--d", i);
   if (isTodo(ch.name, ch.about)) card.classList.add("todo");
 
-  // Featured video: shows the thumbnail, plays in place when clicked
-  const id = ch.featuredVideo ? encodeURIComponent(ch.featuredVideo) : "";
+  const videos = ch.videos || [];
+  let current = videos.find((v) => v.id === ch.featuredVideo)
+    || (ch.featuredVideo ? { id: ch.featuredVideo, title: `${ch.name} video` } : null);
+  let playing = false;
+  const rows = [];
+
   const media = el("div", "channel-media");
-  const thumb = el(id ? "button" : "a", "thumb");
-  media.appendChild(thumb);
-  if (id) {
-    const featured = (ch.videos || []).find((v) => v.id === ch.featuredVideo);
-    const watchUrl = `https://www.youtube.com/watch?v=${id}`;
-    thumb.type = "button";
-    thumb.setAttribute("aria-label", `Play ${featured ? featured.title : "featured video"}`);
-    thumb.appendChild(youtubeThumb(id));
-    thumb.addEventListener("click", () => {
-      // YouTube only plays embeds when the page sends its address (the HTTP
-      // Referer, "error 153" otherwise). A page opened straight from disk
-      // has no address, so send those viewers to YouTube instead.
+  const stage = el("div", "stage");
+  const caption = el("div", "stage-caption");
+  const captionState = el("span", "stage-state mono");
+  const captionTitle = el("span", "stage-title");
+  const openLink = el("a", "stage-open mono", "YouTube ↗");
+  const captionLabel = el("span", "stage-label");
+  captionLabel.append(captionState, captionTitle);
+  caption.append(captionLabel, openLink);
+  media.append(stage, caption);
+
+  // Size the stage for the current video: full column width for 16:9,
+  // tall but screen-friendly for Shorts
+  function fit() {
+    const col = media.clientWidth;
+    let w = col;
+    let h = col * 9 / 16;
+    if (current && current.short) {
+      h = Math.min(Math.max(col * 0.85, 420), innerHeight * 0.72, 600);
+      w = Math.min(h * 9 / 16, col);
+      h = w * 16 / 9;
+    }
+    stage.style.width = caption.style.width = `${w}px`;
+    stage.style.height = `${h}px`;
+  }
+  stageFits.push(fit);
+
+  // Fade the new layer in over the old one, then drop the old one
+  function swapIn(layer, readyEvent) {
+    const old = [...stage.children];
+    layer.classList.add("entering");
+    stage.appendChild(layer);
+    let done = false;
+    const reveal = () => {
+      if (done) return;
+      done = true;
+      layer.classList.remove("entering");
+      setTimeout(() => old.forEach((n) => n.remove()), 500);
+    };
+    readyEvent(reveal);
+    setTimeout(reveal, 1500); // don't wait forever on a slow network
+  }
+
+  function show(v, play) {
+    current = v;
+    playing = play;
+    fit();
+    rows.forEach((r) => {
+      const on = r.dataset.id === v.id;
+      r.classList.toggle("active", on);
+      r.setAttribute("aria-pressed", String(on));
+    });
+    captionState.textContent = play ? "Now playing" : v.short ? "Short" : "Video";
+    captionTitle.textContent = v.title;
+    linkify(openLink, watchUrl(v));
+
+    if (play) {
+      const frame = youtubeFrame(v);
+      swapIn(frame, (reveal) => frame.addEventListener("load", reveal, { once: true }));
+      return;
+    }
+    const btn = el("button", "thumb");
+    btn.type = "button";
+    btn.setAttribute("aria-label", `Play ${v.title}`);
+    const img = youtubeThumb(v);
+    btn.append(img, el("span", "play", "▶"));
+    btn.addEventListener("click", () => {
+      // A page opened straight from disk has no address to send, so
+      // YouTube would refuse to play it here; open YouTube instead.
       if (!location.protocol.startsWith("http")) {
-        window.open(watchUrl, "_blank", "noopener");
+        window.open(watchUrl(v), "_blank", "noopener");
         return;
       }
-      const frame = el("iframe");
-      frame.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0`;
-      frame.referrerPolicy = "strict-origin-when-cross-origin";
-      frame.title = featured ? featured.title : `${ch.name} video`;
-      frame.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
-      frame.allowFullscreen = true;
-      const holder = el("div", "thumb playing");
-      holder.appendChild(frame);
-      thumb.replaceWith(holder);
-
-      // Some browsers and privacy extensions still strip the Referer
-      const fallback = el("a", "watch-fallback mono", "Video not playing? Watch on YouTube ↗");
-      linkify(fallback, watchUrl);
-      media.appendChild(fallback);
+      show(v, true);
     });
-  } else {
-    linkify(thumb, ch.url);
+    swapIn(btn, (reveal) => {
+      img.addEventListener("load", reveal, { once: true });
+      img.addEventListener("error", reveal, { once: true });
+    });
   }
-  thumb.appendChild(el("span", "play", "▶"));
 
   const info = el("div", "channel-info");
   info.append(el("p", "channel-handle mono", ch.handle), el("h3", "channel-name", ch.name));
   if (ch.tagline) info.appendChild(el("p", "channel-tagline", `“${ch.tagline}”`));
   if (ch.about) info.appendChild(el("p", "channel-about", ch.about));
 
-  if (ch.videos && ch.videos.length) {
+  if (videos.length) {
     const list = el("ul", "video-list");
-    ch.videos.forEach((v) => {
-      const row = el("a", "video-row");
-      linkify(row, v.short ? `https://www.youtube.com/shorts/${v.id}` : `https://www.youtube.com/watch?v=${v.id}`);
+    videos.forEach((v) => {
+      const row = el("button", "video-row");
+      row.type = "button";
+      row.dataset.id = v.id;
       row.append(el("span", "video-title", v.title), el("span", "video-note mono", v.note || ""));
+      // Once something is playing, picking another video plays it right away
+      row.addEventListener("click", () => {
+        if (current && current.id === v.id) return;
+        show(v, playing);
+      });
+      rows.push(row);
       const li = el("li");
       li.appendChild(row);
       list.appendChild(li);
@@ -484,7 +557,21 @@ SITE.youtube.forEach((ch, i) => {
 
   card.append(media, info);
   $("channelList").appendChild(card);
+
+  if (current) {
+    show(current, false);
+  } else {
+    // No video to feature: the stage just links to the channel
+    const link = el("a", "thumb");
+    linkify(link, ch.url);
+    link.appendChild(el("span", "play", "▶"));
+    stage.appendChild(link);
+    caption.remove();
+    fit();
+  }
 });
+
+addEventListener("resize", () => stageFits.forEach((fit) => fit()));
 
 // ============================================================
 //  Contact links (entries without a URL copy their value)
