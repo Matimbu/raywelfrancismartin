@@ -285,25 +285,56 @@ SITE.now.forEach((text) => {
   $("nowList").appendChild(li);
 });
 
-// First impressions: what classmates wrote about me
-const impressions = SITE.impressions;
-if (impressions && impressions.words && impressions.words.length) {
-  const block = el("div", "impressions");
-  const head = el("div", "impressions-head reveal");
-  head.append(el("p", "now-label mono", "First impressions"), el("p", "impressions-intro", impressions.intro || ""));
-  const cloud = el("div", "impressions-cloud");
-  impressions.words.forEach((w, i) => {
-    const item = el("span", w.count > 1 ? "imp imp-top reveal" : "imp reveal");
+// Word walls (nicknames and the like): big words with small notes
+(SITE.walls || []).forEach((wall) => {
+  if (!wall.words || !wall.words.length) return;
+  const block = el("div", "wordwall");
+  const head = el("div", "wordwall-head reveal");
+  head.append(el("p", "now-label mono", wall.label), el("p", "wordwall-intro", wall.intro || ""));
+  const words = el("div", "wordwall-words");
+  wall.words.forEach((w, i) => {
+    const item = el(w.link ? "a" : "span", w.top ? "ww ww-top reveal" : "ww reveal");
+    linkify(item, w.link);
     item.style.setProperty("--d", i);
-    const line = el("span", "imp-text", w.text);
-    if (w.count > 1) line.appendChild(el("span", "imp-count mono", `×${w.count}`));
-    item.appendChild(line);
-    if (w.note) item.appendChild(el("span", "imp-note mono", w.note));
-    cloud.appendChild(item);
+    item.appendChild(el("span", "ww-text", w.text));
+    if (w.note || w.face) {
+      const note = el("span", "ww-note mono");
+      if (w.face) {
+        const face = el("img", "ww-face");
+        face.src = w.face;
+        face.alt = "";
+        face.loading = "lazy";
+        note.appendChild(face);
+      }
+      note.appendChild(document.createTextNode(`${w.note || ""}${w.link ? " ↗" : ""}`));
+      item.appendChild(note);
+    }
+    // Reuse the crafts preview card: the photo follows the cursor
+    if (w.image && canHover) {
+      item.addEventListener("mouseenter", () => showPreview({ image: w.image, emoji: "" }));
+      item.addEventListener("mouseleave", () => preview.classList.remove("on"));
+    }
+    words.appendChild(item);
   });
-  block.append(head, cloud);
+  block.append(head, words);
+
+  // Photo credits (Creative Commons asks for them)
+  const credited = wall.words.filter((w) => w.credit);
+  if (credited.length) {
+    const line = el("p", "ww-credits");
+    line.appendChild(document.createTextNode("Photos via Wikimedia Commons, cropped: "));
+    credited.forEach((w, i) => {
+      if (i) line.appendChild(document.createTextNode(" · "));
+      const who = el("a", "", `${w.credit.subject} by ${w.credit.by}`);
+      linkify(who, w.credit.source);
+      const license = el("a", "", w.credit.license);
+      linkify(license, w.credit.licenseUrl);
+      line.append(who, document.createTextNode(" ("), license, document.createTextNode(")"));
+    });
+    block.appendChild(line);
+  }
   $("about").appendChild(block);
-}
+});
 
 // ============================================================
 //  Crafts (hover a row to see a floating preview)
@@ -606,7 +637,7 @@ const gallery = SITE.gallery || [];
 const shotSrc = (p, width) => `assets/gallery/${p.file}-${width}.jpg`;
 
 gallery.forEach((p, i) => {
-  const tile = el("button", p.wide ? "shot wide reveal" : "shot reveal");
+  const tile = el("button", ["shot", p.wide && "wide", p.fit === "contain" && "contain", "reveal"].filter(Boolean).join(" "));
   tile.type = "button";
   tile.style.setProperty("--d", i % 3);
   tile.setAttribute("aria-label", `View photo: ${p.caption}`);

@@ -48,26 +48,52 @@ const SITE = {
     "Off the clock, I'm on the court, in a Valorant lobby with the squad, or filming my friends. People change, memories don't, so I keep the moments on camera and cut them into videos."
   ],
 
-  // What classmates wrote as their first impression of me, word for word.
-  // `note` is an English translation shown under Tagalog phrases;
-  // `count` marks words that came up more than once.
-  impressions: {
-    intro: "My classmates' first impressions of me, word for word.",
-    words: [
-      { text: "Friendly", count: 4 },
-      { text: "Calm" },
-      { text: "Tahimik", note: "quiet" },
-      { text: "Nonchalant" },
-      { text: "Pwede na", note: "he'll do" },
-      { text: "Nice voice" },
-      { text: "Saks lang", note: "just right" },
-      { text: "Tahimik, parang si Mark", note: "quiet, like Mark" },
-      { text: "Ayos lang", note: "he's alright" },
-      { text: "Palahi" },
-      { text: "Super friendly, grabe, 'di ko inexpect", note: "super friendly, wow, didn't expect that" },
-      { text: "Mukhang tamad, masipag", note: "looks lazy, actually hardworking" }
-    ]
-  },
+  // Word walls in the About section: big words with a small note under
+  // each. `top` makes one word the big italic one. Optional per word:
+  // `link` (the word becomes a link), `face` (small round photo by the note),
+  // `image` (larger photo that follows the cursor on hover) and `credit`
+  // (required for Creative Commons photos; listed under the wall).
+  // Add more walls to the list and they show up in the same style.
+  walls: [
+    {
+      label: "Also known as",
+      intro: "Names people call me. Most started on the court or in a Valorant lobby, then stuck.",
+      words: [
+        { text: "Matimbu", note: "the OG", top: true },
+        {
+          text: "Yao Ming",
+          note: "on the court, after the NBA legend",
+          link: "https://en.wikipedia.org/wiki/Yao_Ming",
+          face: "assets/aka/yao-ming-face.jpg",
+          image: "assets/aka/yao-ming.jpg",
+          credit: {
+            subject: "Yao Ming",
+            by: "World Travel & Tourism Council",
+            license: "CC BY 2.0",
+            licenseUrl: "https://creativecommons.org/licenses/by/2.0/",
+            source: "https://commons.wikimedia.org/wiki/File:Yao_Ming_in_2014_(cropped).jpg"
+          }
+        },
+        {
+          text: "Wemby",
+          note: "after the Spurs' Victor Wembanyama",
+          link: "https://en.wikipedia.org/wiki/Victor_Wembanyama",
+          face: "assets/aka/wemby-face.jpg",
+          image: "assets/aka/wemby.jpg",
+          credit: {
+            subject: "Victor Wembanyama",
+            by: "Frenchieinportland",
+            license: "CC BY 4.0",
+            licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
+            source: "https://commons.wikimedia.org/wiki/File:Victor_Wembanyama_San_Antonio_Spurs_2024.jpg"
+          }
+        },
+        { text: "Jenduks", note: "Valorant · YouTube" },
+        { text: "Wel", note: "from Raywel" },
+        { text: "Martin", note: "the last name" }
+      ]
+    }
+  ],
 
   now: [
     "Studying BSIT at STI College Malolos",
@@ -156,6 +182,7 @@ const SITE = {
   // "Snapshots" gallery. `file` is the name in assets/gallery/ (each photo
   // has -400, -800 and -1600 versions). `wide` photos span two columns.
   // `story` (optional) shows under the caption when the photo is opened.
+  // `fit: "contain"` shows the whole image (for screenshots and notes).
   gallery: [
     { file: "studio-chair", caption: "Studio day", alt: "Ray sitting on an orange chair in front of a graffiti wall" },
     { file: "under-the-lights", caption: "Under the lights", alt: "Ray looking up under a tree strung with lights at night" },
@@ -182,6 +209,14 @@ const SITE = {
       caption: "The STI elevator",
       alt: "The red floor number glowing inside a dark elevator",
       story: "Where all our STI shenanigans happened. Every laugh, every scare, every talk."
+    },
+    {
+      file: "first-impressions",
+      caption: "First impressions",
+      alt: "A note of my classmates' first impressions of me: friendly, calm, nonchalant, tahimik, pwede na, saks lang, friendly, ayos lang, nice voice, tahimik parang si Mark, super friendly grabe 'di ko inexpect, palahi, friendly, mukhang tamad masipag",
+      story: "My classmates' first impressions of me. Palahi means \"I like your genes, can I have some?\"",
+      wide: true,
+      fit: "contain"
     },
     { file: "synthetix", caption: "Synthetix", alt: "Ray in sunglasses holding up a Synthetix flyer at an event" },
     { file: "fit-check", caption: "Fit check", alt: "Ray standing in a studio with posters and a floor lamp" },
