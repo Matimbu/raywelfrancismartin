@@ -5,6 +5,7 @@
 //  live site skips them until you replace the text.
 //  Set a list to [] to hide that section.
 //  In `beliefs`, wrap words in *asterisks* to make them stand out.
+//  In `about`, write links as [text](https://...).
 // ============================================================
 
 const SITE = {
@@ -13,6 +14,7 @@ const SITE = {
   fullName: "Raywel Francis Martin",
   initials: "RFM",
   timezone: "Asia/Manila",
+  portfolio: "https://matimbu.github.io/portfolio/", // shown as a button in the top bar
 
   roles: ["Student", "Builder", "Designer", "Hooper"],
   statement: "I make things on screen, on paper and on the court.",
@@ -38,7 +40,7 @@ const SITE = {
 
   about: [
     "I'm Ray, also known as Matimbu. On the court, some people call me Yao Ming, The Court's Coder.",
-    "My professional side lives in my portfolio. This page is everything else: the things I make for fun, what I do with my free time, what I believe in, and where to find me online.",
+    "My professional side lives in my [portfolio](https://matimbu.github.io/portfolio/). This page is everything else: the things I make for fun, what I do with my free time, what I believe in, and where to find me online.",
     "TODO: add a few lines a recruiter wouldn't hear. Where you grew up, what got you into tech, what your friends know you for."
   ],
 

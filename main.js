@@ -126,6 +126,20 @@ function splitLetters(node) {
   });
 }
 
+// "text [label](url) text" -> text with real links in it.
+function appendWithLinks(node, text) {
+  text.split(/(\[[^\]]+\]\([^)]+\))/).filter(Boolean).forEach((part) => {
+    const match = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+    if (match) {
+      const a = el("a", "inline-link", match[1]);
+      linkify(a, match[2]);
+      node.appendChild(a);
+    } else {
+      node.appendChild(document.createTextNode(part));
+    }
+  });
+}
+
 // "plain *strong* plain" -> word spans for the scroll-linked fill.
 function splitWords(node, text) {
   node.setAttribute("aria-label", text.replace(/\*/g, ""));
@@ -152,6 +166,10 @@ $("brand").textContent = SITE.initials;
 $("footName").textContent = SITE.fullName;
 $("year").textContent = new Date().getFullYear();
 document.title = `${SITE.firstName} ${SITE.lastName}`;
+
+const portfolioLink = $("portfolioLink");
+if (SITE.portfolio) portfolioLink.href = SITE.portfolio;
+else portfolioLink.remove();
 
 const town = SITE.place.name.split(",")[0];
 function tick() {
@@ -251,7 +269,8 @@ Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 1500))]).th
 //  About
 // ============================================================
 SITE.about.forEach((text, i) => {
-  const p = el("p", "reveal", text);
+  const p = el("p", "reveal");
+  appendWithLinks(p, text);
   p.style.setProperty("--d", i);
   if (isTodo(text)) p.classList.add("todo");
   $("aboutText").appendChild(p);

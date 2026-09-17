@@ -146,6 +146,14 @@ button { font: inherit; color: inherit; }
   gap: 18px;
 }
 .clock { color: var(--muted); font-variant-numeric: tabular-nums; }
+.header-link {
+  padding: 5px 12px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  white-space: nowrap;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+.header-link:hover { background: var(--fg); color: var(--bg); border-color: var(--fg); }
 
 .theme-toggle {
   width: 18px;
@@ -381,6 +389,15 @@ button { font: inherit; color: inherit; }
   margin-bottom: 0.9em;
 }
 .about-text p:first-child { color: var(--fg); }
+.inline-link {
+  color: var(--fg);
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.16em;
+  transition: color 0.3s ease;
+}
+.inline-link:hover { color: var(--accent); }
 
 .now { border-top: 1px solid var(--fg); padding-top: 16px; }
 .now-label { color: var(--muted); margin-bottom: 8px; }
