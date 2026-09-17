@@ -489,6 +489,41 @@ a.ww:hover .ww-text { color: var(--fg); }
   object-fit: cover;
   border: 1px solid var(--line);
 }
+/* a wall of photo cards (e.g. a starting five) */
+.wordwall.cards .wordwall-words {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: start;
+  gap: 16px;
+}
+.wordwall.cards .ww-credits { grid-column: 1 / -1; }
+.ww-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.ww-card-img {
+  display: block;
+  aspect-ratio: 3 / 4;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--card);
+}
+.ww-card-img img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.8s var(--ease);
+}
+a.ww-card:hover .ww-card-img img { transform: scale(1.04); }
+.ww-pos { color: var(--muted); font-size: 11px; }
+.ww-card .ww-text { font-size: clamp(26px, 2.6vw, 38px); }
+a.ww-card:hover .ww-text { color: var(--fg); }
+
 /* a wall with art gets a third column for the picture */
 .wordwall.has-art { grid-template-columns: 1fr 2fr 0.9fr; }
 .wordwall-art {
@@ -1133,6 +1168,16 @@ a.ww:hover .ww-text { color: var(--fg); }
   .wordwall, .wordwall.has-art { grid-template-columns: 1fr; }
   .ww-credits { grid-column: 1; }
   .wordwall-art { grid-column: 1; grid-row: auto; justify-self: center; width: min(260px, 70%); }
+  /* cards scroll sideways on small screens, like a hand of trading cards */
+  .wordwall.cards .wordwall-words {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 42%;   /* the next card peeks in, so it reads as swipeable */
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 10px;
+  }
+  .ww-card { scroll-snap-align: start; }
   .craft-row { grid-template-columns: 44px 1fr 28px; row-gap: 6px; }
   .craft-title { grid-column: 2; }
   .craft-tags { grid-column: 2; grid-row: 2; }

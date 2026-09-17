@@ -292,10 +292,24 @@ SITE.now.forEach((text) => {
   const head = el("div", "wordwall-head reveal");
   head.append(el("p", "now-label mono", wall.label), el("p", "wordwall-intro", wall.intro || ""));
   const words = el("div", "wordwall-words");
+  const cards = wall.layout === "cards";
+  if (cards) block.classList.add("cards");
   wall.words.forEach((w, i) => {
-    const item = el(w.link ? "a" : "span", w.top ? "ww ww-top reveal" : "ww reveal");
+    const kind = cards ? "ww-card" : w.top ? "ww ww-top" : "ww";
+    const item = el(w.link ? "a" : "span", `${kind} reveal`);
     linkify(item, w.link);
     item.style.setProperty("--d", i);
+    if (cards && w.image) {
+      const frame = el("span", "ww-card-img");
+      const img = el("img");
+      img.src = w.image;
+      img.alt = w.alt || w.text;
+      img.loading = "lazy";
+      img.decoding = "async";
+      frame.appendChild(img);
+      item.appendChild(frame);
+    }
+    if (w.pos) item.appendChild(el("span", "ww-pos mono", w.pos));
     item.appendChild(el("span", "ww-text", w.text));
     if (w.note || w.face) {
       const note = el("span", "ww-note mono");
@@ -310,7 +324,7 @@ SITE.now.forEach((text) => {
       item.appendChild(note);
     }
     // Reuse the crafts preview card: the photo follows the cursor
-    if (w.image && canHover) {
+    if (w.image && canHover && !cards) {
       item.addEventListener("mouseenter", () => showPreview({ image: w.image, emoji: "" }));
       item.addEventListener("mouseleave", () => preview.classList.remove("on"));
     }
@@ -332,16 +346,16 @@ SITE.now.forEach((text) => {
   }
 
   // Photo credits (Creative Commons asks for them)
-  const credited = wall.words.filter((w) => w.credit);
-  if (credited.length) {
+  const credits = wall.words.flatMap((w) => [].concat(w.credit || []));
+  if (credits.length) {
     const line = el("p", "ww-credits");
     line.appendChild(document.createTextNode("Photos via Wikimedia Commons, cropped: "));
-    credited.forEach((w, i) => {
+    credits.forEach((c, i) => {
       if (i) line.appendChild(document.createTextNode(" · "));
-      const who = el("a", "", `${w.credit.subject} by ${w.credit.by}`);
-      linkify(who, w.credit.source);
-      const license = el("a", "", w.credit.license);
-      linkify(license, w.credit.licenseUrl);
+      const who = el("a", "", `${c.subject} by ${c.by}`);
+      linkify(who, c.source);
+      const license = c.licenseUrl ? el("a", "", c.license) : document.createTextNode(c.license);
+      if (c.licenseUrl) linkify(license, c.licenseUrl);
       line.append(who, document.createTextNode(" ("), license, document.createTextNode(")"));
     });
     block.appendChild(line);

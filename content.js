@@ -56,6 +56,8 @@ const SITE = {
   // `section` picks where a wall goes (default: the About section).
   // `art` shows a picture beside the words (`glow` tints the light behind it);
   // `notice` adds a line under the wall (e.g. Riot's fan-content notice).
+  // `layout: "cards"` shows each word as a photo card (`image`, `pos`, `alt`);
+  // `credit` can also be a list when a card uses more than one photo.
   // Add more walls to the list and they show up in the same style.
   walls: [
     {
@@ -100,12 +102,37 @@ const SITE = {
       label: "My starting five",
       section: "hobbies",
       intro: "My all-time five, if I got to pick.",
+      layout: "cards",
       words: [
-        { text: "Rondo", note: "PG · the passer", link: "https://en.wikipedia.org/wiki/Rajon_Rondo" },
-        { text: "Kobe", note: "SG · Mamba mentality", link: "https://en.wikipedia.org/wiki/Kobe_Bryant" },
-        { text: "MJ", note: "SF · six rings", link: "https://en.wikipedia.org/wiki/Michael_Jordan" },
-        { text: "LeBron", note: "PF · the King", link: "https://en.wikipedia.org/wiki/LeBron_James" },
-        { text: "Yao / Shaq", note: "C · co-starters" }
+        {
+          pos: "PG", text: "Rondo", note: "the passer",
+          link: "https://en.wikipedia.org/wiki/Rajon_Rondo",
+          image: "assets/five/rondo.jpg", alt: "Rajon Rondo dribbling for the Celtics",
+          credit: { subject: "Rajon Rondo", by: "kowarski", license: "CC BY 2.0", licenseUrl: "https://creativecommons.org/licenses/by/2.0/", source: "https://commons.wikimedia.org/wiki/File:Taken_at_the_Knicks-Celtics_Game_on_122511.jpg" }
+        },
+        {
+          pos: "SG", text: "Kobe", note: "Mamba mentality",
+          link: "https://en.wikipedia.org/wiki/Kobe_Bryant",
+          image: "assets/five/kobe.jpg", alt: "Kobe Bryant fading away on a jump shot",
+          credit: { subject: "Kobe Bryant", by: "steve.lanctot", license: "CC BY 2.0", licenseUrl: "https://creativecommons.org/licenses/by/2.0/", source: "https://commons.wikimedia.org/wiki/File:Kobe_Bryant_Shane_Battier.jpg" }
+        },
+        {
+          pos: "SF", text: "MJ", note: "six rings",
+          link: "https://en.wikipedia.org/wiki/Michael_Jordan",
+          image: "assets/five/mj.jpg", alt: "Michael Jordan dribbling up the court for the Bulls",
+          credit: { subject: "Michael Jordan", by: "Carmine Galasso, The Record", license: "public domain", licenseUrl: "", source: "https://commons.wikimedia.org/wiki/File:Michael_Jordan_-_1984_(1).jpg" }
+        },
+        {
+          pos: "PF", text: "LeBron", note: "the King",
+          link: "https://en.wikipedia.org/wiki/LeBron_James",
+          image: "assets/five/lebron.jpg", alt: "LeBron James rising for a one-handed dunk",
+          credit: { subject: "LeBron James", by: "Erik Drost", license: "CC BY 2.0", licenseUrl: "https://creativecommons.org/licenses/by/2.0/", source: "https://commons.wikimedia.org/wiki/File:LeBron_James_(51960276445)_(cropped).jpg" }
+        },
+        {
+          pos: "C", text: "Yao / Shaq", note: "co-starters",
+          image: "assets/five/yao-shaq.jpg", alt: "Yao Ming and Shaquille O'Neal posting up",
+          credit: [{ subject: "Yao Ming", by: "Keith Allison", license: "CC BY-SA 2.0", licenseUrl: "https://creativecommons.org/licenses/by-sa/2.0/", source: "https://commons.wikimedia.org/wiki/File:Yao_Ming_(2310548923).jpg" }, { subject: "Shaquille O'Neal", by: "Jeramey Jannene", license: "CC BY 2.0", licenseUrl: "https://creativecommons.org/licenses/by/2.0/", source: "https://commons.wikimedia.org/wiki/File:%22Give_Me_The_Damn_Ball%22_(73833605).jpg" }]
+        }
       ]
     },
     {
