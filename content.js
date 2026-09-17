@@ -54,6 +54,8 @@ const SITE = {
   // `image` (larger photo that follows the cursor on hover) and `credit`
   // (required for Creative Commons photos; listed under the wall).
   // `section` picks where a wall goes (default: the About section).
+  // `art` shows a picture beside the words (`glow` tints the light behind it);
+  // `notice` adds a line under the wall (e.g. Riot's fan-content notice).
   // Add more walls to the list and they show up in the same style.
   walls: [
     {
@@ -98,8 +100,10 @@ const SITE = {
       label: "Agents I main",
       section: "hobbies",
       intro: "Sova main. Some of the clips are on my YouTube.",
+      art: { src: "assets/valorant/sova.webp", alt: "Official art of Sova, the Valorant agent", glow: "#355285" },
+      notice: "\u201cRaywel Martin\u201d (this site) was created under Riot Games' \u201cLegal Jibber Jabber\u201d policy using assets owned by Riot Games. Riot Games does not endorse or sponsor this project.",
       words: [
-        { text: "Sova", note: "main · Initiator", top: true },
+        { text: "Sova", note: "main · Initiator", top: true, face: "assets/valorant/sova-icon.webp" },
         { text: "Recon Bolt", note: "reveals enemies" },
         {
           text: "Owl Drone",

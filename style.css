@@ -489,6 +489,27 @@ a.ww:hover .ww-text { color: var(--fg); }
   object-fit: cover;
   border: 1px solid var(--line);
 }
+/* a wall with art gets a third column for the picture */
+.wordwall.has-art { grid-template-columns: 1fr 2fr 0.9fr; }
+.wordwall-art {
+  position: relative;
+  grid-column: 3;
+  grid-row: 1 / span 3;
+  align-self: center;
+}
+.wordwall-art::before {
+  content: "";
+  position: absolute;
+  inset: 15% -15% 5%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--glow, #355285) 55%, transparent), transparent);
+}
+.wordwall-art img {
+  position: relative;
+  display: block;
+  width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+}
 .ww-credits {
   grid-column: 2;
   font-size: 12px;
@@ -1109,8 +1130,9 @@ a.ww:hover .ww-text { color: var(--fg); }
    ============================================================ */
 @media (max-width: 960px) {
   .about-grid { grid-template-columns: 1fr; }
-  .wordwall { grid-template-columns: 1fr; }
+  .wordwall, .wordwall.has-art { grid-template-columns: 1fr; }
   .ww-credits { grid-column: 1; }
+  .wordwall-art { grid-column: 1; grid-row: auto; justify-self: center; width: min(260px, 70%); }
   .craft-row { grid-template-columns: 44px 1fr 28px; row-gap: 6px; }
   .craft-title { grid-column: 2; }
   .craft-tags { grid-column: 2; grid-row: 2; }

@@ -318,6 +318,19 @@ SITE.now.forEach((text) => {
   });
   block.append(head, words);
 
+  if (wall.art) {
+    block.classList.add("has-art");
+    const art = el("div", "wordwall-art reveal");
+    if (wall.art.glow) art.style.setProperty("--glow", wall.art.glow);
+    const img = el("img");
+    img.src = wall.art.src;
+    img.alt = wall.art.alt || "";
+    img.loading = "lazy";
+    img.decoding = "async";
+    art.appendChild(img);
+    block.appendChild(art);
+  }
+
   // Photo credits (Creative Commons asks for them)
   const credited = wall.words.filter((w) => w.credit);
   if (credited.length) {
@@ -333,6 +346,7 @@ SITE.now.forEach((text) => {
     });
     block.appendChild(line);
   }
+  if (wall.notice) block.appendChild(el("p", "ww-credits", wall.notice));
   $(wall.section || "about").appendChild(block);
 });
 
