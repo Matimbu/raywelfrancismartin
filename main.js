@@ -637,8 +637,13 @@ function showShot(i) {
   large.src = shotSrc(p, 1600);
   $("lbCount").textContent = `${pad2(lbIndex + 1)} / ${pad2(gallery.length)}`;
   $("lbText").textContent = p.caption;
-  $("lbStory").textContent = p.story || "";
-  $("lbStory").hidden = !p.story;
+  // The serif italic draws "1" like "l", so numbers get the sans font
+  const story = $("lbStory");
+  story.textContent = "";
+  (p.story || "").split(/(\d+(?:x\d+)?)/).filter(Boolean).forEach((part) => {
+    story.appendChild(/^\d/.test(part) ? el("span", "digits", part) : document.createTextNode(part));
+  });
+  story.hidden = !p.story;
   // Warm up the neighbours so arrowing through feels instant
   [lbIndex - 1, lbIndex + 1].forEach((j) => {
     new Image().src = shotSrc(gallery[(j + gallery.length) % gallery.length], 1600);

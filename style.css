@@ -913,6 +913,7 @@ button { font: inherit; color: inherit; }
   color: rgba(242, 240, 235, 0.75);
 }
 .lb-story[hidden] { display: none; }
+.lb-story .digits { font-family: var(--sans); font-style: normal; font-size: 0.86em; }
 .lb-btn {
   position: absolute;
   color: #f2f0eb;

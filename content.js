@@ -146,9 +146,23 @@ const SITE = {
       alt: "Ray posing behind a frosted glass window",
       story: "The days you don't even think about having a bad day. You just live your life. Good times."
     },
+    {
+      file: "first-1x1",
+      caption: "My first 1x1",
+      alt: "Ray's first 1x1 ID photo from senior high, lying on a brown envelope",
+      story: "My very first 1x1, from senior high. I still use it now that I'm in college."
+    },
     { file: "cat-cameo", caption: "Cat cameo", alt: "Ray holding a black cat" },
+    { file: "nubi", caption: "Nubi, my cat", alt: "Nubi, a black cat, next to a blurred bunch of sunflowers" },
     { file: "behind-the-camera", caption: "Behind the camera", alt: "A hand on a camera whose screen shows the lens" },
     { file: "the-squad", caption: "The squad", alt: "A big group selfie with friends" },
+    {
+      file: "sti-elevator",
+      caption: "The STI elevator",
+      alt: "The red floor number glowing inside a dark elevator",
+      story: "Where all our STI shenanigans happened. Every laugh, every scare, every talk."
+    },
+    { file: "synthetix", caption: "Synthetix", alt: "Ray in sunglasses holding up a Synthetix flyer at an event" },
     { file: "fit-check", caption: "Fit check", alt: "Ray standing in a studio with posters and a floor lamp" },
     { file: "flower-wall", caption: "Flower wall", alt: "Ray standing in front of a giant red flower installation" }
   ],
