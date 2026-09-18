@@ -308,6 +308,7 @@ const SITE = {
     { label: "Email", value: "raywelfrancismartin@gmail.com", url: "mailto:raywelfrancismartin@gmail.com" },
     { label: "Instagram", value: "@_matimbu", url: "https://instagram.com/_matimbu" },
     { label: "YouTube", value: "@Jenduks", url: "https://www.youtube.com/@Jenduks" },
+    { label: "TikTok", value: "@matimbu_", url: "https://www.tiktok.com/@matimbu_" },
     { label: "Portfolio", value: "matimbu.github.io/portfolio", url: "https://matimbu.github.io/portfolio/" },
     { label: "GitHub", value: "Matimbu", url: "https://github.com/Matimbu" },
     { label: "LinkedIn", value: "Raywel Francis Martin", url: "https://www.linkedin.com/in/raywel-francis-martin-07a73b3b8/" },
