@@ -808,6 +808,9 @@ SITE.links.forEach((l, i) => {
 
   if (l.url) {
     linkify(row, l.url);
+    // GoatCounter counts clicks on these, so the stats show which links people use
+    row.dataset.goatcounterClick = `contact-${l.label.toLowerCase()}`;
+    row.dataset.goatcounterTitle = `Contact: ${l.label}`;
   } else {
     row.type = "button";
     row.addEventListener("click", () => {
