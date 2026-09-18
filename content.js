@@ -255,6 +255,7 @@ const SITE = {
   },
 
   beliefs: [
+    "*Focus on what I can control.* Not what happens, not other people, not the outcome. Only my thoughts, choices and actions. Humble with the result, a monster with the work.",
     "*Learn by building.* Things stick when I make something and work out where I got stuck.",
     "*Be honest about what you know.* I'd rather say what I'm still learning than pretend I've figured it all out.",
     "*People change, memories don't.* When something moves me, I film it so I get to keep the moment."
