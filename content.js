@@ -69,34 +69,28 @@ const SITE = {
           text: "Yao Ming",
           note: "on the court, after the NBA legend",
           link: "https://en.wikipedia.org/wiki/Yao_Ming",
-          face: "assets/aka/yao-ming-face.jpg",
-          image: "assets/aka/yao-ming.jpg",
+          face: "assets/aka/yao-ming-rockets-face.jpg",
+          image: "assets/aka/yao-ming-rockets.jpg",
           credit: {
             subject: "Yao Ming",
-            by: "World Travel & Tourism Council",
-            license: "CC BY 2.0",
-            licenseUrl: "https://creativecommons.org/licenses/by/2.0/",
-            source: "https://commons.wikimedia.org/wiki/File:Yao_Ming_in_2014_(cropped).jpg"
+            by: "Keith Allison",
+            license: "CC BY-SA 3.0",
+            licenseUrl: "https://creativecommons.org/licenses/by-sa/3.0/",
+            source: "https://commons.wikimedia.org/wiki/File:YaoMingonoffense2.jpg"
           }
         },
         {
           text: "Wemby",
           note: "after the Spurs' Victor Wembanyama",
           link: "https://en.wikipedia.org/wiki/Victor_Wembanyama",
-          face: "assets/aka/wemby-face.jpg",
-          image: "assets/aka/wemby.jpg",
-          credit: {
-            subject: "Victor Wembanyama",
-            by: "Frenchieinportland",
-            license: "CC BY 4.0",
-            licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
-            source: "https://commons.wikimedia.org/wiki/File:Victor_Wembanyama_San_Antonio_Spurs_2024.jpg"
-          }
+          face: "assets/aka/wemby-tall-face.jpg",
+          image: "assets/aka/wemby-tall.jpg"
         },
         { text: "Jenduks", note: "Valorant · YouTube" },
         { text: "Wel", note: "from Raywel" },
         { text: "Martin", note: "the last name" }
-      ]
+      ],
+      notice: "The Wemby photo belongs to its photographer."
     },
     {
       label: "My starting five",
@@ -107,20 +101,17 @@ const SITE = {
         {
           pos: "PG", text: "Rondo", note: "the passer",
           link: "https://en.wikipedia.org/wiki/Rajon_Rondo",
-          image: "assets/five/rondo.jpg", alt: "Rajon Rondo dribbling for the Celtics",
-          credit: { subject: "Rajon Rondo", by: "kowarski", license: "CC BY 2.0", licenseUrl: "https://creativecommons.org/licenses/by/2.0/", source: "https://commons.wikimedia.org/wiki/File:Taken_at_the_Knicks-Celtics_Game_on_122511.jpg" }
+          image: "assets/five/rondo-celtics.jpg", alt: "Rajon Rondo calling a play as he brings the ball up for the Celtics"
         },
         {
           pos: "SG", text: "Kobe", note: "Mamba mentality",
           link: "https://en.wikipedia.org/wiki/Kobe_Bryant",
-          image: "assets/five/kobe.jpg", alt: "Kobe Bryant fading away on a jump shot",
-          credit: { subject: "Kobe Bryant", by: "steve.lanctot", license: "CC BY 2.0", licenseUrl: "https://creativecommons.org/licenses/by/2.0/", source: "https://commons.wikimedia.org/wiki/File:Kobe_Bryant_Shane_Battier.jpg" }
+          image: "assets/five/kobe-lakers.jpg", alt: "Kobe Bryant driving to the basket for the Lakers"
         },
         {
           pos: "SF", text: "MJ", note: "six rings",
           link: "https://en.wikipedia.org/wiki/Michael_Jordan",
-          image: "assets/five/mj.jpg", alt: "Michael Jordan dribbling up the court for the Bulls",
-          credit: { subject: "Michael Jordan", by: "Carmine Galasso, The Record", license: "public domain", licenseUrl: "", source: "https://commons.wikimedia.org/wiki/File:Michael_Jordan_-_1984_(1).jpg" }
+          image: "assets/five/mj-bulls.jpg", alt: "Michael Jordan rising for a jump shot for the Bulls"
         },
         {
           pos: "PF", text: "LeBron", note: "the King",
@@ -133,7 +124,8 @@ const SITE = {
           image: "assets/five/yao-shaq.jpg", alt: "Yao Ming and Shaquille O'Neal posting up",
           credit: [{ subject: "Yao Ming", by: "Keith Allison", license: "CC BY-SA 2.0", licenseUrl: "https://creativecommons.org/licenses/by-sa/2.0/", source: "https://commons.wikimedia.org/wiki/File:Yao_Ming_(2310548923).jpg" }, { subject: "Shaquille O'Neal", by: "Jeramey Jannene", license: "CC BY 2.0", licenseUrl: "https://creativecommons.org/licenses/by/2.0/", source: "https://commons.wikimedia.org/wiki/File:%22Give_Me_The_Damn_Ball%22_(73833605).jpg" }]
         }
-      ]
+      ],
+      notice: "The Rondo, Kobe and MJ photos belong to their photographers."
     },
     {
       label: "Agents I main",
@@ -203,14 +195,14 @@ const SITE = {
     { emoji: "🏀", title: "Basketball", text: "Where I switch off from code. Want to talk hoops? Message me." },
     { emoji: "🖌️", title: "Graphic design", text: "Posters, layouts, and messing around in Photoshop." },
     { emoji: "🎮", title: "Valorant", text: "Playing with friends and clipping the moments worth keeping, like using a teammate as a Sova drone." },
-    { emoji: "🎧", title: "Music", text: "Hip-hop on repeat, mostly Drake, Travis Scott and 21 Savage. Press play on my playlist below." }
+    { emoji: "🎧", title: "Music", text: "Hip-hop on repeat, mostly Travis Scott, Drake, Mustard and Offset. Press play on my playlist below." }
   ],
 
   // Spotify player under the hobbies. Use the link from Share > Copy link
   // (playlists, albums, tracks and artists all work). Set to null to hide.
   playlist: {
     title: "IM BUSY",
-    note: "100 tracks · Drake, Travis Scott, 21 Savage, Jack Harlow and more",
+    note: "100 tracks · Travis Scott, Drake, Mustard, Offset and more",
     url: "https://open.spotify.com/playlist/4Y8w4bIWDu7ryf8ejl4O5V"
   },
 
