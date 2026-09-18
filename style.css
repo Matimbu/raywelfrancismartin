@@ -415,6 +415,11 @@ button { font: inherit; color: inherit; }
   .js .shot.shot-reveal.in, .js .shot.shot-reveal.in img { animation: none; }
 }
 
+/* theme switch: the new colours grow out of the toggle as a circle */
+::view-transition-old(root),
+::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+.theme-switching *, .theme-switching *::before, .theme-switching *::after { transition: none !important; }
+
 /* first visit per session: an "RM." curtain that lifts into the hero */
 .curtain { display: none; }
 .intro .curtain {
@@ -465,6 +470,13 @@ button { font: inherit; color: inherit; }
 .story-item.gather .story-year {
   transform: translateX(calc((1 - var(--in, 1)) * -60px));
   opacity: calc(var(--in, 1) - var(--out, 0));
+  /* the year fills with orange from left to right as you read down */
+  justify-self: start;
+  padding-right: 0.12em; /* room for the italic overhang */
+  background: linear-gradient(90deg, var(--accent) 0 calc(var(--fill, 1) * 100%), var(--muted) calc(var(--fill, 1) * 100%) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 .story-item.gather .story-body {
   transform: translateX(calc((1 - var(--in, 1)) * 60px));
@@ -983,6 +995,28 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   transition: width 0.8s var(--ease), height 0.8s var(--ease);
 }
 .stage[style*="height"] { aspect-ratio: auto; }
+/* hovering a clip in the list previews its thumbnail on the stage */
+.stage-peek {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(1.05);
+  transition: opacity 0.4s ease, transform 0.8s var(--ease);
+}
+.stage-peek.on { opacity: 1; transform: none; }
+.stage-peek img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.stage-peek-label {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(10, 10, 10, 0.72);
+  color: #f2f0eb;
+  font-size: 10px;
+}
 .stage > .thumb,
 .stage > iframe {
   position: absolute;

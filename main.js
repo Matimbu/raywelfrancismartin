@@ -93,8 +93,10 @@ function updateScenes() {
     const edge = vh * n.dataset.leave;
     const enter = smooth(clamp01((vh - r.top) / (vh * 0.4)));
     const leave = smooth(clamp01((edge - r.bottom) / (edge + r.height * 0.6)));
+    const fill = smooth(clamp01((vh * 0.72 - r.top) / (vh * 0.3)));
     n.style.setProperty("--in", enter.toFixed(3));
     n.style.setProperty("--out", leave.toFixed(3));
+    n.style.setProperty("--fill", fill.toFixed(3));
   });
 }
 
@@ -217,8 +219,30 @@ setInterval(tick, 1000);
 
 const toggle = $("themeToggle");
 toggle.addEventListener("click", () => {
-  root.dataset.theme = root.dataset.theme === "light" ? "dark" : "light";
-  try { localStorage.setItem("theme", root.dataset.theme); } catch (e) {}
+  const next = root.dataset.theme === "light" ? "dark" : "light";
+  const apply = () => {
+    root.dataset.theme = next;
+    try { localStorage.setItem("theme", next); } catch (e) {}
+  };
+  if (!document.startViewTransition || reduceMotion) {
+    apply();
+    return;
+  }
+  // The new theme spreads out from the toggle as a growing circle. The page's
+  // own colour fades pause meanwhile so the two effects don't mix.
+  const r = toggle.getBoundingClientRect();
+  const x = r.left + r.width / 2;
+  const y = r.top + r.height / 2;
+  const radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+  root.classList.add("theme-switching");
+  const switching = document.startViewTransition(apply);
+  switching.ready.then(() => {
+    root.animate(
+      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`] },
+      { duration: 750, easing: "cubic-bezier(0.22, 1, 0.36, 1)", pseudoElement: "::view-transition-new(root)" }
+    );
+  });
+  switching.finished.finally(() => root.classList.remove("theme-switching"));
 });
 
 // ============================================================
@@ -860,6 +884,26 @@ SITE.youtube.forEach((ch, i) => {
     });
   }
 
+  // Hovering a row previews that clip's thumbnail on the stage. Only while
+  // nothing plays: YouTube doesn't allow covering its player.
+  let peekLayer = null;
+  function peek(v) {
+    unpeek();
+    if (playing || (current && current.id === v.id)) return;
+    peekLayer = el("div", "stage-peek");
+    peekLayer.append(tiktok ? tiktokThumb(v) : youtubeThumb(v), el("span", "stage-peek-label mono", "Preview"));
+    stage.appendChild(peekLayer);
+    const layer = peekLayer;
+    requestAnimationFrame(() => requestAnimationFrame(() => layer.classList.add("on")));
+  }
+  function unpeek() {
+    if (!peekLayer) return;
+    const layer = peekLayer;
+    peekLayer = null;
+    layer.classList.remove("on");
+    setTimeout(() => layer.remove(), 450);
+  }
+
   const info = el("div", "channel-info");
   info.append(el("p", "channel-handle mono", ch.handle), el("h3", "channel-name", ch.name));
   if (ch.tagline) info.appendChild(el("p", "channel-tagline", `“${ch.tagline}”`));
@@ -875,8 +919,13 @@ SITE.youtube.forEach((ch, i) => {
       // Once something is playing, picking another video plays it right away
       row.addEventListener("click", () => {
         if (current && current.id === v.id) return;
+        unpeek();
         show(v, playing);
       });
+      if (canHover) {
+        row.addEventListener("mouseenter", () => peek(v));
+        row.addEventListener("mouseleave", unpeek);
+      }
       rows.push(row);
       const li = el("li");
       li.appendChild(row);
