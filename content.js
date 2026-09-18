@@ -130,7 +130,7 @@ const SITE = {
     {
       label: "Agents I main",
       section: "hobbies",
-      intro: "Sova main. Some of the clips are on my YouTube.",
+      intro: "Sova main. Some of the clips are on my YouTube and TikTok.",
       art: { src: "assets/valorant/sova.webp", alt: "Official art of Sova, the Valorant agent", glow: "#355285" },
       notice: "\u201cRaywel Martin\u201d (this site) was created under Riot Games' \u201cLegal Jibber Jabber\u201d policy using assets owned by Riot Games. Riot Games does not endorse or sponsor this project.",
       words: [
@@ -139,10 +139,14 @@ const SITE = {
         {
           text: "Owl Drone",
           note: "or my teammate, apparently",
-          link: "https://www.youtube.com/shorts/1QQ4ncdYBoA"
+          link: "https://www.tiktok.com/@matimbu_/video/7121951680408669442"
         },
         { text: "Shock Bolt", note: "the explosive one" },
-        { text: "Hunter's Fury", note: "ultimate · hits through walls" }
+        {
+          text: "Hunter's Fury",
+          note: "ultimate · hits through walls",
+          link: "https://www.tiktok.com/@matimbu_/video/7032101516244782337"
+        }
       ]
     }
   ],
