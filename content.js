@@ -168,7 +168,9 @@ const SITE = {
     }
   ],
 
-  // "The story so far" in About: one row per year, oldest first
+  // "The story so far" in About: one row per year, oldest first.
+  // `medals` adds gold medals to the title; `photo` (a gallery file name)
+  // adds a button that opens that photo.
   story: {
     label: "The story so far",
     intro: "How I got here.",
@@ -178,6 +180,8 @@ const SITE = {
       {
         year: "2023",
         title: "Two golds",
+        medals: 2,
+        photo: "valorant-champs",
         text: "April 19, my team won the Syntax Valorant Cup. Then the STI Malolos intramurals: everyone bashed our upper-bracket games, so we made a Cinderella run through the lower bracket and took that gold too."
       },
       { year: "2026", title: "Malolos Rush", text: "Building my capstone game in Unity." }
@@ -310,6 +314,13 @@ const SITE = {
       story: "April 19, 2023. One of two golds from our Valorant run."
     },
     {
+      file: "it-congress",
+      caption: "The First IT Congress",
+      alt: "Raywel's certificate of participation from the First IT Congress at STI College Malolos, signatures blurred",
+      wide: true,
+      story: "April 24, 2023, STI College Malolos. Five days after the Syntax Cup."
+    },
+    {
       file: "senior-high",
       caption: "Senior high, 2022–2023",
       alt: "Raywel posing behind a frosted glass window",
@@ -356,6 +367,13 @@ const SITE = {
       caption: "You noticed my favourite sweater, huh?",
       alt: "Raywel in his favourite sweater in front of a giant red flower installation",
       story: "Yeah, I wear it a lot."
+    },
+    {
+      file: "converse",
+      caption: "My go-to sneaker",
+      alt: "Raywel's white Converse on gravel next to his black Converse on concrete",
+      wide: true,
+      story: "All-time favourite, whatever the OOTD."
     }
   ],
 

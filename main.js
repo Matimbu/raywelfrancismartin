@@ -419,7 +419,26 @@ if (SITE.story && SITE.story.items && SITE.story.items.length) {
     const li = el("li", "story-item reveal");
     li.style.setProperty("--d", i);
     const body = el("div", "story-body");
-    body.append(el("p", "story-title", s.title), el("p", "story-text", s.text));
+    const title = el("p", "story-title", s.title);
+    if (s.medals) {
+      const medals = el("span", "story-medals", "🥇".repeat(s.medals));
+      medals.setAttribute("aria-label", `${s.medals} gold medal${s.medals > 1 ? "s" : ""}`);
+      title.appendChild(medals);
+    }
+    body.append(title, el("p", "story-text", s.text));
+    // A row can open one of the gallery photos in the viewer
+    const shot = s.photo ? (SITE.gallery || []).findIndex((g) => g.file === s.photo) : -1;
+    if (shot >= 0) {
+      const open = el("button", "story-photo");
+      open.type = "button";
+      const thumb = el("img");
+      thumb.src = `assets/gallery/${s.photo}-400.jpg`;
+      thumb.alt = "";
+      thumb.loading = "lazy";
+      open.append(thumb, el("span", "mono", "See the photo"));
+      open.addEventListener("click", () => openShot(shot));
+      body.appendChild(open);
+    }
     li.append(el("span", "story-year", s.year), body);
     list.appendChild(li);
   });
