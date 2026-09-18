@@ -116,8 +116,7 @@ const SITE = {
         {
           pos: "PF", text: "LeBron", note: "the King",
           link: "https://en.wikipedia.org/wiki/LeBron_James",
-          image: "assets/five/lebron.jpg", alt: "LeBron James rising for a one-handed dunk",
-          credit: { subject: "LeBron James", by: "Erik Drost", license: "CC BY 2.0", licenseUrl: "https://creativecommons.org/licenses/by/2.0/", source: "https://commons.wikimedia.org/wiki/File:LeBron_James_(51960276445)_(cropped).jpg" }
+          image: "assets/five/lebron-heat.jpg", alt: "LeBron James cocking the ball back for a dunk with the Heat"
         },
         {
           pos: "C", text: "Yao / Shaq", note: "co-starters",
@@ -125,7 +124,7 @@ const SITE = {
           credit: [{ subject: "Yao Ming", by: "Keith Allison", license: "CC BY-SA 2.0", licenseUrl: "https://creativecommons.org/licenses/by-sa/2.0/", source: "https://commons.wikimedia.org/wiki/File:Yao_Ming_(2310548923).jpg" }, { subject: "Shaquille O'Neal", by: "Jeramey Jannene", license: "CC BY 2.0", licenseUrl: "https://creativecommons.org/licenses/by/2.0/", source: "https://commons.wikimedia.org/wiki/File:%22Give_Me_The_Damn_Ball%22_(73833605).jpg" }]
         }
       ],
-      notice: "The Rondo, Kobe and MJ photos belong to their photographers."
+      notice: "The Rondo, Kobe, MJ and LeBron photos belong to their photographers."
     },
     {
       label: "Agents I main",
