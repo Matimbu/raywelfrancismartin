@@ -348,6 +348,10 @@ function flashCopied(label, ok) {
       note.appendChild(document.createTextNode(`${w.note || ""}${w.link ? " ↗" : ""}`));
       item.appendChild(note);
     }
+    if (w.drone) {
+      item.classList.add("ww-drone");
+      item.addEventListener("click", launchDrone);
+    }
     // Reuse the crafts preview card: the photo follows the cursor
     if (w.image && canHover && !cards) {
       item.addEventListener("mouseenter", () => showPreview({ image: w.image, emoji: "" }));
@@ -439,7 +443,9 @@ if (SITE.story && SITE.story.items && SITE.story.items.length) {
       open.addEventListener("click", () => openShot(shot));
       body.appendChild(open);
     }
-    li.append(el("span", "story-year", s.year), body);
+    const year = el("span", "story-year", s.year);
+    if (s.until) year.appendChild(el("span", "story-until mono", `to ${s.until}`));
+    li.append(year, body);
     list.appendChild(li);
   });
   block.append(head, list);
@@ -966,6 +972,87 @@ if (canHover && !reduceMotion) {
   }, { passive: true });
 }
 
+// A ring in the corner fills like a shot meter as you scroll; at the
+// bottom it turns orange (swish). Tapping it goes back to the top.
+const meter = el("a", "shot-meter");
+meter.href = "#top";
+meter.setAttribute("aria-label", "Back to top");
+meter.innerHTML =
+  '<svg viewBox="0 0 44 44" aria-hidden="true"><circle class="shot-meter-track" cx="22" cy="22" r="19"/>' +
+  '<circle class="shot-meter-fill" cx="22" cy="22" r="19"/></svg><span class="shot-meter-arrow" aria-hidden="true">↑</span>';
+document.body.appendChild(meter);
+document.body.classList.add("has-meter");
+document.querySelector('.footer a[href="#top"]')?.remove();
+const meterFill = meter.querySelector(".shot-meter-fill");
+const METER_LEN = 2 * Math.PI * 19;
+meterFill.style.strokeDasharray = METER_LEN.toFixed(2);
+
+// On phones the ring would sit on the text, so it hides with the header
+// while you scroll down and comes back when you scroll up
+const narrowScreen = matchMedia("(max-width: 960px)");
+
+function updateMeter(y) {
+  const max = document.documentElement.scrollHeight - innerHeight;
+  const p = max > 0 ? Math.min(1, y / max) : 0;
+  meterFill.style.strokeDashoffset = (METER_LEN * (1 - p)).toFixed(2);
+  const reading = narrowScreen.matches && header.classList.contains("tucked");
+  meter.classList.toggle("on", y > heroH * 0.6 && !reading);
+  meter.classList.toggle("swish", p > 0.995);
+}
+updateMeter(scrollY);
+
+// Easter egg: type "sova" anywhere (or tap "Sova" on the agents wall) and
+// an Owl Drone flies across the page
+const DRONE_SVG =
+  '<svg viewBox="0 0 120 80" aria-hidden="true">' +
+  '<path class="drone-wing drone-wing-back" d="M56 37 L34 18 L30 22 L42 38 Z"/>' +
+  '<path class="drone-wing drone-wing-back" d="M56 43 L34 62 L30 58 L42 42 Z"/>' +
+  '<path class="drone-wing" d="M74 37 L44 3 L36 6 L50 38 Z"/>' +
+  '<path class="drone-wing" d="M74 43 L44 77 L36 74 L50 42 Z"/>' +
+  '<path class="drone-body" d="M106 40 C98 33 84 32 72 34 L40 38 L34 40 L40 42 L72 46 C84 48 98 47 106 40 Z"/>' +
+  '<circle class="drone-eye" cx="92" cy="40" r="3.8"/></svg>';
+let typed = "";
+let droneFlying = false;
+
+document.addEventListener("keydown", (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.key.length !== 1) return;
+  if (e.target instanceof Element && e.target.closest("input, textarea, select, [contenteditable]")) return;
+  typed = (typed + e.key.toLowerCase()).slice(-4);
+  if (typed === "sova") launchDrone();
+});
+
+function launchDrone() {
+  if (droneFlying) return;
+  droneFlying = true;
+  const toast = el("div", "drone-toast mono", "Owl Drone deployed");
+  toast.setAttribute("role", "status");
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add("on"));
+  const land = () => {
+    toast.classList.remove("on");
+    setTimeout(() => {
+      toast.remove();
+      droneFlying = false;
+    }, 500);
+  };
+  if (reduceMotion) {
+    setTimeout(land, 2200);
+    return;
+  }
+  const drone = el("div", "drone");
+  drone.innerHTML = DRONE_SVG;
+  document.body.appendChild(drone);
+  const flight = drone.animate([
+    { transform: "translate(-160px, 64vh) rotate(-10deg)" },
+    { transform: `translate(${Math.round(innerWidth * 0.48)}px, 32vh) rotate(0deg)`, offset: 0.55 },
+    { transform: `translate(${innerWidth + 160}px, 44vh) rotate(8deg)` }
+  ], { duration: 3400, easing: "cubic-bezier(0.45, 0, 0.3, 1)" });
+  flight.onfinish = () => {
+    drone.remove();
+    land();
+  };
+}
+
 // Runs every frame but only touches the page when something moved.
 function frame() {
   const y = scrollY;
@@ -989,6 +1076,7 @@ function frame() {
     header.classList.toggle("solid", y > 10);
     hero.style.setProperty("--p", Math.min(1, y / (heroH * 0.75)).toFixed(3));
     updateBeliefs();
+    updateMeter(y);
   }
 
   if ((scrolled || drifting) && y < heroH * 1.2) {
@@ -1013,6 +1101,7 @@ if (reduceMotion) {
   document.querySelectorAll(".fw").forEach((w) => w.classList.add("lit"));
   addEventListener("scroll", () => {
     header.classList.toggle("solid", scrollY > 10);
+    updateMeter(scrollY);
   }, { passive: true });
 } else {
   requestAnimationFrame(frame);

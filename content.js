@@ -147,11 +147,10 @@ const SITE = {
       specs: [
         { label: "Crosshair", value: "0;p;0;c;1;s;1;P;u;000000FF;h;0;f;0;m;1;0l;2;0v;2;0o;0;0a;1;0f;0;1b;0;A;c;8;d;1;b;1;0b;0;1b;0;S;d;0", copy: true },
         { label: "Sens", value: "0.37" },
-        { label: "DPI", value: "800" },
-        { label: "eDPI", value: "296" }
+        { label: "DPI", value: "800" }
       ],
       words: [
-        { text: "Sova", note: "main · Initiator", top: true, face: "assets/valorant/sova-icon.webp" },
+        { text: "Sova", note: "main · Initiator", top: true, face: "assets/valorant/sova-icon.webp", drone: true },
         { text: "Recon Bolt", note: "reveals enemies" },
         {
           text: "Owl Drone",
@@ -170,19 +169,25 @@ const SITE = {
 
   // "The story so far" in About: one row per year, oldest first.
   // `medals` adds gold medals to the title; `photo` (a gallery file name)
-  // adds a button that opens that photo.
+  // adds a button that opens that photo; `until` shows "to now" under the year.
   story: {
     label: "The story so far",
     intro: "How I got here.",
     items: [
       { year: "2021", title: "Pandemic days", text: "Senior high at STI, in the middle of the pandemic." },
-      { year: "2022", title: "The real world", text: "After the pandemic, where it all started: my first journey out into the real world." },
+      { year: "2022", title: "Coming of age", text: "After the pandemic, back in person. Where my adolescence really began." },
       {
         year: "2023",
         title: "Two golds",
         medals: 2,
         photo: "valorant-champs",
         text: "April 19, my team won the Syntax Valorant Cup. Then the STI Malolos intramurals: everyone bashed our upper-bracket games, so we made a Cinderella run through the lower bracket and took that gold too."
+      },
+      {
+        year: "2024",
+        until: "now",
+        title: "College days",
+        text: "Where the maturity began. Every kind of hardship: physical, mental, emotional, spiritual. And the most important lesson of all, the wisdom of life."
       },
       { year: "2026", title: "Malolos Rush", text: "Building my capstone game in Unity." }
     ]

@@ -596,6 +596,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   transition: color 0.3s ease;
 }
 .story-item:hover .story-year { color: var(--fg); }
+.story-until { display: block; margin-top: 10px; font-style: normal; font-size: 10px; color: var(--accent); }
 .story-title { margin-bottom: 6px; font-size: 18px; }
 .story-medals { margin-left: 10px; font-size: 15px; letter-spacing: 2px; }
 .story-photo {
@@ -1211,6 +1212,82 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   color: var(--muted);
 }
 .footer a:hover { color: var(--fg); }
+/* leave room for the shot meter in the corner */
+.has-meter .footer { padding-right: calc(var(--pad) + 60px); }
+
+/* back-to-top ring that fills as you scroll, orange at the bottom */
+.shot-meter {
+  position: fixed;
+  right: var(--pad);
+  bottom: 20px;
+  z-index: 40;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  backdrop-filter: blur(6px);
+  color: var(--fg);
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition: opacity 0.4s ease, transform 0.4s var(--ease);
+}
+.shot-meter.on { opacity: 1; transform: none; pointer-events: auto; }
+.shot-meter svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+.shot-meter circle { fill: none; stroke-width: 2; }
+.shot-meter-track { stroke: var(--line); }
+.shot-meter-fill { stroke: var(--fg); stroke-linecap: round; transition: stroke 0.3s ease; }
+.shot-meter.swish .shot-meter-fill { stroke: var(--accent); }
+.shot-meter.swish { animation: swish 0.5s var(--ease); }
+@keyframes swish { 50% { transform: scale(1.12); } }
+.shot-meter-arrow { font-size: 14px; line-height: 1; transition: color 0.3s ease; }
+.shot-meter:hover .shot-meter-arrow { color: var(--accent); }
+
+/* Owl Drone easter egg */
+.ww-drone { cursor: pointer; }
+.drone {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 60;
+  width: 104px;
+  pointer-events: none;
+  filter: drop-shadow(0 0 14px rgba(79, 140, 230, 0.85));
+}
+.drone svg { display: block; width: 100%; }
+.drone-body { fill: var(--fg); }
+.drone-wing { fill: var(--fg); opacity: 0.78; }
+.drone-wing-back { opacity: 0.45; }
+.drone-eye { fill: #8fd3ff; }
+.drone-toast {
+  position: fixed;
+  left: var(--pad);
+  bottom: 20px;
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 11px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.4s ease, transform 0.4s var(--ease);
+}
+.drone-toast::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #4f8ce6;
+  box-shadow: 0 0 10px #4f8ce6;
+}
+.drone-toast.on { opacity: 1; transform: none; }
 
 /* Placeholder content you still need to fill in */
 .todo { outline: 1px dashed var(--todo); outline-offset: 6px; border-radius: 2px; }
