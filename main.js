@@ -273,6 +273,33 @@ function buildName(node, lines) {
 }
 buildName($("heroName"), [SITE.firstName, SITE.lastName]);
 
+// Letters near the cursor lift a little and lean toward it, easing back
+// when it moves away (desktop only)
+const nameLetters = canHover && !reduceMotion
+  ? [...document.querySelectorAll("#heroName .nl")].map((outer) => ({ outer, inner: outer.firstChild, lean: 0, lift: 0, tLean: 0, tLift: 0 }))
+  : [];
+function aimName() {
+  nameLetters.forEach((l) => {
+    const r = l.outer.getBoundingClientRect();
+    const dx = pointerX - (r.left + r.width / 2);
+    const dy = pointerY - (r.top + r.height / 2);
+    const pull = Math.exp(-(dx * dx + dy * dy) / (2 * 230 * 230));
+    l.tLean = Math.max(-1, Math.min(1, dx / 160)) * 9 * pull;
+    l.tLift = -18 * pull;
+  });
+}
+function easeName() {
+  nameLetters.forEach((l) => {
+    const dLean = l.tLean - l.lean;
+    const dLift = l.tLift - l.lift;
+    if (Math.abs(dLean) < 0.01 && Math.abs(dLift) < 0.05) return;
+    l.lean += dLean * 0.12;
+    l.lift += dLift * 0.12;
+    l.inner.style.setProperty("--lean", `${l.lean.toFixed(2)}deg`);
+    l.inner.style.setProperty("--lift", `${l.lift.toFixed(1)}px`);
+  });
+}
+
 const roles = $("roles");
 const statement = $("statement");
 roles.textContent = SITE.roles.join(" · ");
@@ -1020,11 +1047,13 @@ const lightbox = $("lightbox");
 const lbImg = $("lbImg");
 let lbIndex = 0;
 
-function showShot(i) {
+// dir: 1 = next, -1 = previous, 0 = just opened
+function showShot(i, dir = 0) {
   lbIndex = (i + gallery.length) % gallery.length;
   const p = gallery[lbIndex];
   // Show the grid-size copy right away, then swap in the large one
   lbImg.src = shotSrc(p, 800);
+  revealShot(dir);
   lbImg.alt = p.alt || p.caption;
   const large = new Image();
   const wanted = lbIndex;
@@ -1045,6 +1074,25 @@ function showShot(i) {
   });
 }
 
+// The photo opens like a curtain from the side you're heading towards,
+// the same reveal the gallery tiles use
+function revealShot(dir) {
+  if (reduceMotion || !lbImg.animate) return;
+  const play = () => {
+    lbImg.getAnimations().forEach((a) => a.cancel());
+    lbImg.animate([
+      {
+        opacity: 0,
+        transform: `translate(${dir * 56}px, ${dir ? 0 : 34}px) scale(1.03)`,
+        clipPath: dir > 0 ? "inset(0 0 0 24%)" : dir < 0 ? "inset(0 24% 0 0)" : "inset(24% 0 0 0)"
+      },
+      { opacity: 1, transform: "none", clipPath: "inset(0 0 0 0)" }
+    ], { duration: 750, easing: "cubic-bezier(0.22, 1, 0.36, 1)" });
+  };
+  if (lbImg.complete) play();
+  else lbImg.addEventListener("load", play, { once: true });
+}
+
 function openShot(i) {
   showShot(i);
   lightbox.showModal();
@@ -1053,11 +1101,11 @@ function openShot(i) {
 
 lightbox.addEventListener("close", () => { if (lenis) lenis.start(); });
 $("lbClose").addEventListener("click", () => lightbox.close());
-$("lbPrev").addEventListener("click", () => showShot(lbIndex - 1));
-$("lbNext").addEventListener("click", () => showShot(lbIndex + 1));
+$("lbPrev").addEventListener("click", () => showShot(lbIndex - 1, -1));
+$("lbNext").addEventListener("click", () => showShot(lbIndex + 1, 1));
 lightbox.addEventListener("keydown", (e) => {
-  if (e.key === "ArrowLeft") showShot(lbIndex - 1);
-  if (e.key === "ArrowRight") showShot(lbIndex + 1);
+  if (e.key === "ArrowLeft") showShot(lbIndex - 1, -1);
+  if (e.key === "ArrowRight") showShot(lbIndex + 1, 1);
 });
 
 // Swipe on touch screens; a plain tap on the dark area closes the viewer
@@ -1070,7 +1118,7 @@ lightbox.addEventListener("pointerup", (e) => {
   swipeX = null;
   if (Math.abs(dx) > 50) {
     swiped = true;
-    showShot(lbIndex + (dx < 0 ? 1 : -1));
+    showShot(lbIndex + (dx < 0 ? 1 : -1), dx < 0 ? 1 : -1);
   }
 });
 lightbox.addEventListener("click", (e) => {
@@ -1111,6 +1159,27 @@ SITE.links.forEach((l, i) => {
 //  Scroll-in animations
 // ============================================================
 document.querySelectorAll(".split").forEach(splitLetters);
+
+// Finale: once "Let's talk." is fully on screen, an orange line draws
+// itself under "talk."
+const talk = document.querySelector(".contact-title em");
+if (talk) {
+  talk.insertAdjacentHTML(
+    "beforeend",
+    '<svg class="talk-line" viewBox="0 0 100 12" preserveAspectRatio="none" aria-hidden="true">' +
+      '<path d="M2 8 C 24 3, 62 2.5, 98 6.5" pathLength="1"/></svg>'
+  );
+  if (reduceMotion) {
+    talk.classList.add("drawn");
+  } else {
+    const drawWatch = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      talk.classList.add("drawn");
+      drawWatch.disconnect();
+    }, { threshold: 1, rootMargin: "0px 0px -18% 0px" });
+    drawWatch.observe(talk);
+  }
+}
 // Section titles: the letters drift in from both sides, meet as the title
 // reaches the middle of the screen, and dissolve upward as it leaves
 document.querySelectorAll(".title.split, .contact-title.split").forEach((title) => {
@@ -1169,6 +1238,7 @@ if (canHover && !reduceMotion) {
     mouseY = e.clientY / innerHeight - 0.5;
     pointerX = e.clientX;
     pointerY = e.clientY;
+    if (scrollY < heroH) aimName();
   }, { passive: true });
 }
 
@@ -1276,6 +1346,8 @@ function frame() {
   frameY = y;
 
   updateMarquee(y);
+  if (scrolled && y < heroH) aimName();
+  easeName();
 
   const dx = mouseX - easeX;
   const dy = mouseY - easeY;

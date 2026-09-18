@@ -203,7 +203,9 @@ button { font: inherit; color: inherit; }
 .nl { display: inline-block; }
 .nl-in {
   display: inline-block;
-  transform: translateY(calc(var(--p, 0) * var(--c, 0) * -140px));
+  /* --p/--c: the scroll smile; --lift/--lean: letters reaching for the cursor */
+  transform: translateY(calc(var(--p, 0) * var(--c, 0) * -140px + var(--lift, 0px))) rotate(var(--lean, 0deg));
+  transform-origin: 50% 85%;
 }
 .js .nl {
   opacity: 0;
@@ -1304,11 +1306,33 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   margin-bottom: 28px;
 }
 .contact-title em {
+  position: relative;
+  display: inline-block;
   font-family: var(--serif);
   font-weight: 400;
   letter-spacing: -0.02em;
   color: var(--accent);
 }
+/* the finale underline that draws itself under "talk." */
+.talk-line {
+  position: absolute;
+  left: 0.02em;
+  bottom: -0.04em;
+  width: calc(100% - 0.16em);
+  height: 0.14em;
+  overflow: visible;
+  pointer-events: none;
+}
+.talk-line path {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.4; /* in the drawing's own units, so it grows with the title */
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 1.3s var(--ease) 0.25s;
+}
+.drawn .talk-line path { stroke-dashoffset: 0; }
 .contact-line {
   color: var(--muted);
   font-size: 18px;
