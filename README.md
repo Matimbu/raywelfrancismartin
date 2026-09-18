@@ -23,6 +23,9 @@ Everything the site says is in `content.js`. After changing `content.js`, `main.
 - `assets/gallery/` holds the Snapshots gallery: each photo at 400, 800 and 1600 px (the page loads the small ones in the grid and the 1600 px one only when a photo is opened). Captions and order live in `gallery` in `content.js`.
 - Edited a photo in Lightroom? Export a full-size JPEG into `images/` and re-crop it, or export straight to the matching file in `assets/` at the same size (`me-shop.jpg` 480×640, `me-cafe.jpg` 480×600, `still-flowers.jpg` 480×480, `me-sofa.jpg` 640×480).
 - `assets/og-image.jpg` (1200×630) is the picture people see when the link is shared in Messenger, Discord, Facebook or X. To change it, replace the file at the same size. Apps cache previews, so to refresh one after a change, paste the link into [Facebook's Sharing Debugger](https://developers.facebook.com/tools/debug/) and press "Scrape Again".
+- `assets/icons/` holds the "RM." tab icon (16 and 32 px, drawn slightly bolder so it stays readable), a 192 px icon and `apple-touch-icon.png` for phone home screens.
+- `assets/tiktok/` holds a cover image for each TikTok clip in the Watch Me section, named after the video ID (TikTok's own thumbnail links expire).
+- `404.html` is the "Airball." page GitHub Pages shows for any address that doesn't exist.
 
 ## Preview locally
 

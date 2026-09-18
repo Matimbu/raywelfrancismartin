@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Airball · Raywel Martin</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0a0a0a">
+  <!-- GitHub Pages shows this page for any missing address, at any depth, so
+       every link and icon here uses the site's full path -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/raywelfrancismartin/assets/icons/favicon-32.png">
+  <link rel="apple-touch-icon" href="/raywelfrancismartin/assets/icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script>
+    try { var t = localStorage.getItem("theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
+  <style>
+    :root, [data-theme="dark"] {
+      --bg: #0a0a0a; --fg: #f2f0eb; --muted: #8f8c86; --line: #222220; --accent: #ff5a1f;
+    }
+    [data-theme="light"] {
+      --bg: #f2f0eb; --fg: #111110; --muted: #6d6a64; --line: #dcd8cf; --accent: #e2470b;
+    }
+    * { margin: 0; box-sizing: border-box; }
+    body {
+      min-height: 100svh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      padding: 24px clamp(16px, 4vw, 48px);
+      background: var(--bg);
+      color: var(--fg);
+      font-family: "Geist", system-ui, sans-serif;
+    }
+    a { color: inherit; text-decoration: none; }
+    .mono { font-family: "Geist Mono", ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .brand { color: var(--fg); }
+    main { align-self: center; padding: 48px 0; }
+    .eyebrow { color: var(--muted); }
+    h1 {
+      margin: 18px 0 20px;
+      font-size: clamp(76px, 17vw, 240px);
+      font-weight: 700;
+      line-height: 0.9;
+      letter-spacing: -0.05em;
+    }
+    h1 em {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-weight: 400;
+      font-style: italic;
+      letter-spacing: -0.02em;
+      color: var(--accent);
+    }
+    .line { max-width: 34ch; color: var(--muted); font-size: clamp(17px, 2vw, 20px); line-height: 1.5; }
+    .home {
+      display: inline-flex;
+      margin-top: 32px;
+      padding: 14px 20px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      transition: border-color 0.3s ease, background 0.3s ease;
+    }
+    .home:hover { border-color: var(--fg); }
+    footer { display: flex; justify-content: space-between; gap: 16px; color: var(--muted); }
+
+    /* the ball drops in from above and bounces to a stop */
+    .ball {
+      display: inline-block;
+      font-size: 0.42em;
+      vertical-align: 0.12em;
+      margin-left: 0.08em;
+      animation: drop 1.8s cubic-bezier(0.3, 0, 0.7, 1) both;
+    }
+    @keyframes drop {
+      0%   { transform: translateY(-120vh) rotate(0deg); }
+      40%  { transform: translateY(0) rotate(160deg); animation-timing-function: cubic-bezier(0.2, 0.6, 0.4, 1); }
+      58%  { transform: translateY(-0.9em) rotate(220deg); animation-timing-function: cubic-bezier(0.6, 0, 0.8, 0.4); }
+      74%  { transform: translateY(0) rotate(270deg); animation-timing-function: cubic-bezier(0.2, 0.6, 0.4, 1); }
+      84%  { transform: translateY(-0.3em) rotate(295deg); animation-timing-function: cubic-bezier(0.6, 0, 0.8, 0.4); }
+      92%  { transform: translateY(0) rotate(310deg); }
+      100% { transform: translateY(0) rotate(318deg); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .ball { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <header><a class="brand mono home-link" href="/raywelfrancismartin/">Raywel Martin</a></header>
+  <main>
+    <p class="eyebrow mono">404 — Page not found</p>
+    <h1>Air<em>ball.</em><span class="ball" aria-hidden="true">🏀</span></h1>
+    <p class="line">That shot missed the rim. The page you're after isn't here, but the rest of the site is.</p>
+    <a class="home home-link mono" href="/raywelfrancismartin/">Back to the homepage ↩</a>
+  </main>
+  <footer class="mono"><span>Malolos, Bulacan</span><a class="home-link" href="/raywelfrancismartin/#connect">Say hi ↗</a></footer>
+  <script>
+    // Opened from a local preview instead of GitHub Pages: point home at "/"
+    if (!location.pathname.startsWith("/raywelfrancismartin/")) {
+      document.querySelectorAll(".home-link").forEach(function (a) {
+        a.setAttribute("href", a.getAttribute("href").replace("/raywelfrancismartin/", "/"));
+      });
+    }
+  </script>
+</body>
+</html>

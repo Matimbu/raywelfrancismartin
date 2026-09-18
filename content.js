@@ -207,7 +207,9 @@ const SITE = {
   playlist: {
     title: "IM BUSY",
     note: "Travis Scott, Drake, Mustard, Offset and more",
-    url: "https://open.spotify.com/playlist/4Y8w4bIWDu7ryf8ejl4O5V"
+    url: "https://open.spotify.com/playlist/4Y8w4bIWDu7ryf8ejl4O5V",
+    // One song you're into right now (Share > Copy song link). null hides it.
+    pick: "https://open.spotify.com/track/6MWKRxEIBl14lEWFdCCVaa"
   },
 
   beliefs: [
@@ -231,6 +233,20 @@ const SITE = {
         { title: "batugans 22 - 23", note: "4:06", id: "wZsDlJYYQDI" },
         { title: "BAIT MY TEAMMATE", note: "Short", id: "1QQ4ncdYBoA", short: true },
         { title: "NEVER BACK DOWN NEVER WHAT?", note: "Short", id: "lXQqb-qdOAg", short: true }
+      ]
+    },
+    {
+      // `platform: "tiktok"` plays clips in TikTok's player; IDs come from
+      // tiktok.com/@you/video/THIS_PART and each needs a cover in assets/tiktok/
+      platform: "tiktok",
+      name: "Jenduks",
+      handle: "@matimbu_",
+      url: "https://www.tiktok.com/@matimbu_",
+      about: "Valorant clips, mostly Sova.",
+      featuredVideo: "7121951680408669442",
+      videos: [
+        { title: "Owl Drone", note: "Clip", id: "7121951680408669442" },
+        { title: "Hunter's Fury", note: "Clip", id: "7032101516244782337" }
       ]
     }
   ],

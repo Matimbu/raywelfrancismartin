@@ -447,6 +447,19 @@ if (spotify) {
   frame.loading = "lazy";
   frame.allow = "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture";
   block.append(label, frame);
+
+  // One song picked out under the playlist (a compact track player)
+  const pick = SITE.playlist.pick && SITE.playlist.pick.match(/open\.spotify\.com\/track\/([A-Za-z0-9]+)/);
+  if (pick) {
+    const pickLabel = el("div", "playlist-label");
+    pickLabel.appendChild(el("p", "mono playlist-kicker", "Current pick"));
+    const pickFrame = el("iframe", "playlist-track");
+    pickFrame.src = `https://open.spotify.com/embed/track/${pick[1]}?theme=0`;
+    pickFrame.title = "My current pick on Spotify";
+    pickFrame.loading = "lazy";
+    pickFrame.allow = frame.allow;
+    block.append(pickLabel, pickFrame);
+  }
   $("hobbies").appendChild(block);
 }
 
@@ -478,12 +491,14 @@ function updateBeliefs() {
 }
 
 // ============================================================
-//  YouTube
+//  YouTube and TikTok
 // ============================================================
-// Pick a video from the list and it plays on the stage. Shorts get a tall
-// 9:16 frame, regular videos a wide 16:9 one.
-const watchUrl = (v) =>
-  v.short ? `https://www.youtube.com/shorts/${v.id}` : `https://www.youtube.com/watch?v=${v.id}`;
+// Pick a video from the list and it plays on the stage. Shorts and TikTok
+// clips get a tall 9:16 frame, regular videos a wide 16:9 one.
+const onTikTok = (ch) => ch.platform === "tiktok";
+const watchUrl = (v, ch) =>
+  onTikTok(ch) ? `${ch.url}/video/${v.id}`
+  : v.short ? `https://www.youtube.com/shorts/${v.id}` : `https://www.youtube.com/watch?v=${v.id}`;
 
 // Shorts have a tall thumbnail ("oar2"), videos a max-res one. When a size is
 // missing YouTube serves a tiny placeholder, so fall back to the standard one.
@@ -517,6 +532,25 @@ function youtubeFrame(v) {
   return frame;
 }
 
+// TikTok's thumbnail links expire, so each clip's cover lives in assets/tiktok/
+function tiktokThumb(v) {
+  const img = el("img");
+  img.alt = "";
+  img.loading = "lazy";
+  img.src = `assets/tiktok/${v.id}.jpg`;
+  return img;
+}
+
+function tiktokFrame(v) {
+  const frame = el("iframe");
+  const params = new URLSearchParams({ autoplay: 1, loop: 1, rel: 0, description: 0, music_info: 0 });
+  frame.src = `https://www.tiktok.com/player/v1/${encodeURIComponent(v.id)}?${params}`;
+  frame.title = v.title;
+  frame.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+  frame.allowFullscreen = true;
+  return frame;
+}
+
 const stageFits = [];
 
 SITE.youtube.forEach((ch, i) => {
@@ -525,6 +559,8 @@ SITE.youtube.forEach((ch, i) => {
   if (isTodo(ch.name, ch.about)) card.classList.add("todo");
 
   const videos = ch.videos || [];
+  const tiktok = onTikTok(ch);
+  const tall = (v) => tiktok || v.short;
   let current = videos.find((v) => v.id === ch.featuredVideo)
     || (ch.featuredVideo ? { id: ch.featuredVideo, title: `${ch.name} video` } : null);
   let playing = false;
@@ -535,7 +571,7 @@ SITE.youtube.forEach((ch, i) => {
   const caption = el("div", "stage-caption");
   const captionState = el("span", "stage-state mono");
   const captionTitle = el("span", "stage-title");
-  const openLink = el("a", "stage-open mono", "YouTube ↗");
+  const openLink = el("a", "stage-open mono", tiktok ? "TikTok ↗" : "YouTube ↗");
   const captionLabel = el("span", "stage-label");
   captionLabel.append(captionState, captionTitle);
   caption.append(captionLabel, openLink);
@@ -547,7 +583,7 @@ SITE.youtube.forEach((ch, i) => {
     const col = media.clientWidth;
     let w = col;
     let h = col * 9 / 16;
-    if (current && current.short) {
+    if (current && tall(current)) {
       h = Math.min(Math.max(col * 0.85, 420), innerHeight * 0.72, 600);
       w = Math.min(h * 9 / 16, col);
       h = w * 16 / 9;
@@ -582,25 +618,25 @@ SITE.youtube.forEach((ch, i) => {
       r.classList.toggle("active", on);
       r.setAttribute("aria-pressed", String(on));
     });
-    captionState.textContent = play ? "Now playing" : v.short ? "Short" : "Video";
+    captionState.textContent = play ? "Now playing" : tiktok ? "Clip" : v.short ? "Short" : "Video";
     captionTitle.textContent = v.title;
-    linkify(openLink, watchUrl(v));
+    linkify(openLink, watchUrl(v, ch));
 
     if (play) {
-      const frame = youtubeFrame(v);
+      const frame = tiktok ? tiktokFrame(v) : youtubeFrame(v);
       swapIn(frame, (reveal) => frame.addEventListener("load", reveal, { once: true }));
       return;
     }
     const btn = el("button", "thumb");
     btn.type = "button";
     btn.setAttribute("aria-label", `Play ${v.title}`);
-    const img = youtubeThumb(v);
+    const img = tiktok ? tiktokThumb(v) : youtubeThumb(v);
     btn.append(img, el("span", "play", "▶"));
     btn.addEventListener("click", () => {
       // A page opened straight from disk has no address to send, so
       // YouTube would refuse to play it here; open YouTube instead.
       if (!location.protocol.startsWith("http")) {
-        window.open(watchUrl(v), "_blank", "noopener");
+        window.open(watchUrl(v, ch), "_blank", "noopener");
         return;
       }
       show(v, true);
@@ -636,7 +672,7 @@ SITE.youtube.forEach((ch, i) => {
     info.appendChild(list);
   }
 
-  const visit = el("a", "channel-visit mono", "Visit channel ↗");
+  const visit = el("a", "channel-visit mono", tiktok ? "Visit profile ↗" : "Visit channel ↗");
   linkify(visit, ch.url);
   info.appendChild(visit);
 

@@ -712,6 +712,7 @@ a.ww-card:hover .ww-text { color: var(--fg); }
   border-radius: 12px;
   background: var(--card);
 }
+.playlist iframe.playlist-track { height: 80px; }
 
 /* ============================================================
    Beliefs
