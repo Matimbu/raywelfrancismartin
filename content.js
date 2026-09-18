@@ -58,6 +58,7 @@ const SITE = {
   // `notice` adds a line under the wall (e.g. Riot's fan-content notice).
   // `layout: "cards"` shows each word as a photo card (`image`, `pos`, `alt`);
   // `credit` can also be a list when a card uses more than one photo.
+  // `specs` lists small settings under the words; `copy: true` adds a Copy button.
   // Add more walls to the list and they show up in the same style.
   walls: [
     {
@@ -91,6 +92,17 @@ const SITE = {
         { text: "Martin", note: "the last name" }
       ],
       notice: "The Wemby photo belongs to its photographer."
+    },
+    {
+      label: "On the court",
+      section: "hobbies",
+      intro: "Where I play and what I go to.",
+      words: [
+        { text: "Center", note: "or the 3, on the wing", top: true },
+        { text: "6 ft", note: "easy fouls in the post" },
+        { text: "Triple threat", note: "jab right, explode left, reverse on the right side" },
+        { text: "Drop step spin", note: "and one!" }
+      ]
     },
     {
       label: "My starting five",
@@ -132,6 +144,12 @@ const SITE = {
       intro: "Sova main. Some of the clips are on my YouTube and TikTok.",
       art: { src: "assets/valorant/sova.webp", alt: "Official art of Sova, the Valorant agent", glow: "#355285" },
       notice: "\u201cRaywel Martin\u201d (this site) was created under Riot Games' \u201cLegal Jibber Jabber\u201d policy using assets owned by Riot Games. Riot Games does not endorse or sponsor this project.",
+      specs: [
+        { label: "Crosshair", value: "0;p;0;c;1;s;1;P;u;000000FF;h;0;f;0;m;1;0l;2;0v;2;0o;0;0a;1;0f;0;1b;0;A;c;8;d;1;b;1;0b;0;1b;0;S;d;0", copy: true },
+        { label: "Sens", value: "0.37" },
+        { label: "DPI", value: "800" },
+        { label: "eDPI", value: "296" }
+      ],
       words: [
         { text: "Sova", note: "main · Initiator", top: true, face: "assets/valorant/sova-icon.webp" },
         { text: "Recon Bolt", note: "reveals enemies" },
@@ -149,6 +167,22 @@ const SITE = {
       ]
     }
   ],
+
+  // "The story so far" in About: one row per year, oldest first
+  story: {
+    label: "The story so far",
+    intro: "How I got here.",
+    items: [
+      { year: "2021", title: "Pandemic days", text: "Senior high at STI, in the middle of the pandemic." },
+      { year: "2022", title: "The real world", text: "After the pandemic, where it all started: my first journey out into the real world." },
+      {
+        year: "2023",
+        title: "Two golds",
+        text: "April 19, my team won the Syntax Valorant Cup. Then the STI Malolos intramurals: everyone bashed our upper-bracket games, so we made a Cinderella run through the lower bracket and took that gold too."
+      },
+      { year: "2026", title: "Malolos Rush", text: "Building my capstone game in Unity." }
+    ]
+  },
 
   now: [
     "Studying BSIT at STI College Malolos",
@@ -268,7 +302,13 @@ const SITE = {
       alt: "Raywel in sunglasses holding a blue jacket with RAYWEL on it",
       story: "Made it my own."
     },
-    { file: "valorant-champs", caption: "Syntax Valorant Cup champions", alt: "LED screen announcing Parokya ni Manoy as Syntax Valorant Cup champions", wide: true },
+    {
+      file: "valorant-champs",
+      caption: "Syntax Valorant Cup champions",
+      alt: "LED screen announcing Parokya ni Manoy as Syntax Valorant Cup champions",
+      wide: true,
+      story: "April 19, 2023. One of two golds from our Valorant run."
+    },
     {
       file: "senior-high",
       caption: "Senior high, 2022–2023",

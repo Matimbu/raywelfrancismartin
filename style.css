@@ -545,6 +545,60 @@ a.ww-card:hover .ww-text { color: var(--fg); }
   max-height: 420px;
   object-fit: contain;
 }
+/* settings under a wall, like a crosshair code to copy */
+.ww-specs {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.ww-spec {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 100%;
+  padding: 10px 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+}
+button.ww-spec { cursor: pointer; transition: border-color 0.3s ease; }
+button.ww-spec:hover { border-color: var(--fg); }
+.ww-spec-label { color: var(--muted); font-size: 10px; }
+/* codes are case-sensitive, so show them exactly as typed */
+.ww-spec-value { text-transform: none; letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+button.ww-spec .ww-spec-value { max-width: 24ch; }
+.ww-spec-action { color: var(--accent); font-size: 10px; }
+
+/* "The story so far" timeline */
+.story-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+.story-item {
+  display: grid;
+  grid-template-columns: minmax(96px, 0.3fr) 1fr;
+  gap: 8px 32px;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--line);
+}
+.story-year {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(34px, 4.2vw, 56px);
+  line-height: 1;
+  color: var(--muted);
+  transition: color 0.3s ease;
+}
+.story-item:hover .story-year { color: var(--fg); }
+.story-title { margin-bottom: 6px; font-size: 18px; }
+.story-text { max-width: 54ch; line-height: 1.55; color: var(--muted); }
+
 .ww-credits {
   grid-column: 2;
   font-size: 12px;
@@ -1167,7 +1221,8 @@ a.ww-card:hover .ww-text { color: var(--fg); }
 @media (max-width: 960px) {
   .about-grid { grid-template-columns: 1fr; }
   .wordwall, .wordwall.has-art { grid-template-columns: 1fr; }
-  .ww-credits { grid-column: 1; }
+  .ww-credits, .ww-specs { grid-column: 1; }
+  .story-item { grid-template-columns: 72px 1fr; gap: 6px 18px; }
   .wordwall-art { grid-column: 1; grid-row: auto; justify-self: center; width: min(260px, 70%); }
   /* cards scroll sideways on small screens, like a hand of trading cards */
   .wordwall.cards .wordwall-words {

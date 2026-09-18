@@ -285,6 +285,31 @@ SITE.now.forEach((text) => {
   $("nowList").appendChild(li);
 });
 
+// Copy text to the clipboard. In-app browsers (Messenger, Instagram) often
+// block the Clipboard API, so fall back to selecting a hidden text box.
+function copyText(text) {
+  const fallback = () => {
+    const area = el("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.style.cssText = "position:fixed;top:0;left:0;opacity:0;pointer-events:none";
+    document.body.appendChild(area);
+    area.select();
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    area.remove();
+    return ok;
+  };
+  if (!navigator.clipboard) return Promise.resolve(fallback());
+  return navigator.clipboard.writeText(text).then(() => true, fallback);
+}
+
+// Show "Copied" (or a hint to copy by hand) on a label, then put it back
+function flashCopied(label, ok) {
+  label.textContent = ok ? "Copied" : "Copy failed";
+  setTimeout(() => (label.textContent = "Copy"), 1600);
+}
+
 // Word walls (nicknames and the like): big words with small notes
 (SITE.walls || []).forEach((wall) => {
   if (!wall.words || !wall.words.length) return;
@@ -332,6 +357,26 @@ SITE.now.forEach((text) => {
   });
   block.append(head, words);
 
+  // Small settings under the words, e.g. a crosshair code to copy
+  if (wall.specs && wall.specs.length) {
+    const specs = el("div", "ww-specs reveal");
+    wall.specs.forEach((s) => {
+      const spec = el(s.copy ? "button" : "div", "ww-spec");
+      spec.append(el("span", "ww-spec-label mono", s.label), el("span", "ww-spec-value mono", s.value));
+      if (s.copy) {
+        spec.type = "button";
+        spec.title = `Copy my ${s.label.toLowerCase()} code`;
+        const action = el("span", "ww-spec-action mono", "Copy");
+        spec.appendChild(action);
+        spec.dataset.goatcounterClick = `copy-${s.label.toLowerCase()}`;
+        spec.dataset.goatcounterTitle = `Copied: ${s.label}`;
+        spec.addEventListener("click", () => copyText(s.value).then((ok) => flashCopied(action, ok)));
+      }
+      specs.appendChild(spec);
+    });
+    block.appendChild(specs);
+  }
+
   if (wall.art) {
     block.classList.add("has-art");
     const art = el("div", "wordwall-art reveal");
@@ -363,6 +408,24 @@ SITE.now.forEach((text) => {
   if (wall.notice) block.appendChild(el("p", "ww-credits", wall.notice));
   $(wall.section || "about").appendChild(block);
 });
+
+// "The story so far": a short timeline at the end of the About section
+if (SITE.story && SITE.story.items && SITE.story.items.length) {
+  const block = el("div", "wordwall story");
+  const head = el("div", "wordwall-head reveal");
+  head.append(el("p", "now-label mono", SITE.story.label), el("p", "wordwall-intro", SITE.story.intro || ""));
+  const list = el("ol", "story-list");
+  SITE.story.items.forEach((s, i) => {
+    const li = el("li", "story-item reveal");
+    li.style.setProperty("--d", i);
+    const body = el("div", "story-body");
+    body.append(el("p", "story-title", s.title), el("p", "story-text", s.text));
+    li.append(el("span", "story-year", s.year), body);
+    list.appendChild(li);
+  });
+  block.append(head, list);
+  $("about").appendChild(block);
+}
 
 // ============================================================
 //  Crafts (hover a row to see a floating preview)
@@ -813,12 +876,7 @@ SITE.links.forEach((l, i) => {
     row.dataset.goatcounterTitle = `Contact: ${l.label}`;
   } else {
     row.type = "button";
-    row.addEventListener("click", () => {
-      navigator.clipboard?.writeText(l.value).then(() => {
-        arrow.textContent = "Copied";
-        setTimeout(() => (arrow.textContent = "Copy"), 1600);
-      });
-    });
+    row.addEventListener("click", () => copyText(l.value).then((ok) => flashCopied(arrow, ok)));
   }
   $("linkList").appendChild(row);
 });
