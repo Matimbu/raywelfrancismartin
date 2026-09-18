@@ -18,6 +18,7 @@ const SITE = {
 
   roles: ["Student", "Builder", "Designer", "Hooper"],
   statement: "I make things on screen, on paper and on the court.",
+  motto: "Focus on what I can control.", // signs off the footer
 
   place: {
     label: "Based in",
@@ -352,7 +353,7 @@ const SITE = {
       file: "first-impressions",
       caption: "First impressions",
       alt: "A note of my classmates' first impressions of me: friendly, calm, nonchalant, tahimik, pwede na, saks lang, friendly, ayos lang, nice voice, tahimik parang si Mark, super friendly grabe 'di ko inexpect, palahi, friendly, mukhang tamad masipag",
-      story: "My classmates' first impressions of me. Palahi means \"I like your genes, can I have some?\"",
+      story: "My classmates' first impressions of me. Palahi means \"pogi mo masyado.\"",
       wide: true,
       fit: "contain"
     },

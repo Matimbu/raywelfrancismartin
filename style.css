@@ -289,6 +289,20 @@ button { font: inherit; color: inherit; }
 }
 .ready .floater-badge { opacity: 1; transform: rotate(14deg); }
 
+/* hovering a card straightens it and makes its badge wiggle (a tap on phones) */
+.floater { pointer-events: auto; }
+.settled .floater-in, .settled .floater-badge { transition-delay: 0s; }
+.settled .floater-in { transition-duration: 0.6s; }
+.settled .floater:hover .floater-in { transform: rotate(0deg) scale(1.04); }
+.ready .floater:hover .floater-badge,
+.ready .floater-badge.wiggle { animation: wiggle 0.7s var(--ease); }
+@keyframes wiggle {
+  0%, 100% { transform: rotate(14deg); }
+  25% { transform: rotate(-12deg) scale(1.12); }
+  50% { transform: rotate(24deg); }
+  75% { transform: rotate(6deg); }
+}
+
 /* location card + scroll hint */
 .place, .scroll-hint {
   position: absolute;
@@ -385,6 +399,31 @@ button { font: inherit; color: inherit; }
   transition: transform 1s var(--ease) calc(var(--i) * 30ms);
 }
 .js .split.in .c { transform: none; }
+
+/* scroll scenes (see addScene in main.js): --in goes 0 to 1 as a part
+   scrolls in, --out goes 0 to 1 as it scrolls away */
+.js .split.gather .w { overflow: visible; }
+.js .split.gather .c {
+  transform: translate3d(calc(var(--o, 0) * 0.9em * (1 - var(--in, 1))), calc(var(--out, 0) * -0.4em), 0);
+  opacity: calc(var(--in, 1) - var(--out, 0));
+  transition: none;
+}
+.js .split.gather { filter: blur(calc((1 - var(--in, 1) + var(--out, 0)) * 6px)); }
+
+.wordwall-words.gather .ww-card {
+  transform: translate3d(calc(var(--o, 0) * 120px * (1 - var(--in, 1))), calc((1 - var(--in, 1)) * 40px - var(--out, 0) * 30px), 0)
+    scale(calc(0.92 + 0.08 * var(--in, 1)));
+  opacity: calc(var(--in, 1) - var(--out, 0));
+}
+
+.story-item.gather .story-year {
+  transform: translateX(calc((1 - var(--in, 1)) * -60px));
+  opacity: calc(var(--in, 1) - var(--out, 0));
+}
+.story-item.gather .story-body {
+  transform: translateX(calc((1 - var(--in, 1)) * 60px));
+  opacity: calc(var(--in, 1) - var(--out, 0));
+}
 
 /* fade up */
 .js .reveal {
@@ -549,9 +588,11 @@ a.ww-card:hover .ww-text { color: var(--fg); }
 .ww-specs {
   grid-column: 2;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 10px;
 }
+.ww-specs-row { display: flex; flex-wrap: wrap; gap: 10px; }
 .ww-spec {
   display: inline-flex;
   align-items: center;
@@ -1212,6 +1253,14 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   color: var(--muted);
 }
 .footer a:hover { color: var(--fg); }
+.foot-motto {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 17px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--fg);
+}
 /* leave room for the shot meter in the corner */
 .has-meter .footer { padding-right: calc(var(--pad) + 60px); }
 

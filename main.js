@@ -68,6 +68,37 @@ document.addEventListener("click", (e) => {
 });
 
 // ============================================================
+//  Scroll scenes: parts come together as they scroll into view and
+//  dissolve as they scroll away. Each scene gets --in and --out (0 to 1)
+//  and its CSS decides what gathering and dissolving look like.
+// ============================================================
+const scenes = [];
+const clamp01 = (v) => Math.min(1, Math.max(0, v));
+const smooth = (t) => t * t * (3 - 2 * t);
+
+// `leave`: how high up the screen (share of its height) a scene's bottom
+// edge has to climb before the scene starts to dissolve
+function addScene(node, leave = 0.1) {
+  if (reduceMotion) return;
+  node.classList.add("gather");
+  node.dataset.leave = leave;
+  scenes.push(node);
+}
+
+function updateScenes() {
+  const vh = innerHeight;
+  scenes.forEach((n) => {
+    const r = n.getBoundingClientRect();
+    if (r.bottom < -vh * 0.25 || r.top > vh * 1.25) return;
+    const edge = vh * n.dataset.leave;
+    const enter = smooth(clamp01((vh - r.top) / (vh * 0.4)));
+    const leave = smooth(clamp01((edge - r.bottom) / (edge + r.height * 0.6)));
+    n.style.setProperty("--in", enter.toFixed(3));
+    n.style.setProperty("--out", leave.toFixed(3));
+  });
+}
+
+// ============================================================
 //  Text effects
 // ============================================================
 
@@ -164,6 +195,8 @@ function splitWords(node, text) {
 // ============================================================
 $("brand").textContent = SITE.initials;
 $("footName").textContent = SITE.fullName;
+if (SITE.motto) $("footMotto").textContent = SITE.motto;
+else $("footMotto").remove();
 $("year").textContent = new Date().getFullYear();
 document.title = `${SITE.firstName} ${SITE.lastName}`;
 
@@ -247,7 +280,17 @@ const floaterEls = SITE.floaters.map((f, i) => {
     inner.appendChild(el("span", "", f.emoji));
   }
   card.appendChild(inner);
-  if (f.badge) card.appendChild(el("span", "floater-badge", f.badge));
+  if (f.badge) {
+    const badge = el("span", "floater-badge", f.badge);
+    card.appendChild(badge);
+    // Hovering wiggles the badge (CSS); a tap does the same on phones
+    card.addEventListener("click", () => {
+      badge.classList.remove("wiggle");
+      void badge.offsetWidth; // restart the animation
+      badge.classList.add("wiggle");
+    });
+    badge.addEventListener("animationend", () => badge.classList.remove("wiggle"));
+  }
   $("floaters").appendChild(card);
   return card;
 });
@@ -263,6 +306,8 @@ for (let copy = 0; copy < 2; copy++) {
 
 function startIntro() {
   document.body.classList.add("ready");
+  // once the cards have landed, hovering them can react right away
+  setTimeout(() => document.body.classList.add("settled"), 2600);
   scramble(roles, roles.textContent, 1100, 700);
   scramble(statement, statement.textContent, 1500, 1000);
 }
@@ -361,9 +406,21 @@ function flashCopied(label, ok) {
   });
   block.append(head, words);
 
+  // Wide screens: the cards slide in from both sides and meet in the middle
+  if (cards && !reduceMotion && matchMedia("(min-width: 961px)").matches) {
+    const list = [...words.children];
+    const mid = (list.length - 1) / 2 || 1;
+    list.forEach((card, k) => {
+      card.classList.remove("reveal");
+      card.style.setProperty("--o", ((k - mid) / mid).toFixed(3));
+    });
+    addScene(words, 0.35);
+  }
+
   // Small settings under the words, e.g. a crosshair code to copy
   if (wall.specs && wall.specs.length) {
     const specs = el("div", "ww-specs reveal");
+    let row = null; // plain settings share one line, e.g. sens and DPI
     wall.specs.forEach((s) => {
       const spec = el(s.copy ? "button" : "div", "ww-spec");
       spec.append(el("span", "ww-spec-label mono", s.label), el("span", "ww-spec-value mono", s.value));
@@ -376,7 +433,12 @@ function flashCopied(label, ok) {
         spec.dataset.goatcounterTitle = `Copied: ${s.label}`;
         spec.addEventListener("click", () => copyText(s.value).then((ok) => flashCopied(action, ok)));
       }
-      specs.appendChild(spec);
+      if (s.copy) {
+        specs.appendChild(spec);
+      } else {
+        if (!row) row = specs.appendChild(el("div", "ww-specs-row"));
+        row.appendChild(spec);
+      }
     });
     block.appendChild(specs);
   }
@@ -420,7 +482,9 @@ if (SITE.story && SITE.story.items && SITE.story.items.length) {
   head.append(el("p", "now-label mono", SITE.story.label), el("p", "wordwall-intro", SITE.story.intro || ""));
   const list = el("ol", "story-list");
   SITE.story.items.forEach((s, i) => {
-    const li = el("li", "story-item reveal");
+    const li = el("li", "story-item");
+    if (reduceMotion) li.classList.add("reveal");
+    else addScene(li, 0.2); // the year and the story slide together
     li.style.setProperty("--d", i);
     const body = el("div", "story-body");
     const title = el("p", "story-title", s.title);
@@ -919,6 +983,14 @@ SITE.links.forEach((l, i) => {
 //  Scroll-in animations
 // ============================================================
 document.querySelectorAll(".split").forEach(splitLetters);
+// Section titles: the letters drift in from both sides, meet as the title
+// reaches the middle of the screen, and dissolve upward as it leaves
+document.querySelectorAll(".title.split, .contact-title.split").forEach((title) => {
+  const letters = [...title.querySelectorAll(".c")];
+  const mid = (letters.length - 1) / 2 || 1;
+  letters.forEach((c, k) => c.style.setProperty("--o", ((k - mid) / mid).toFixed(3)));
+  addScene(title, 0.25);
+});
 const eyebrows = [...document.querySelectorAll(".eyebrow")];
 eyebrows.forEach((e) => e.classList.add("scramble"));
 
@@ -1077,6 +1149,7 @@ function frame() {
     hero.style.setProperty("--p", Math.min(1, y / (heroH * 0.75)).toFixed(3));
     updateBeliefs();
     updateMeter(y);
+    updateScenes();
   }
 
   if ((scrolled || drifting) && y < heroH * 1.2) {
