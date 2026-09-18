@@ -273,33 +273,6 @@ function buildName(node, lines) {
 }
 buildName($("heroName"), [SITE.firstName, SITE.lastName]);
 
-// Letters near the cursor lift a little and lean toward it, easing back
-// when it moves away (desktop only)
-const nameLetters = canHover && !reduceMotion
-  ? [...document.querySelectorAll("#heroName .nl")].map((outer) => ({ outer, inner: outer.firstChild, lean: 0, lift: 0, tLean: 0, tLift: 0 }))
-  : [];
-function aimName() {
-  nameLetters.forEach((l) => {
-    const r = l.outer.getBoundingClientRect();
-    const dx = pointerX - (r.left + r.width / 2);
-    const dy = pointerY - (r.top + r.height / 2);
-    const pull = Math.exp(-(dx * dx + dy * dy) / (2 * 230 * 230));
-    l.tLean = Math.max(-1, Math.min(1, dx / 160)) * 9 * pull;
-    l.tLift = -18 * pull;
-  });
-}
-function easeName() {
-  nameLetters.forEach((l) => {
-    const dLean = l.tLean - l.lean;
-    const dLift = l.tLift - l.lift;
-    if (Math.abs(dLean) < 0.01 && Math.abs(dLift) < 0.05) return;
-    l.lean += dLean * 0.12;
-    l.lift += dLift * 0.12;
-    l.inner.style.setProperty("--lean", `${l.lean.toFixed(2)}deg`);
-    l.inner.style.setProperty("--lift", `${l.lift.toFixed(1)}px`);
-  });
-}
-
 const roles = $("roles");
 const statement = $("statement");
 roles.textContent = SITE.roles.join(" · ");
@@ -1193,10 +1166,18 @@ eyebrows.forEach((e) => e.classList.add("scramble"));
 
 const revealer = new IntersectionObserver((entries) => {
   entries.forEach((entry) => {
-    if (!entry.isIntersecting) return;
     const node = entry.target;
-    if (node.classList.contains("eyebrow")) scramble(node, node.textContent, 700);
-    else node.classList.add("in");
+    if (node.classList.contains("eyebrow")) {
+      // Section numbers ("01 — About") scramble every time their section
+      // comes back on screen, not just the first time
+      if (entry.isIntersecting && !node.dataset.onScreen) {
+        scramble(node, node.getAttribute("aria-label") || node.textContent, 700);
+      }
+      node.dataset.onScreen = entry.isIntersecting ? "1" : "";
+      return;
+    }
+    if (!entry.isIntersecting) return;
+    node.classList.add("in");
     revealer.unobserve(node);
   });
 }, { threshold: 0.15, rootMargin: "0px 0px -8% 0px" });
@@ -1238,7 +1219,6 @@ if (canHover && !reduceMotion) {
     mouseY = e.clientY / innerHeight - 0.5;
     pointerX = e.clientX;
     pointerY = e.clientY;
-    if (scrollY < heroH) aimName();
   }, { passive: true });
 }
 
@@ -1339,6 +1319,44 @@ function updateMarquee(y) {
   if (Math.abs(marqueeRate - marqueeAnim.playbackRate) > 0.01) marqueeAnim.playbackRate = marqueeRate;
 }
 
+// A small orange dot trails the cursor (desktop only) and opens into a
+// ring over anything clickable. It hides over videos and embeds, which
+// swallow the mouse.
+const cursorDot = canHover && !reduceMotion ? document.body.appendChild(el("div", "cursor-dot hidden")) : null;
+let dotX = pointerX;
+let dotY = pointerY;
+if (cursorDot) {
+  const CLICKABLE = "a, button, [role='button'], .craft-row, .shot, .video-row, .ww-drone, .floater";
+  document.addEventListener("mouseover", (e) => {
+    const t = e.target instanceof Element ? e.target : null;
+    cursorDot.classList.toggle("hot", !!(t && t.closest(CLICKABLE)));
+    cursorDot.classList.toggle("hidden", !t || t.tagName === "IFRAME");
+  });
+  document.documentElement.addEventListener("mouseleave", () => cursorDot.classList.add("hidden"));
+}
+function moveCursorDot() {
+  if (!cursorDot) return;
+  const dx = pointerX - dotX;
+  const dy = pointerY - dotY;
+  if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) return;
+  dotX += dx * 0.28;
+  dotY += dy * 0.28;
+  cursorDot.style.transform = `translate3d(${dotX.toFixed(1)}px, ${dotY.toFixed(1)}px, 0)`;
+}
+
+// Gallery photos drift slightly against the scroll inside their frames,
+// which gives the grid a little depth
+const driftTiles = reduceMotion ? [] : [...document.querySelectorAll("#galleryGrid .shot:not(.contain):not(.shot-more) img")];
+function driftGallery() {
+  const vh = innerHeight;
+  driftTiles.forEach((img) => {
+    const r = img.parentElement.getBoundingClientRect();
+    if (r.bottom < 0 || r.top > vh) return;
+    const t = Math.max(-1, Math.min(1, (r.top + r.height / 2 - vh / 2) / (vh / 2 + r.height / 2)));
+    img.style.setProperty("--drift", (-t).toFixed(3));
+  });
+}
+
 // Runs every frame but only touches the page when something moved.
 function frame() {
   const y = scrollY;
@@ -1346,8 +1364,8 @@ function frame() {
   frameY = y;
 
   updateMarquee(y);
-  if (scrolled && y < heroH) aimName();
-  easeName();
+  moveCursorDot();
+  if (scrolled) driftGallery();
 
   const dx = mouseX - easeX;
   const dy = mouseY - easeY;
