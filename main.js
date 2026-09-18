@@ -974,6 +974,13 @@ gallery.forEach((p, i) => {
   img.alt = p.alt || p.caption;
   img.loading = "lazy";
   img.decoding = "async";
+  // A soft shimmer sweeps across the tile until the photo arrives
+  if (!img.complete) {
+    tile.classList.add("loading");
+    const loaded = () => tile.classList.remove("loading");
+    img.addEventListener("load", loaded, { once: true });
+    img.addEventListener("error", loaded, { once: true });
+  }
   tile.append(img, el("span", "shot-caption mono", p.caption));
   tile.addEventListener("click", () => openShot(i));
   $("galleryGrid").appendChild(tile);
@@ -1020,6 +1027,27 @@ const lightbox = $("lightbox");
 const lbImg = $("lbImg");
 let lbIndex = 0;
 
+// "02 / 17": both digits roll like the belief odometers
+const lbCount = $("lbCount");
+const counterStrips = [];
+if (gallery.length) {
+  lbCount.textContent = "";
+  for (let d = 0; d < 2; d++) {
+    const strip = el("span", "odo-strip");
+    for (let k = 0; k <= 9; k++) strip.appendChild(el("span", "", String(k)));
+    const odo = el("span", "odo");
+    odo.appendChild(strip);
+    lbCount.appendChild(odo);
+    counterStrips.push(strip);
+  }
+  lbCount.append(` / ${pad2(gallery.length)}`);
+}
+function setCounter(n) {
+  const digits = pad2(n);
+  counterStrips.forEach((strip, d) => { strip.style.transform = `translateY(${-digits[d]}em)`; });
+  lbCount.setAttribute("aria-label", `Photo ${n} of ${gallery.length}`);
+}
+
 // dir: 1 = next, -1 = previous, 0 = just opened
 function showShot(i, dir = 0) {
   lbIndex = (i + gallery.length) % gallery.length;
@@ -1032,7 +1060,7 @@ function showShot(i, dir = 0) {
   const wanted = lbIndex;
   large.onload = () => { if (wanted === lbIndex) lbImg.src = large.src; };
   large.src = shotSrc(p, 1600);
-  $("lbCount").textContent = `${pad2(lbIndex + 1)} / ${pad2(gallery.length)}`;
+  setCounter(lbIndex + 1);
   $("lbText").textContent = p.caption;
   // The serif italic draws "1" like "l", so numbers get the sans font
   const story = $("lbStory");
@@ -1183,18 +1211,31 @@ const revealer = new IntersectionObserver((entries) => {
 }, { threshold: 0.15, rootMargin: "0px 0px -8% 0px" });
 document.querySelectorAll(".reveal, .shot-reveal, .split, .eyebrow").forEach((n) => revealer.observe(n));
 
-// Highlight the nav link for the section on screen
+// Highlight the nav link for the section on screen. Each link covers its
+// section and any unlisted ones after it (Crafts also covers the hobbies),
+// and a thin line under it fills as you read through that stretch.
 const navLinks = [...document.querySelectorAll(".nav a")];
-const navObserver = new IntersectionObserver((entries) => {
-  entries.forEach((entry) => {
-    if (!entry.isIntersecting) return;
-    navLinks.forEach((a) => a.classList.toggle("active", a.getAttribute("href") === `#${entry.target.id}`));
+const navSections = navLinks
+  .map((a) => ({ a, section: document.querySelector(a.getAttribute("href")) }))
+  .filter((n) => n.section);
+function updateNav(y) {
+  const mid = y + innerHeight / 2;
+  const tops = navSections.map((n) => n.section.getBoundingClientRect().top + y);
+  let k = 0;
+  tops.forEach((t, i) => { if (t <= mid) k = i; });
+  const pageEnd = document.documentElement.scrollHeight - innerHeight / 2;
+  const end = Math.min(k + 1 < tops.length ? tops[k + 1] : pageEnd, pageEnd);
+  const read = clamp01((mid - tops[k]) / Math.max(1, end - tops[k]));
+  navSections.forEach((n, i) => {
+    n.a.classList.toggle("active", i === k);
+    n.a.style.setProperty("--read", i === k ? read.toFixed(3) : "0");
   });
-}, { rootMargin: "-45% 0px -50% 0px" });
-navLinks.forEach((a) => {
-  const section = document.querySelector(a.getAttribute("href"));
-  if (section) navObserver.observe(section);
-});
+}
+if (reduceMotion) {
+  // No per-frame loop with reduced motion: highlight on scroll instead
+  addEventListener("scroll", () => updateNav(scrollY), { passive: true });
+  updateNav(scrollY);
+}
 
 // ============================================================
 //  Per-frame work: header, hero parallax, preview follow
@@ -1386,6 +1427,7 @@ function frame() {
     updateBeliefs();
     updateMeter(y);
     updateScenes();
+    updateNav(y);
   }
 
   if ((scrolled || drifting) && y < heroH * 1.2) {

@@ -138,6 +138,21 @@ button { font: inherit; color: inherit; }
 }
 .nav a:hover, .nav a.active { color: var(--fg); }
 .nav a.active::before { transform: scale(1); }
+/* a thin line under the active link fills as you read its section */
+.nav a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  height: 1px;
+  background: var(--accent);
+  transform: scaleX(var(--read, 0));
+  transform-origin: left;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.nav a.active::after { opacity: 1; }
 
 .header-right {
   justify-self: end;
@@ -1184,13 +1199,32 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 1s var(--ease);
+  transition: transform 1s var(--ease), opacity 0.6s ease;
   /* drift against the scroll (main.js sets --drift, -1 to 1); the slight
      overscan keeps the edges from showing */
   translate: 0 calc(var(--drift, 0) * 3.5%);
   scale: 1.08;
 }
 .shot.contain img { translate: none; scale: none; }
+/* until its photo arrives, a tile shows a soft shimmer instead of a flat box */
+.shot.loading img { opacity: 0; }
+.shot.loading::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent 25%, color-mix(in srgb, var(--fg) 7%, transparent) 50%, transparent 75%);
+  background-size: 250% 100%;
+  animation: shimmer 1.5s linear infinite;
+}
+@keyframes shimmer {
+  from { background-position: 125% 0; }
+  to { background-position: -125% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shot.loading::before { animation: none; }
+}
 .shot:hover img { transform: scale(1.04); }
 /* screenshots and notes: show the whole thing, centred on the card */
 .shot.contain img {
@@ -1299,6 +1333,8 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
 .lb-caption { display: grid; justify-items: center; gap: 8px; text-align: center; }
 .lb-line { display: flex; align-items: baseline; gap: 14px; }
 .lb-line .mono { color: #ff5a1f; }
+#lbCount { display: inline-flex; align-items: center; line-height: 1; white-space: pre; }
+#lbCount .odo-strip { transition-duration: 0.6s; }
 .lb-story {
   max-width: 46ch;
   font-family: var(--serif);
