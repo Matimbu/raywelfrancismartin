@@ -209,7 +209,11 @@ const SITE = {
       tags: ["Video", "Editing"],
       year: "2023",
       emoji: "🎬",
-      image: "https://i.ytimg.com/vi/wZsDlJYYQDI/maxresdefault.jpg",
+      // several `images` flip like a flipbook while you hover the row
+      images: [
+        "https://i.ytimg.com/vi/wZsDlJYYQDI/maxresdefault.jpg",
+        "https://i.ytimg.com/vi/IrMJpBgpFjY/maxresdefault.jpg"
+      ],
       link: "https://www.youtube.com/@Jenduks"
     },
     {
@@ -225,7 +229,14 @@ const SITE = {
       tags: ["Code", "C#", "GDI+"],
       year: "2026",
       emoji: "🐝",
-      image: "https://matimbu.github.io/portfolio/images/kiosk/01-welcome.png",
+      images: [
+        "https://matimbu.github.io/portfolio/images/kiosk/01-welcome.png",
+        "https://matimbu.github.io/portfolio/images/kiosk/02-menu.png",
+        "https://matimbu.github.io/portfolio/images/kiosk/03-product.png",
+        "https://matimbu.github.io/portfolio/images/kiosk/04-cart.png",
+        "https://matimbu.github.io/portfolio/images/kiosk/05-payment.png",
+        "https://matimbu.github.io/portfolio/images/kiosk/06-receipt.png"
+      ],
       link: "https://matimbu.github.io/portfolio/"
     },
     {

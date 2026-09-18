@@ -311,7 +311,24 @@ function startIntro() {
   scramble(roles, roles.textContent, 1100, 700);
   scramble(statement, statement.textContent, 1500, 1000);
 }
-Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 1500))]).then(startIntro);
+const fontsReady = Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 1500))]);
+if (root.classList.contains("intro")) {
+  // First visit this session: the monogram fades in, then the curtain lifts
+  // and the hero plays underneath it
+  if (lenis) lenis.stop(); // no scrolling under the curtain
+  fontsReady.then(() => {
+    root.classList.add("intro-show");
+    setTimeout(() => {
+      root.classList.add("intro-open");
+      if (lenis) lenis.start();
+      startIntro();
+      try { sessionStorage.setItem("introSeen", "1"); } catch (e) {}
+      setTimeout(() => root.classList.remove("intro", "intro-show", "intro-open"), 1200);
+    }, 1150);
+  });
+} else {
+  fontsReady.then(startIntro);
+}
 
 // ============================================================
 //  About
@@ -400,7 +417,7 @@ function flashCopied(label, ok) {
     // Reuse the crafts preview card: the photo follows the cursor
     if (w.image && canHover && !cards) {
       item.addEventListener("mouseenter", () => showPreview({ image: w.image, emoji: "" }));
-      item.addEventListener("mouseleave", () => preview.classList.remove("on"));
+      item.addEventListener("mouseleave", hidePreview);
     }
     words.appendChild(item);
   });
@@ -530,23 +547,43 @@ function sizePreview(w, h) {
   previewIn.style.top = `${-h / 2}px`;
 }
 
+// With several `images`, the preview flips through them like a flipbook
+let flipTimer = null;
 function showPreview(craft) {
+  clearInterval(flipTimer);
   previewIn.textContent = "";
   sizePreview(240, 300);
-  if (craft.image) {
-    const img = el("img");
-    img.alt = "";
-    img.onload = () => {
-      const ratio = img.naturalWidth / img.naturalHeight;
+  const pics = craft.images || (craft.image ? [craft.image] : []);
+  if (pics.length) {
+    const imgs = pics.map((src, k) => {
+      const img = el("img", pics.length > 1 ? `flip${k ? "" : " on"}` : "");
+      img.alt = "";
+      img.src = src;
+      previewIn.appendChild(img);
+      return img;
+    });
+    imgs[0].onload = () => {
+      const ratio = imgs[0].naturalWidth / imgs[0].naturalHeight;
       const w = Math.min(380, 300 * ratio);
       sizePreview(w, w / ratio);
     };
-    img.src = craft.image;
-    previewIn.appendChild(img);
+    if (imgs.length > 1) {
+      let k = 0;
+      flipTimer = setInterval(() => {
+        imgs[k].classList.remove("on");
+        k = (k + 1) % imgs.length;
+        imgs[k].classList.add("on");
+      }, 800);
+    }
   } else {
     previewIn.appendChild(el("span", "", craft.emoji));
   }
   preview.classList.add("on");
+}
+
+function hidePreview() {
+  clearInterval(flipTimer);
+  preview.classList.remove("on");
 }
 
 SITE.crafts.forEach((craft, i) => {
@@ -565,7 +602,7 @@ SITE.crafts.forEach((craft, i) => {
   );
   if (canHover) {
     row.addEventListener("mouseenter", () => showPreview(craft));
-    row.addEventListener("mouseleave", () => preview.classList.remove("on"));
+    row.addEventListener("mouseleave", hidePreview);
   }
   li.appendChild(row);
   $("craftList").appendChild(li);
@@ -620,12 +657,28 @@ if (spotify) {
 // ============================================================
 SITE.beliefs.forEach((text, i) => {
   const wrap = el("div", "belief-wrap");
-  const num = el("span", "belief-num mono", `(${pad2(i + 1)})`);
-  num.setAttribute("aria-hidden", "true");
+  // The number rolls up from (00) like an odometer when the belief starts
+  // to light up, and a thin line under it fills as you read
+  const side = el("div", "belief-side");
+  side.setAttribute("aria-hidden", "true");
+  const num = el("span", "belief-num mono");
+  const tens = String(Math.floor((i + 1) / 10));
+  const strip = el("span", "odo-strip");
+  for (let d = 0; d <= 9; d++) strip.appendChild(el("span", "", String(d)));
+  const odo = el("span", "odo");
+  odo.appendChild(strip);
+  num.append("(", tens, odo, ")");
+  num.dataset.n = (i + 1) % 10;
+  const bar = el("span", "belief-bar");
+  side.append(num, bar);
+  if (reduceMotion) {
+    strip.style.transform = `translateY(${-((i + 1) % 10)}em)`;
+    num.classList.add("on");
+  }
   const p = el("p", "belief");
   splitWords(p, text);
   if (isTodo(text)) wrap.classList.add("todo");
-  wrap.append(num, p);
+  wrap.append(side, p);
   $("beliefList").appendChild(wrap);
 });
 const beliefEls = [...document.querySelectorAll(".belief")];
@@ -639,6 +692,14 @@ function updateBeliefs() {
     const words = p.querySelectorAll(".fw");
     const lit = Math.round(progress * words.length);
     words.forEach((w, i) => w.classList.toggle("lit", i < lit));
+    const side = p.previousElementSibling;
+    const num = side.querySelector(".belief-num");
+    const started = progress > 0.02;
+    if (started !== num.classList.contains("on")) {
+      num.classList.toggle("on", started);
+      side.querySelector(".odo-strip").style.transform = `translateY(${started ? -num.dataset.n : 0}em)`;
+    }
+    side.querySelector(".belief-bar").style.setProperty("--p", progress.toFixed(3));
   });
 }
 
@@ -1200,7 +1261,9 @@ function frame() {
   if (Math.abs(px) > 0.3 || Math.abs(py) > 0.3) {
     previewX += px * 0.14;
     previewY += py * 0.14;
-    preview.style.transform = `translate3d(${previewX.toFixed(1)}px, ${previewY.toFixed(1)}px, 0)`;
+    // lean into the direction the cursor is moving, settling when it stops
+    const lean = Math.max(-9, Math.min(9, px * 0.06));
+    preview.style.transform = `translate3d(${previewX.toFixed(1)}px, ${previewY.toFixed(1)}px, 0) rotate(${lean.toFixed(2)}deg)`;
   }
 
   requestAnimationFrame(frame);

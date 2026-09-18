@@ -415,6 +415,37 @@ button { font: inherit; color: inherit; }
   .js .shot.shot-reveal.in, .js .shot.shot-reveal.in img { animation: none; }
 }
 
+/* first visit per session: an "RM." curtain that lifts into the hero */
+.curtain { display: none; }
+.intro .curtain {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  clip-path: inset(0 0 0 0);
+  transition: clip-path 1s cubic-bezier(0.76, 0, 0.24, 1);
+  /* failsafe: never block the page if the script doesn't run */
+  animation: curtain-failsafe 0s linear 5s forwards;
+}
+.curtain-mark {
+  font-family: var(--serif);
+  font-size: clamp(64px, 10vw, 128px);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--fg);
+  opacity: 0;
+  filter: blur(8px);
+  transform: translateY(18px);
+  transition: opacity 0.7s ease, filter 0.7s ease, transform 0.9s var(--ease);
+}
+.curtain-mark span { color: var(--accent); }
+.intro-show .curtain-mark { opacity: 1; filter: none; transform: none; }
+.intro-open .curtain { clip-path: inset(0 0 100% 0); }
+.intro-open .curtain-mark { opacity: 0; transform: translateY(-40px); transition-duration: 0.5s, 0.5s, 0.8s; }
+@keyframes curtain-failsafe { to { visibility: hidden; } }
+
 /* scroll scenes (see addScene in main.js): --in goes 0 to 1 as a part
    scrolls in, --out goes 0 to 1 as it scrolls away */
 .js .split.gather .w { overflow: visible; }
@@ -783,6 +814,8 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
     top 0.5s var(--ease);
 }
 .preview-in img { width: 100%; height: 100%; object-fit: cover; }
+.preview-in img.flip { position: absolute; inset: 0; opacity: 0; transition: opacity 0.35s ease; }
+.preview-in img.flip.on { opacity: 1; }
 .preview.on .preview-in { opacity: 1; transform: scale(1) rotate(-4deg); }
 
 /* ============================================================
@@ -860,7 +893,34 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   grid-template-columns: 64px 1fr;
   gap: 24px;
 }
-.belief-num { color: var(--accent); padding-top: 0.9em; }
+.belief-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  padding-top: 0.9em;
+}
+.belief-num { display: inline-flex; align-items: center; line-height: 1; color: var(--muted); transition: color 0.5s ease; }
+.belief-num.on { color: var(--accent); }
+/* the ones digit rolls on a strip of 0-9 */
+.odo { display: inline-block; height: 1em; line-height: 1; overflow: hidden; }
+.odo-strip { display: block; transition: transform 0.9s var(--ease); }
+.odo-strip span { display: block; height: 1em; }
+.belief-bar {
+  position: relative;
+  flex: 1;
+  width: 1px;
+  margin-left: 3px;
+  background: var(--line);
+}
+.belief-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  transform: scaleY(var(--p, 0));
+  transform-origin: top;
+}
 .belief {
   font-family: var(--serif);
   font-size: clamp(36px, 6vw, 84px);
@@ -1438,7 +1498,8 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   .link-value { grid-column: 1; grid-row: 2; }
   .link-arrow { grid-column: 2; grid-row: 1 / span 2; }
   .belief-wrap { grid-template-columns: 1fr; gap: 10px; }
-  .belief-num { padding-top: 0; }
+  .belief-side { padding-top: 0; }
+  .belief-bar { display: none; }
 
   .hero { padding-bottom: 190px; }
   .floater:nth-child(1) { left: 5%;  top: 11%; width: 74px; }
