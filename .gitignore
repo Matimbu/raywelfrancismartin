@@ -5,3 +5,6 @@ images/
 
 # original videos; only web-ready copies in assets/ get published
 videos/
+
+# images made for socials (story cards, covers), not part of the site
+exports/
