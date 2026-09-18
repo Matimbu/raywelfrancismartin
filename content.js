@@ -36,7 +36,7 @@ const SITE = {
   floaters: [
     { emoji: "🎨", photo: "assets/me-shop.jpg", badge: "🎨" },
     { emoji: "🎮", photo: "assets/me-cafe.jpg", badge: "🎮" },
-    { emoji: "🐝", photo: "assets/still-flowers.jpg", badge: "🐝" },
+    { emoji: "📷", photo: "assets/me-camera.jpg", badge: "📷" },
     { emoji: "🏀", photo: "assets/me-sofa.jpg", badge: "🏀" }
   ],
 
