@@ -206,7 +206,7 @@ const SITE = {
   // (playlists, albums, tracks and artists all work). Set to null to hide.
   playlist: {
     title: "IM BUSY",
-    note: "100 tracks · Travis Scott, Drake, Mustard, Offset and more",
+    note: "Travis Scott, Drake, Mustard, Offset and more",
     url: "https://open.spotify.com/playlist/4Y8w4bIWDu7ryf8ejl4O5V"
   },
 
