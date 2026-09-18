@@ -2,3 +2,6 @@
 
 # original, full-size photos; only the cropped copies in assets/ get published
 images/
+
+# original videos; only web-ready copies in assets/ get published
+videos/
