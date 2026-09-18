@@ -853,7 +853,7 @@ const gallery = SITE.gallery || [];
 const shotSrc = (p, width) => `assets/gallery/${p.file}-${width}.jpg`;
 
 gallery.forEach((p, i) => {
-  const tile = el("button", ["shot", p.wide && "wide", p.fit === "contain" && "contain", "reveal"].filter(Boolean).join(" "));
+  const tile = el("button", ["shot", p.wide && "wide", p.fit === "contain" && "contain", "shot-reveal"].filter(Boolean).join(" "));
   tile.type = "button";
   tile.style.setProperty("--d", i % 3);
   tile.setAttribute("aria-label", `View photo: ${p.caption}`);
@@ -872,7 +872,7 @@ gallery.forEach((p, i) => {
 // The last tile points to Instagram for the rest
 const instagram = SITE.links.find((l) => l.label === "Instagram" && l.url);
 if (gallery.length && instagram) {
-  const more = el("a", "shot shot-more reveal");
+  const more = el("a", "shot shot-more shot-reveal");
   linkify(more, instagram.url);
   more.append(
     el("span", "mono shot-more-label", "More on Instagram"),
@@ -886,6 +886,24 @@ if (gallery.length && instagram) {
   more.style.setProperty("--span", (3 - (cells % 3)) % 3 || 3);
   more.style.setProperty("--span-m", singles % 2 ? 1 : 2);
   $("galleryGrid").appendChild(more);
+}
+
+// Tiles ease up one after another, left to right along each row. The
+// delay comes from the column a tile really sits in (wide photos and the
+// grid's packing move tiles around), so the order always reads left to right.
+function staggerGallery() {
+  const grid = $("galleryGrid");
+  const cols = getComputedStyle(grid).gridTemplateColumns.split(" ").length || 1;
+  const box = grid.getBoundingClientRect();
+  const colW = box.width / cols;
+  grid.querySelectorAll(".shot").forEach((tile) => {
+    const col = Math.round((tile.getBoundingClientRect().left - box.left) / colW);
+    tile.style.setProperty("--d", Math.min(cols - 1, Math.max(0, col)));
+  });
+}
+if (gallery.length) {
+  staggerGallery();
+  addEventListener("resize", staggerGallery);
 }
 
 const lightbox = $("lightbox");
@@ -1003,7 +1021,7 @@ const revealer = new IntersectionObserver((entries) => {
     revealer.unobserve(node);
   });
 }, { threshold: 0.15, rootMargin: "0px 0px -8% 0px" });
-document.querySelectorAll(".reveal, .split, .eyebrow").forEach((n) => revealer.observe(n));
+document.querySelectorAll(".reveal, .shot-reveal, .split, .eyebrow").forEach((n) => revealer.observe(n));
 
 // Highlight the nav link for the section on screen
 const navLinks = [...document.querySelectorAll(".nav a")];
@@ -1125,11 +1143,29 @@ function launchDrone() {
   };
 }
 
+// The marquee speeds up while you scroll (up to 3x) and eases back to its
+// normal pace once you stop
+let marqueeAnim = null;
+let marqueeRate = 1;
+let marqueeY = scrollY;
+function updateMarquee(y) {
+  if (reduceMotion) return;
+  if (!marqueeAnim) marqueeAnim = track.getAnimations ? track.getAnimations()[0] : null;
+  if (!marqueeAnim) return;
+  const speed = Math.abs(y - marqueeY);
+  marqueeY = y;
+  const target = 1 + Math.min(speed * 0.05, 2);
+  marqueeRate += (target - marqueeRate) * (target > marqueeRate ? 0.12 : 0.04);
+  if (Math.abs(marqueeRate - marqueeAnim.playbackRate) > 0.01) marqueeAnim.playbackRate = marqueeRate;
+}
+
 // Runs every frame but only touches the page when something moved.
 function frame() {
   const y = scrollY;
   const scrolled = y !== frameY;
   frameY = y;
+
+  updateMarquee(y);
 
   const dx = mouseX - easeX;
   const dy = mouseY - easeY;
