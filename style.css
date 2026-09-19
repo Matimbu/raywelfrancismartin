@@ -558,6 +558,20 @@ button { font: inherit; color: inherit; }
   font-size: 15px;
 }
 .now li::before { content: "→"; color: var(--accent); }
+/* each item: the arrow draws in first, then the text slides after it */
+.js .now li::before {
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 0.5s var(--ease) calc(var(--i, 0) * 150ms + 250ms);
+}
+.js .now.in li::before { clip-path: inset(0 0 0 0); }
+.js .now .now-text {
+  opacity: 0;
+  transform: translateX(-10px);
+  transition:
+    opacity 0.6s ease calc(var(--i, 0) * 150ms + 450ms),
+    transform 0.8s var(--ease) calc(var(--i, 0) * 150ms + 450ms);
+}
+.js .now.in .now-text { opacity: 1; transform: none; }
 
 /* word walls (nicknames and the like) */
 .wordwall {
@@ -1235,6 +1249,8 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   .craft .odo-strip { transform: translateY(calc(var(--n, 0) * -1em)); transition: none; }
   .ww-pos-strip { transition: none; }
   .js .hobby .hobby-emoji { opacity: 1; animation: none; }
+  .js .now li::before { clip-path: none; }
+  .js .now .now-text { opacity: 1; transform: none; }
 }
 .shot:hover img { transform: scale(1.04); }
 /* screenshots and notes: show the whole thing, centred on the card */

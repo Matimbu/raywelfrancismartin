@@ -460,8 +460,11 @@ SITE.about.forEach((text, i) => {
   $("aboutText").appendChild(p);
 });
 
-SITE.now.forEach((text) => {
-  const li = el("li", "", text);
+SITE.now.forEach((text, i) => {
+  // each item's arrow draws first, then its text slides in (see style.css)
+  const li = el("li");
+  li.style.setProperty("--i", i);
+  li.appendChild(el("span", "now-text", text));
   if (isTodo(text)) li.classList.add("todo");
   $("nowList").appendChild(li);
 });
@@ -746,6 +749,18 @@ function hidePreview() {
   preview.classList.remove("on");
 }
 
+// Craft tags scramble into place every time their row comes on screen,
+// like the section labels
+const tagWatch = reduceMotion ? null : new IntersectionObserver((entries) => {
+  entries.forEach((entry) => {
+    const node = entry.target;
+    if (entry.isIntersecting && !node.dataset.onScreen) {
+      scramble(node, node.getAttribute("aria-label") || node.textContent, 700, 250 + Number(node.dataset.i) * 120);
+    }
+    node.dataset.onScreen = entry.isIntersecting ? "1" : "";
+  });
+}, { threshold: 0.6 });
+
 SITE.crafts.forEach((craft, i) => {
   const li = el("li", "craft reveal");
   li.style.setProperty("--d", i);
@@ -753,6 +768,12 @@ SITE.crafts.forEach((craft, i) => {
 
   const row = el(craft.link ? "a" : "div", "craft-row");
   linkify(row, craft.link);
+  const tags = el("span", "craft-tags mono", craft.tags.join(" · "));
+  if (tagWatch) {
+    tags.classList.add("scramble");
+    tags.dataset.i = i;
+    tagWatch.observe(tags);
+  }
   // The number rolls up from 00, like the belief odometers, as the row arrives
   const num = el("span", "craft-num mono");
   const strip = el("span", "odo-strip");
@@ -764,7 +785,7 @@ SITE.crafts.forEach((craft, i) => {
   row.append(
     num,
     el("span", "craft-title", craft.title),
-    el("span", "craft-tags mono", craft.tags.join(" · ")),
+    tags,
     el("span", "craft-year mono", craft.year),
     el("span", "craft-arrow", craft.link ? "↗" : "")
   );
@@ -1049,7 +1070,7 @@ SITE.youtube.forEach((ch, i) => {
   }
 
   const info = el("div", "channel-info");
-  info.append(el("p", "channel-handle mono", ch.handle), el("h3", "channel-name", ch.name));
+  info.append(el("p", "channel-handle mono", ch.handle), el("h3", "channel-name split", ch.name));
   if (ch.tagline) info.appendChild(el("p", "channel-tagline", `“${ch.tagline}”`));
   if (ch.about) info.appendChild(el("p", "channel-about", ch.about));
 
@@ -1361,7 +1382,7 @@ if (talk) {
 }
 // Section titles: the letters drift in from both sides, meet as the title
 // reaches the middle of the screen, and dissolve upward as it leaves
-document.querySelectorAll(".title.split, .contact-title.split").forEach((title) => {
+document.querySelectorAll(".title.split, .contact-title.split, .channel-name.split").forEach((title) => {
   const letters = [...title.querySelectorAll(".c")];
   const mid = (letters.length - 1) / 2 || 1;
   letters.forEach((c, k) => c.style.setProperty("--o", ((k - mid) / mid).toFixed(3)));
