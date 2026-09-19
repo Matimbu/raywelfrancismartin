@@ -161,6 +161,17 @@ button { font: inherit; color: inherit; }
   gap: 18px;
 }
 .clock { color: var(--muted); font-variant-numeric: tabular-nums; }
+/* rolling clock digits */
+.roll { display: inline-flex; align-items: center; line-height: 1; white-space: pre; }
+.roll-strip { transition-duration: 0.5s; }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 .header-link {
   padding: 5px 12px;
   border: 1px solid var(--line);
@@ -434,33 +445,6 @@ button { font: inherit; color: inherit; }
 ::view-transition-old(root),
 ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
 .theme-switching *, .theme-switching *::before, .theme-switching *::after { transition: none !important; }
-
-/* a small orange dot that trails the cursor and opens into a ring over
-   anything clickable */
-.cursor-dot {
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: 90;
-  width: 10px;
-  height: 10px;
-  margin: -5px 0 0 -5px;
-  border: 1px solid transparent;
-  border-radius: 50%;
-  background: var(--accent);
-  pointer-events: none;
-  transition:
-    width 0.35s var(--ease), height 0.35s var(--ease), margin 0.35s var(--ease),
-    background-color 0.3s ease, border-color 0.3s ease, opacity 0.3s ease;
-}
-.cursor-dot.hot {
-  width: 46px;
-  height: 46px;
-  margin: -23px 0 0 -23px;
-  background: transparent;
-  border-color: var(--accent);
-}
-.cursor-dot.hidden { opacity: 0; }
 
 /* first visit per session: an "RM." curtain that lifts into the hero */
 .curtain { display: none; }
@@ -1506,7 +1490,17 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
 .shot-meter.swish .shot-meter-fill { stroke: var(--accent); }
 .shot-meter.swish { animation: swish 0.5s var(--ease); }
 @keyframes swish { 50% { transform: scale(1.12); } }
-.shot-meter-arrow { font-size: 14px; line-height: 1; transition: color 0.3s ease; }
+.shot-meter-arrow { font-size: 14px; line-height: 1; transition: color 0.3s ease, opacity 0.25s ease; }
+.shot-meter-pct {
+  position: absolute;
+  font-size: 9px;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.shot-meter.scrolling .shot-meter-pct { opacity: 1; }
+.shot-meter.scrolling .shot-meter-arrow { opacity: 0; }
 .shot-meter:hover .shot-meter-arrow { color: var(--accent); }
 
 /* Owl Drone easter egg */

@@ -64,6 +64,7 @@ const SITE = {
   walls: [
     {
       label: "Also known as",
+      shuffle: true, // the words shuffle their letters once as the wall arrives
       intro: "Names people call me. Most started on the court or in a Valorant lobby, then stuck.",
       words: [
         { text: "Matimbu", note: "the OG", top: true },

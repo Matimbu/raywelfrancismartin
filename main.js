@@ -129,6 +129,31 @@ function scramble(node, text, duration = 1000, delay = 0) {
   }, delay);
 }
 
+// Letters shuffle through the alphabet (keeping each letter's case) and
+// settle left to right. The word keeps its width meanwhile so nothing
+// around it jumps.
+function shuffleWord(node, text, duration = 900, delay = 0) {
+  const chars = [...text];
+  const settleAt = chars.map((_, i) => (i / chars.length) * 0.7 + Math.random() * 0.3);
+  const abc = "abcdefghijklmnopqrstuvwxyz";
+  const any = (c) => {
+    const r = abc[(Math.random() * 26) | 0];
+    return c === c.toUpperCase() ? r.toUpperCase() : r;
+  };
+  node.style.display = "inline-block";
+  node.style.minWidth = `${node.offsetWidth}px`;
+  setTimeout(() => {
+    const start = performance.now();
+    const step = (now) => {
+      const p = Math.min(1, (now - start) / duration);
+      node.textContent = chars.map((c, i) => (!/[a-z]/i.test(c) || p >= settleAt[i] ? c : any(c))).join("");
+      if (p < 1) requestAnimationFrame(step);
+      else node.style.minWidth = "";
+    };
+    requestAnimationFrame(step);
+  }, delay);
+}
+
 // Wraps each letter in a span so a heading can rise into view.
 // Keeps words together and keeps inline tags like <em>.
 function splitLetters(node) {
@@ -207,12 +232,68 @@ if (SITE.portfolio) portfolioLink.href = SITE.portfolio;
 else portfolioLink.remove();
 
 const town = SITE.place.name.split(",")[0];
+// The clocks' digits roll like the counters when they change. Each digit is
+// a strip of 0-9 twice, so 9 -> 0 keeps rolling forward and then quietly
+// snaps back to the first 0.
+function rollText(node, text) {
+  if (reduceMotion) {
+    node.textContent = text;
+    return;
+  }
+  const shape = text.replace(/\d/g, "0");
+  if (node.dataset.shape !== shape) {
+    node.dataset.shape = shape;
+    node.textContent = "";
+    const visible = el("span", "roll");
+    visible.setAttribute("aria-hidden", "true");
+    [...text].forEach((ch) => {
+      if (!/\d/.test(ch)) {
+        // non-breaking, because a plain space at the start of a run gets dropped
+        visible.appendChild(document.createTextNode(ch === " " ? "\u00a0" : ch));
+        return;
+      }
+      const strip = el("span", "odo-strip roll-strip");
+      for (let k = 0; k < 20; k++) strip.appendChild(el("span", "", String(k % 10)));
+      const odo = el("span", "odo");
+      odo.appendChild(strip);
+      visible.appendChild(odo);
+    });
+    node.append(visible, el("span", "sr-only"));
+  }
+  node.lastChild.textContent = text; // what screen readers hear
+  const strips = node.querySelectorAll(".roll-strip");
+  let k = 0;
+  [...text].forEach((ch) => {
+    if (!/\d/.test(ch)) return;
+    const strip = strips[k++];
+    const next = +ch;
+    const prev = strip.dataset.d === undefined ? null : +strip.dataset.d;
+    strip.dataset.d = next;
+    if (prev === null) {
+      strip.style.transition = "none";
+      strip.style.transform = `translateY(${-next}em)`;
+      requestAnimationFrame(() => (strip.style.transition = ""));
+    } else if (next > prev) {
+      strip.style.transform = `translateY(${-next}em)`;
+    } else if (next < prev) {
+      strip.style.transform = `translateY(${-(next + 10)}em)`;
+      setTimeout(() => {
+        if (+strip.dataset.d !== next) return;
+        strip.style.transition = "none";
+        strip.style.transform = `translateY(${-next}em)`;
+        void strip.offsetHeight;
+        strip.style.transition = "";
+      }, 560);
+    }
+  });
+}
+
 function tick() {
   const now = new Date();
   const opts = { timeZone: SITE.timezone, hour: "2-digit", minute: "2-digit", hour12: false };
-  $("clock").textContent = `${town} ${now.toLocaleTimeString("en-GB", opts)}`;
+  rollText($("clock"), `${town} ${now.toLocaleTimeString("en-GB", opts)}`);
   const full = now.toLocaleTimeString("en-GB", { ...opts, second: "2-digit", timeZoneName: "shortOffset" });
-  $("footClock").textContent = `Local time ${full}`;
+  rollText($("footClock"), `Local time ${full}`);
 }
 tick();
 setInterval(tick, 1000);
@@ -446,6 +527,17 @@ function flashCopied(label, ok) {
     words.appendChild(item);
   });
   block.append(head, words);
+
+  // `shuffle`: once the wall arrives, each word's letters shuffle through the
+  // alphabet and settle into place, one word after another
+  if (wall.shuffle && !reduceMotion) {
+    const shuffleWatch = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      shuffleWatch.disconnect();
+      words.querySelectorAll(".ww-text").forEach((node, i) => shuffleWord(node, node.textContent, 900, i * 120));
+    }, { threshold: 0.4 });
+    shuffleWatch.observe(words);
+  }
 
   // Wide screens: the cards slide in from both sides and meet in the middle
   if (cards && !reduceMotion && matchMedia("(min-width: 961px)").matches) {
@@ -1270,11 +1362,14 @@ meter.href = "#top";
 meter.setAttribute("aria-label", "Back to top");
 meter.innerHTML =
   '<svg viewBox="0 0 44 44" aria-hidden="true"><circle class="shot-meter-track" cx="22" cy="22" r="19"/>' +
-  '<circle class="shot-meter-fill" cx="22" cy="22" r="19"/></svg><span class="shot-meter-arrow" aria-hidden="true">↑</span>';
+  '<circle class="shot-meter-fill" cx="22" cy="22" r="19"/></svg><span class="shot-meter-arrow" aria-hidden="true">↑</span>' +
+  '<span class="shot-meter-pct mono" aria-hidden="true">0%</span>';
 document.body.appendChild(meter);
 document.body.classList.add("has-meter");
 document.querySelector('.footer a[href="#top"]')?.remove();
 const meterFill = meter.querySelector(".shot-meter-fill");
+const meterPct = meter.querySelector(".shot-meter-pct");
+let meterIdle = null;
 const METER_LEN = 2 * Math.PI * 19;
 meterFill.style.strokeDasharray = METER_LEN.toFixed(2);
 
@@ -1286,6 +1381,11 @@ function updateMeter(y) {
   const max = document.documentElement.scrollHeight - innerHeight;
   const p = max > 0 ? Math.min(1, y / max) : 0;
   meterFill.style.strokeDashoffset = (METER_LEN * (1 - p)).toFixed(2);
+  // while you scroll, the ring shows how far down you are instead of the arrow
+  meterPct.textContent = `${Math.round(p * 100)}%`;
+  meter.classList.add("scrolling");
+  clearTimeout(meterIdle);
+  meterIdle = setTimeout(() => meter.classList.remove("scrolling"), 900);
   const reading = narrowScreen.matches && header.classList.contains("tucked");
   meter.classList.toggle("on", y > heroH * 0.6 && !reading);
   meter.classList.toggle("swish", p > 0.995);
@@ -1360,31 +1460,6 @@ function updateMarquee(y) {
   if (Math.abs(marqueeRate - marqueeAnim.playbackRate) > 0.01) marqueeAnim.playbackRate = marqueeRate;
 }
 
-// A small orange dot trails the cursor (desktop only) and opens into a
-// ring over anything clickable. It hides over videos and embeds, which
-// swallow the mouse.
-const cursorDot = canHover && !reduceMotion ? document.body.appendChild(el("div", "cursor-dot hidden")) : null;
-let dotX = pointerX;
-let dotY = pointerY;
-if (cursorDot) {
-  const CLICKABLE = "a, button, [role='button'], .craft-row, .shot, .video-row, .ww-drone, .floater";
-  document.addEventListener("mouseover", (e) => {
-    const t = e.target instanceof Element ? e.target : null;
-    cursorDot.classList.toggle("hot", !!(t && t.closest(CLICKABLE)));
-    cursorDot.classList.toggle("hidden", !t || t.tagName === "IFRAME");
-  });
-  document.documentElement.addEventListener("mouseleave", () => cursorDot.classList.add("hidden"));
-}
-function moveCursorDot() {
-  if (!cursorDot) return;
-  const dx = pointerX - dotX;
-  const dy = pointerY - dotY;
-  if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) return;
-  dotX += dx * 0.28;
-  dotY += dy * 0.28;
-  cursorDot.style.transform = `translate3d(${dotX.toFixed(1)}px, ${dotY.toFixed(1)}px, 0)`;
-}
-
 // Gallery photos drift slightly against the scroll inside their frames,
 // which gives the grid a little depth
 const driftTiles = reduceMotion ? [] : [...document.querySelectorAll("#galleryGrid .shot:not(.contain):not(.shot-more) img")];
@@ -1405,7 +1480,6 @@ function frame() {
   frameY = y;
 
   updateMarquee(y);
-  moveCursorDot();
   if (scrolled) driftGallery();
 
   const dx = mouseX - easeX;
