@@ -644,6 +644,12 @@ a.ww:hover .ww-text { color: var(--fg); }
 }
 a.ww-card:hover .ww-card-img img { transform: scale(1.04); }
 .ww-pos { color: var(--muted); font-size: 11px; }
+/* card labels: the position's number (1-5) rolls over to its name */
+.ww-card .ww-pos { display: block; height: 1.3em; line-height: 1.3; overflow: hidden; }
+.ww-pos-strip { display: block; transition: transform 0.7s var(--ease) calc(var(--d, 0) * 120ms + 150ms); }
+.ww-pos-strip > span { display: block; height: 1.3em; }
+.ww-pos-num { color: var(--accent); }
+.named .ww-pos-strip { transform: translateY(-1.3em); }
 .ww-card .ww-text { font-size: clamp(26px, 2.6vw, 38px); }
 a.ww-card:hover .ww-text { color: var(--fg); }
 
@@ -798,6 +804,9 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
 .link:hover::after { transform: scaleX(1); }
 
 .craft-num, .craft-tags, .craft-year { color: var(--muted); }
+.craft-num { display: inline-flex; align-items: center; line-height: 1; }
+.craft .odo-strip { transition: transform 0.9s var(--ease) calc(var(--d, 0) * 90ms + 200ms); }
+.craft.in .odo-strip { transform: translateY(calc(var(--n, 0) * -1em)); }
 .craft-year { text-align: right; }
 .craft-title {
   font-size: clamp(28px, 4.6vw, 60px);
@@ -1208,6 +1217,8 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
 }
 @media (prefers-reduced-motion: reduce) {
   .shot.loading::before { animation: none; }
+  .craft .odo-strip { transform: translateY(calc(var(--n, 0) * -1em)); transition: none; }
+  .ww-pos-strip { transition: none; }
 }
 .shot:hover img { transform: scale(1.04); }
 /* screenshots and notes: show the whole thing, centred on the card */

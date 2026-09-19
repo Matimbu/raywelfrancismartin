@@ -222,7 +222,7 @@ function splitWords(node, text) {
 // ============================================================
 $("brand").textContent = SITE.initials;
 $("footName").textContent = SITE.fullName;
-if (SITE.motto) $("footMotto").textContent = SITE.motto;
+if (SITE.motto) splitWords($("footMotto"), SITE.motto); // lights up at the very bottom
 else $("footMotto").remove();
 $("year").textContent = new Date().getFullYear();
 document.title = `${SITE.firstName} ${SITE.lastName}`;
@@ -501,7 +501,19 @@ function flashCopied(label, ok) {
       frame.appendChild(img);
       item.appendChild(frame);
     }
-    if (w.pos) item.appendChild(el("span", "ww-pos mono", w.pos));
+    if (w.pos) {
+      const pos = el("span", "ww-pos mono");
+      if (cards) {
+        // Positions are numbered 1-5 in basketball (PG is the 1, C the 5):
+        // the label shows the number first and rolls over to the name
+        const strip = el("span", "ww-pos-strip");
+        strip.append(el("span", "ww-pos-num", String(w.num || i + 1)), el("span", "", w.pos));
+        pos.appendChild(strip);
+      } else {
+        pos.textContent = w.pos;
+      }
+      item.appendChild(pos);
+    }
     item.appendChild(el("span", "ww-text", w.text));
     if (w.note || w.face) {
       const note = el("span", "ww-note mono");
@@ -537,6 +549,19 @@ function flashCopied(label, ok) {
       words.querySelectorAll(".ww-text").forEach((node, i) => shuffleWord(node, node.textContent, 900, i * 120));
     }, { threshold: 0.4 });
     shuffleWatch.observe(words);
+  }
+
+  // Card labels roll from their number to their name once the cards are on
+  // screen, and back when they leave, so it plays again next time
+  if (cards) {
+    if (reduceMotion) {
+      words.classList.add("named");
+    } else {
+      const nameWatch = new IntersectionObserver(([entry]) => {
+        words.classList.toggle("named", entry.isIntersecting);
+      }, { threshold: 0.6 });
+      nameWatch.observe(words);
+    }
   }
 
   // Wide screens: the cards slide in from both sides and meet in the middle
@@ -709,8 +734,16 @@ SITE.crafts.forEach((craft, i) => {
 
   const row = el(craft.link ? "a" : "div", "craft-row");
   linkify(row, craft.link);
+  // The number rolls up from 00, like the belief odometers, as the row arrives
+  const num = el("span", "craft-num mono");
+  const strip = el("span", "odo-strip");
+  for (let d = 0; d <= 9; d++) strip.appendChild(el("span", "", String(d)));
+  strip.style.setProperty("--n", (i + 1) % 10);
+  const odo = el("span", "odo");
+  odo.appendChild(strip);
+  num.append(String(Math.floor((i + 1) / 10)), odo);
   row.append(
-    el("span", "craft-num mono", pad2(i + 1)),
+    num,
     el("span", "craft-title", craft.title),
     el("span", "craft-tags mono", craft.tags.join(" · ")),
     el("span", "craft-year mono", craft.year),
@@ -1369,6 +1402,8 @@ document.body.classList.add("has-meter");
 document.querySelector('.footer a[href="#top"]')?.remove();
 const meterFill = meter.querySelector(".shot-meter-fill");
 const meterPct = meter.querySelector(".shot-meter-pct");
+const mottoWords = [...document.querySelectorAll("#footMotto .fw")];
+const footer = document.querySelector(".footer");
 let meterIdle = null;
 const METER_LEN = 2 * Math.PI * 19;
 meterFill.style.strokeDasharray = METER_LEN.toFixed(2);
@@ -1381,6 +1416,12 @@ function updateMeter(y) {
   const max = document.documentElement.scrollHeight - innerHeight;
   const p = max > 0 ? Math.min(1, y / max) : 0;
   meterFill.style.strokeDashoffset = (METER_LEN * (1 - p)).toFixed(2);
+  // as the footer slides into view, its motto lights up word by word
+  if (!reduceMotion && mottoWords.length) {
+    const f = footer.getBoundingClientRect();
+    const lit = Math.round(clamp01((innerHeight - f.top) / f.height) * mottoWords.length);
+    mottoWords.forEach((w, i) => w.classList.toggle("lit", i < lit));
+  }
   // while you scroll, the ring shows how far down you are instead of the arrow
   meterPct.textContent = `${Math.round(p * 100)}%`;
   meter.classList.add("scrolling");
