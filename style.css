@@ -612,6 +612,13 @@ a.ww:hover .ww-text { color: var(--fg); }
   object-fit: cover;
   border: 1px solid var(--line);
 }
+/* walls with lightUp: words wait dim and light up one after another */
+.wordwall.lighting .ww .ww-text,
+.wordwall.lighting .ww .ww-note { opacity: 0.22; transition: opacity 0.6s ease, color 0.6s ease; }
+.wordwall.lighting .ww.lit .ww-text,
+.wordwall.lighting .ww.lit .ww-note { opacity: 1; }
+.wordwall.lighting .ww.lit .ww-text { color: var(--fg); }
+
 /* a wall of photo cards (e.g. a starting five) */
 .wordwall.cards .wordwall-words {
   grid-column: 1 / -1;
@@ -884,6 +891,14 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   transition: transform 0.7s var(--ease);
 }
 .hobby:hover .hobby-emoji { transform: rotate(-12deg) scale(1.15); }
+/* each emoji pops in with a little bounce as its card arrives; an animation
+   (filled backwards only) so the hover tilt still works afterwards */
+.js .hobby:not(.in) .hobby-emoji { opacity: 0; }
+.js .hobby.in .hobby-emoji { animation: emoji-pop 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) calc(var(--d, 0) * 120ms + 300ms) backwards; }
+@keyframes emoji-pop {
+  from { opacity: 0; transform: scale(0.3) rotate(-25deg); }
+  to { opacity: 1; transform: none; }
+}
 .hobby-title {
   font-size: 22px;
   font-weight: 500;
@@ -1219,6 +1234,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   .shot.loading::before { animation: none; }
   .craft .odo-strip { transform: translateY(calc(var(--n, 0) * -1em)); transition: none; }
   .ww-pos-strip { transition: none; }
+  .js .hobby .hobby-emoji { opacity: 1; animation: none; }
 }
 .shot:hover img { transform: scale(1.04); }
 /* screenshots and notes: show the whole thing, centred on the card */
@@ -1250,6 +1266,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
 }
 .shot:hover .shot-caption,
 .shot:focus-visible .shot-caption { opacity: 1; transform: none; }
+.shot-caption:empty { visibility: hidden; }
 @media (hover: none) {
   .shot-caption { opacity: 1; transform: none; }
 }

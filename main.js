@@ -100,6 +100,20 @@ function updateScenes() {
   });
 }
 
+// Walls with `lightUp`: their words light one after another as the wall
+// moves through the middle of the screen
+const lightWalls = [];
+function updateLightWalls() {
+  const vh = innerHeight;
+  lightWalls.forEach((words) => {
+    const r = words.getBoundingClientRect();
+    if (r.bottom < 0 || r.top > vh) return;
+    const items = words.children;
+    const lit = Math.round(clamp01((vh * 0.85 - r.top) / (vh * 0.45)) * items.length);
+    [...items].forEach((item, i) => item.classList.toggle("lit", i < lit));
+  });
+}
+
 // ============================================================
 //  Text effects
 // ============================================================
@@ -549,6 +563,11 @@ function flashCopied(label, ok) {
       words.querySelectorAll(".ww-text").forEach((node, i) => shuffleWord(node, node.textContent, 900, i * 120));
     }, { threshold: 0.4 });
     shuffleWatch.observe(words);
+  }
+
+  if (wall.lightUp && !reduceMotion) {
+    block.classList.add("lighting");
+    lightWalls.push(words);
   }
 
   // Card labels roll from their number to their name once the cards are on
@@ -1085,6 +1104,29 @@ addEventListener("resize", () => stageFits.forEach((fit) => fit()));
 //  Gallery (click a photo to see it large)
 // ============================================================
 const gallery = SITE.gallery || [];
+
+// Types text into a caption a letter at a time
+function typeCaption(node, text) {
+  clearInterval(node.typing);
+  let n = 0;
+  node.textContent = "";
+  node.typing = setInterval(() => {
+    node.textContent = text.slice(0, ++n);
+    if (n >= text.length) clearInterval(node.typing);
+  }, 28);
+}
+// On phones: type each caption once its tile has revealed
+const captionWatch = new IntersectionObserver((entries) => {
+  entries.forEach((entry) => {
+    if (!entry.isIntersecting) return;
+    captionWatch.unobserve(entry.target);
+    const tile = entry.target;
+    const caption = tile.querySelector(".shot-caption");
+    const text = gallery[[...tile.parentNode.children].indexOf(tile)]?.caption || "";
+    const delay = Number(getComputedStyle(tile).getPropertyValue("--d") || 0) * 120 + 800;
+    setTimeout(() => typeCaption(caption, text), delay);
+  });
+}, { threshold: 0.3 });
 const shotSrc = (p, width) => `assets/gallery/${p.file}-${width}.jpg`;
 
 gallery.forEach((p, i) => {
@@ -1106,7 +1148,18 @@ gallery.forEach((p, i) => {
     img.addEventListener("load", loaded, { once: true });
     img.addEventListener("error", loaded, { once: true });
   }
-  tile.append(img, el("span", "shot-caption mono", p.caption));
+  const caption = el("span", "shot-caption mono", p.caption);
+  tile.append(img, caption);
+  // Captions type themselves out: on each hover on computers, and once the
+  // tile has finished revealing on phones (where captions always show)
+  if (!reduceMotion) {
+    if (canHover) {
+      tile.addEventListener("mouseenter", () => typeCaption(caption, p.caption));
+    } else {
+      caption.textContent = "";
+      captionWatch.observe(tile);
+    }
+  }
   tile.addEventListener("click", () => openShot(i));
   $("galleryGrid").appendChild(tile);
 });
@@ -1543,6 +1596,7 @@ function frame() {
     updateMeter(y);
     updateScenes();
     updateNav(y);
+    updateLightWalls();
   }
 
   if ((scrolled || drifting) && y < heroH * 1.2) {

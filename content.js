@@ -60,6 +60,7 @@ const SITE = {
   // `layout: "cards"` shows each word as a photo card (`image`, `pos`, `alt`);
   // `credit` can also be a list when a card uses more than one photo.
   // `specs` lists small settings under the words; `copy: true` adds a Copy button.
+  // `lightUp: true` lights the words one by one as you scroll through the wall.
   // Add more walls to the list and they show up in the same style.
   walls: [
     {
@@ -98,6 +99,7 @@ const SITE = {
     {
       label: "On the court",
       section: "hobbies",
+      lightUp: true, // the words light up one after another as you read, like a play being called
       intro: "Where I play and what I go to.",
       words: [
         { text: "Center", note: "or the 3, on the wing", top: true },
