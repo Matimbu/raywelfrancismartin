@@ -624,7 +624,17 @@ function flashCopied(label, ok) {
     // Hover on computers, tap on phones.
     const ability = reduceMotion ? null
       : w.ping ? reconPing : w.shock ? shockBolt : w.beam ? huntersFury : w.hud ? droneHud : null;
-    if (ability) item.addEventListener(canHover ? "mouseenter" : "click", () => ability(block, item));
+    if (ability === droneHud && !canHover) {
+      // phones: the first tap opens the drone's view instead of the clip;
+      // with it up, tapping the word again opens the clip as usual
+      item.addEventListener("click", (e) => {
+        if (hud) return;
+        e.preventDefault();
+        droneHud(block, item);
+      });
+    } else if (ability) {
+      item.addEventListener(canHover ? "mouseenter" : "click", () => ability(block, item));
+    }
     // Reuse the crafts preview card: the photo follows the cursor
     if (w.image && canHover && !cards) {
       item.addEventListener("mouseenter", () => showPreview({ image: w.image, emoji: "" }));
@@ -704,7 +714,6 @@ function flashCopied(label, ok) {
     block.classList.add("has-art");
     const art = el("div", "wordwall-art reveal");
     if (wall.art.glow) art.style.setProperty("--glow", wall.art.glow);
-    if (wall.art.bow) art.dataset.bow = wall.art.bow.join(",");
     const img = el("img");
     img.src = wall.art.src;
     img.alt = wall.art.alt || "";
@@ -728,6 +737,20 @@ function flashCopied(label, ok) {
         });
         art.addEventListener("animationend", (e) => {
           if (e.animationName === "lock-scan") scramble(tag, "Locked in", 700);
+        });
+      }
+      // Easter egg: hovering (or tapping) "Locked in" shows who's behind the
+      // bow, Sova's real name
+      const unmask = (on) => {
+        if (reduceMotion || tag.classList.contains("on")) scramble(tag, on ? "Sasha Novikov" : "Locked in", 600);
+      };
+      if (canHover) {
+        tag.addEventListener("mouseenter", () => unmask(true));
+        tag.addEventListener("mouseleave", () => unmask(false));
+      } else {
+        tag.addEventListener("click", () => {
+          unmask(true);
+          setTimeout(() => unmask(false), 2500);
         });
       }
     }
@@ -1766,49 +1789,40 @@ function flashWord(node, delay, rise = 0.15, duration = 1100) {
   node.animate([{ ...lit, offset: rise }, { ...lit, offset: rise + 0.3 }], { duration, delay, easing: "ease-out" });
 }
 
-// Where Sova's bow is on the wall: `art.bow` gives it as fractions across and
-// down the picture. His abilities charge and fire from there.
-function bowPoint(block) {
-  const img = block.querySelector(".wordwall-art[data-bow] img");
-  if (!img) return null;
-  const [bx, by] = img.parentNode.dataset.bow.split(",").map(Number);
-  const r = img.getBoundingClientRect();
+// Sova's abilities come from his energy bow, not the Operator he's holding
+// in the picture: it appears in the open space between the words and the
+// picture (or near the wall's right edge when they're stacked), at height y
+function bowSpot(block, y) {
   const box = block.getBoundingClientRect();
-  const ratio = img.naturalWidth / img.naturalHeight || r.width / r.height;
-  // the picture is contained in its box, so find where it's actually drawn
-  let w = r.width;
-  let h = r.height;
-  if (w / h > ratio) w = h * ratio;
-  else h = w / ratio;
-  return { x: r.left + (r.width - w) / 2 + w * bx - box.left, y: r.top + (r.height - h) / 2 + h * by - box.top };
+  const img = block.querySelector(".wordwall-art img");
+  const wordsRight = Math.max(...[...block.querySelectorAll(".ww")].map((w) => w.getBoundingClientRect().right));
+  const art = img && img.getBoundingClientRect();
+  if (art && art.left > wordsRight + 80) return { x: (wordsRight + art.left) / 2 - box.left, y };
+  return { x: box.width - 50, y };
 }
 
-// The bow glows as it charges for `ms`, then flashes as it fires
-function chargeBow(fx, at, ms) {
-  const orb = el("span", "fury-charge");
-  orb.style.left = `${at.x}px`;
-  orb.style.top = `${at.y}px`;
-  fx.appendChild(orb);
-  orb.animate([{ opacity: 0, scale: "0.1" }, { opacity: 0.9, scale: "0.55" }], { duration: ms, easing: "ease-in", fill: "forwards" });
-  return new Promise((fire) => setTimeout(() => {
-    orb.animate([{ opacity: 0.9, scale: "0.55" }, { opacity: 0, scale: "0.9" }], { duration: 300, easing: "ease-out", fill: "forwards" })
-      .finished.then(() => orb.remove());
-    fire();
-  }, ms));
+// An arc from one point to another whose top is `lift` px above the higher
+// end, taking `time` s: its gravity and starting speed
+function arcOf(from, to, lift, time) {
+  const top = Math.min(from.y, to.y) - lift;
+  const g = (2 * (Math.sqrt(from.y - top) + Math.sqrt(to.y - top)) ** 2) / (time * time);
+  return { g, vx: (to.x - from.x) / time, vy: -Math.sqrt(2 * g * (from.y - top)) };
+}
+// the direction a bolt leaves in, to aim the bow (degrees, 0 = right)
+function launchAngle(from, to, lift, time) {
+  const { vx, vy } = arcOf(from, to, lift, time);
+  return (Math.atan2(vy, vx) * 180) / Math.PI;
 }
 
 // A bolt flies like an arrow: each leg is an arc from one point to the next,
-// its top `lift` px above the higher end, and the bolt points along its path
+// and the bolt points along its path
 function flyBolt(fx, legs) {
   const total = legs.reduce((sum, leg) => sum + leg.time, 0);
   const frames = [];
   let elapsed = 0;
   let last = null;
   legs.forEach(({ from, to, lift, time }) => {
-    const top = Math.min(from.y, to.y) - lift;
-    const g = (2 * (Math.sqrt(from.y - top) + Math.sqrt(to.y - top)) ** 2) / (time * time);
-    const vy = -Math.sqrt(2 * g * (from.y - top));
-    const vx = (to.x - from.x) / time;
+    const { g, vx, vy } = arcOf(from, to, lift, time);
     for (let i = 0; i <= 16; i++) {
       const t = (i / 16) * time;
       let deg = (Math.atan2(vy + g * t, vx) * 180) / Math.PI;
@@ -1828,6 +1842,130 @@ function flyBolt(fx, legs) {
   return bolt.animate(frames, { duration: total * 1000, fill: "forwards" }).finished.then(() => bolt.remove());
 }
 
+// Sova's energy bow, held at `grip` (in the layer's coordinates) and aimed
+// at `angle` (degrees, 0 = right); H sets its size. draw(to, ms) pulls the
+// string back (0-1) while it crackles and the arrowhead charges into an orb;
+// release(fly) lets go and the string twangs, returning where the arrowhead
+// was (with fly, the arrow flies off too); nock() puts a new arrow on.
+function makeBow(layer, grip, angle, H) {
+  const S = 3 * H;
+  const o = S / 2; // the grip, in the bow's own box
+  const top = [o - 0.3 * H, o - 0.95 * H];
+  const bottom = [o - 0.3 * H, o + 0.95 * H];
+  const rest = o - 0.3 * H;
+  const drawn = o - 0.7 * H;
+  const arrowLen = 1.25 * H;
+  const box = el("div", "bow-shot");
+  box.setAttribute("aria-hidden", "true");
+  box.style.cssText = `left:${grip.x - o}px;top:${grip.y - o}px;width:${S}px;height:${S}px;rotate:${angle}deg`;
+  box.innerHTML =
+    `<svg viewBox="0 0 ${S} ${S}"><path class="bow-limb" d="M${top} Q${o + 0.3 * H},${o} ${bottom}"/>` +
+    '<line class="bow-tracer"/><polyline class="bow-string"/><line class="bow-arrow"/>' +
+    '<polyline class="bow-arc"/><polyline class="bow-arc"/><polyline class="bow-arc"/></svg>' +
+    '<span class="bow-orb"></span>';
+  layer.appendChild(box);
+  const string = box.querySelector(".bow-string");
+  const arrow = box.querySelector(".bow-arrow");
+  const tracer = box.querySelector(".bow-tracer");
+  const orb = box.querySelector(".bow-orb");
+  const arcs = [...box.querySelectorAll(".bow-arc")];
+  tracer.style.opacity = "0";
+  const setLine = (node, x1, x2) => {
+    node.setAttribute("x1", x1);
+    node.setAttribute("x2", x2);
+    node.setAttribute("y1", o);
+    node.setAttribute("y2", o);
+  };
+  let p = 0; // how far the string is drawn back, 0-1
+  let pull = null; // the draw in progress
+  let loosed = null; // when it was let go (and how far it was drawn)
+  let alive = true;
+  requestAnimationFrame(() => box.classList.add("on"));
+  const frame = (now) => {
+    if (!alive) return;
+    if (pull) {
+      const k = clamp01((now - pull.t0) / pull.ms);
+      p = pull.from + (pull.to - pull.from) * (1 - (1 - k) ** 3);
+      if (k >= 1) {
+        const { done } = pull;
+        pull = null;
+        done();
+      }
+    }
+    const seed = Math.floor(now / 45); // the lightning changes ~20 times a second
+    if (!loosed) {
+      const nx = rest + (drawn - rest) * p + (p > 0.98 ? (noise(seed, 3) - 0.5) * 1.5 : 0); // trembling at full draw
+      const tip = nx + arrowLen;
+      const zap = 6 * p;
+      string.setAttribute("points", `${jagged(straight(top, [nx, o]), 7, zap, seed)} ${jagged(straight([nx, o], bottom), 7, zap, seed + 9)}`);
+      setLine(arrow, nx, tip);
+      orb.style.translate = `${tip}px ${o}px`;
+      orb.style.scale = String((0.25 + 0.75 * p) * (1 + 0.08 * Math.sin(now / 35)));
+      // sparks swirling round the charging arrowhead
+      arcs.forEach((arc, i) => {
+        if (p < 0.35) return arc.setAttribute("points", "");
+        const rr = 0.24 * H * (0.6 + 0.4 * p) * (0.85 + 0.3 * noise(i + 7, seed));
+        const a0 = noise(i, seed) * 6.28;
+        const sweep = 1.8 + noise(i + 3, seed);
+        arc.setAttribute("points", jagged((u) => [tip + rr * Math.cos(a0 + sweep * u), o + rr * Math.sin(a0 + sweep * u)], 7, 3, seed + i * 5));
+      });
+    } else {
+      // the string twangs back and settles; a flying arrow keeps going
+      const s = (now - loosed.at) / 1000;
+      const nx = rest + (drawn - rest) * loosed.p * Math.exp(-s / 0.09) * Math.cos(2 * Math.PI * 11 * s);
+      string.setAttribute("points", `${top} ${nx},${o} ${bottom}`);
+      if (loosed.fly) {
+        const tip = loosed.tip + 2800 * s;
+        setLine(arrow, tip - arrowLen, tip);
+        setLine(tracer, loosed.tip, tip - arrowLen);
+        tracer.style.opacity = String(Math.max(0, 1 - s / 0.35));
+        orb.style.translate = `${tip}px ${o}px`;
+        orb.style.scale = String(Math.max(0.5, 1 - s));
+      }
+    }
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+  return {
+    draw: (to, ms) => new Promise((done) => (pull = { from: p, to, ms, t0: performance.now(), done })),
+    release(fly = false) {
+      const tip = rest + (drawn - rest) * p + arrowLen;
+      loosed = { at: performance.now(), p, tip, fly };
+      p = 0;
+      arcs.forEach((arc) => arc.setAttribute("points", ""));
+      if (!fly) arrow.style.opacity = orb.style.opacity = "0";
+      const a = (angle * Math.PI) / 180;
+      return { x: grip.x + (tip - o) * Math.cos(a), y: grip.y + (tip - o) * Math.sin(a) };
+    },
+    nock() {
+      loosed = null;
+      arrow.style.opacity = orb.style.opacity = "";
+      tracer.style.opacity = "0";
+    },
+    fade() {
+      box.classList.remove("on");
+      setTimeout(() => {
+        alive = false;
+        box.remove();
+      }, 350);
+    }
+  };
+}
+
+// The charge meter under the bow: two bars filling up over `ms`, like the
+// game's for its bolts
+function chargeBars(layer, at, ms) {
+  const bars = el("span", "charge-bars");
+  bars.setAttribute("aria-hidden", "true");
+  bars.append(el("i"), el("i"));
+  bars.style.left = `${at.x}px`;
+  bars.style.top = `${at.y}px`;
+  bars.style.setProperty("--half", `${ms / 2}ms`);
+  layer.appendChild(bars);
+  requestAnimationFrame(() => requestAnimationFrame(() => bars.classList.add("filling")));
+  return () => bars.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: "forwards" }).finished.then(() => bars.remove());
+}
+
 // A ring of blue where a bolt lands, bounces or pings
 function tink(fx, at, size = 60, duration = 380) {
   const ring = el("span", "sova-ring");
@@ -1838,9 +1976,10 @@ function tink(fx, at, size = 60, duration = 380) {
     { duration, easing: "ease-out", fill: "forwards" }).finished.then(() => ring.remove());
 }
 
-// Recon Bolt on the real ability's timing (VALORANT wiki): the bolt flies
-// from the bow and sticks in the word, winds up for 0.667 s, then pulses
-// twice, 1.6 s apart. Each ring lights up the other words as it reaches them.
+// Recon Bolt on the real ability's timing (VALORANT wiki): Sova's bow comes
+// up and charges fully in a blink (both bars of the charge meter), the bolt
+// arcs into the word and sticks, and 0.667 s later it pulses, twice, 1.6 s
+// apart. Each ring lights up the other words as it reaches them.
 let pinging = false;
 function reconPing(block, item) {
   if (pinging) return;
@@ -1851,7 +1990,10 @@ function reconPing(block, item) {
   const y = src.top + src.height / 2 - box.top;
   const reach = Math.hypot(Math.max(x, box.width - x), Math.max(y, box.height - y));
   const fx = wallFx(block);
-  const bow = bowPoint(block) || { x: box.width - 30, y: 40 };
+  const grip = bowSpot(block, y + 10);
+  const flight = { to: { x, y }, lift: 70, time: 0.55 };
+  const bow = makeBow(fx, grip, launchAngle(grip, flight.to, flight.lift, flight.time), 56);
+  const hideBars = chargeBars(fx, { x: grip.x, y: grip.y + 64 }, 420);
   const pulse = () => {
     tink(fx, { x, y }, reach * 2, 1800);
     block.querySelectorAll(".ww-text").forEach((t) => {
@@ -1861,8 +2003,16 @@ function reconPing(block, item) {
       flashWord(t, (d / reach) * 1800, 0.1, 900);
     });
   };
-  chargeBow(fx, bow, 400)
-    .then(() => flyBolt(fx, [{ from: bow, to: { x, y }, lift: 60, time: 0.5 }]))
+  bow.draw(1, 420)
+    .then(() => {
+      const from = bow.release();
+      tink(fx, from, 50); // fully charged: it flashes as it fires
+      setTimeout(() => {
+        bow.fade();
+        hideBars();
+      }, 450);
+      return flyBolt(fx, [{ ...flight, from }]);
+    })
     .then(() => {
       // stuck in the word, blinking while it winds up and scans
       const stuck = el("span", "bolt-stuck");
@@ -1881,10 +2031,11 @@ function reconPing(block, item) {
 
 // Hunter's Fury on the real ult's timing (VALORANT wiki): 0.8 s to equip,
 // then three charges, each winding up for 1 s before a wall-piercing blast,
-// one every 2.125 s. The bow charges, and each blast is a beam that leaves
-// the bow and goes straight through the word, on across the wall, pulsing and
-// fading and lighting the word up for a second. Its three charge pips light
-// up with the ult and go out one blast at a time.
+// one every 2.125 s. Sova's energy bow comes up level with the word, beside
+// the picture (where he's holding an Operator), and draws for each charge;
+// each blast leaves the arrowhead and goes straight through the word, on
+// across the wall, pulsing and fading and lighting the word up for a second.
+// The three charge pips go out one by one.
 let firing = false;
 function huntersFury(block, item) {
   if (firing) return;
@@ -1896,28 +2047,21 @@ function huntersFury(block, item) {
   const text = item.querySelector(".ww-text");
   const r = text.getBoundingClientRect();
   const hit = { x: r.left + r.width / 2 - box.left, y: r.top + r.height * 0.55 - box.top };
-  const bow = bowPoint(block) || { x: box.width - 28, y: hit.y };
-  const angle = (Math.atan2(hit.y - bow.y, hit.x - bow.x) * 180) / Math.PI - 180;
+  const grip = bowSpot(block, hit.y);
+  const angle = (Math.atan2(hit.y - grip.y, hit.x - grip.x) * 180) / Math.PI;
   const reach = Math.hypot(box.width, box.height);
   const fx = wallFx(block);
   const pipBox = item.querySelector(".ult-pips");
   const pips = pipBox ? [...pipBox.children] : [];
   pips.forEach((p) => p.classList.remove("used"));
   pipBox?.classList.add("armed");
-  const orb = el("span", "fury-charge");
-  orb.style.left = `${bow.x}px`;
-  orb.style.top = `${bow.y}px`;
-  fx.appendChild(orb);
-  const orbTo = (from, to, duration, easing) => orb.animate([from, to], { duration, easing, fill: "forwards" });
-  const idle = { opacity: 0.45, scale: "0.4" };
-  const full = { opacity: 1, scale: "1" };
-  orbTo({ opacity: 0, scale: "0.2" }, idle, EQUIP, "ease-out");
-  const blast = (n) => {
+  const bow = makeBow(fx, grip, angle, 60);
+  const blast = (n, from) => {
     const beam = el("span", "fury-beam");
-    beam.style.left = `${bow.x - reach}px`;
-    beam.style.top = `${bow.y}px`;
+    beam.style.left = `${from.x - reach}px`;
+    beam.style.top = `${from.y}px`;
     beam.style.width = `${reach}px`;
-    beam.style.rotate = `${angle}deg`;
+    beam.style.rotate = `${angle - 180}deg`;
     fx.appendChild(beam);
     pips[n]?.classList.add("used");
     beam.animate([
@@ -1930,14 +2074,14 @@ function huntersFury(block, item) {
   };
   for (let n = 0; n < 3; n++) {
     const fireAt = EQUIP + WINDUP + n * EVERY;
-    setTimeout(() => orbTo(idle, full, WINDUP, "ease-in"), fireAt - WINDUP);
     setTimeout(() => {
-      blast(n);
-      orbTo({ opacity: 1, scale: "1.35" }, idle, 500, "ease-out");
-    }, fireAt);
+      if (n) bow.nock();
+      bow.draw(1, WINDUP);
+    }, fireAt - WINDUP);
+    setTimeout(() => blast(n, bow.release()), fireAt);
   }
   setTimeout(() => {
-    orbTo(idle, { opacity: 0, scale: "0.2" }, 400, "ease-in").finished.then(() => orb.remove());
+    bow.fade();
     pipBox?.classList.remove("armed");
     firing = false;
   }, EQUIP + WINDUP + 2 * EVERY + 900);
@@ -1965,7 +2109,7 @@ let hud = null;
 addEventListener("pointermove", (e) => {
   pointer.x = e.clientX;
   pointer.y = e.clientY;
-  if (hud) hud.style.translate = `${pointer.x}px ${pointer.y}px`;
+  if (hud && canHover) hud.style.translate = `${pointer.x}px ${pointer.y}px`;
 }, { passive: true });
 
 // While the drone's HUD is up, clicking empty space fires its marking dart
@@ -2023,12 +2167,20 @@ function fireDart(x, y) {
   });
 }
 
-function droneHud() {
-  if (hud || !canHover) return;
+function droneHud(block, item) {
+  if (hud) return;
+  // phones have no cursor: the view opens over the word, and stays a little longer
+  if (!canHover && item) {
+    const w = item.querySelector(".ww-text").getBoundingClientRect();
+    pointer.x = w.left + w.width / 2;
+    pointer.y = w.top + w.height / 2;
+  }
+  const life = canHover ? 2600 : 3600;
   const node = (hud = el("div", "drone-hud"));
   node.setAttribute("aria-hidden", "true");
   node.innerHTML = DRONE_HUD;
   node.style.translate = `${pointer.x}px ${pointer.y}px`;
+  node.style.setProperty("--hud-life", `${life}ms`);
   document.body.appendChild(node);
   document.documentElement.classList.add("drone-view"); // the reticle is the cursor
   requestAnimationFrame(() => requestAnimationFrame(() => node.classList.add("on")));
@@ -2040,13 +2192,13 @@ function droneHud() {
       node.remove();
       hud = null;
     }, 400);
-  }, 2600);
+  }, life);
 }
 
-// Shock Bolt: the bolt charges on the bow (0.4 s windup, VALORANT wiki),
-// flies in an arc, bounces once off the bottom of the word like a bank shot,
-// lands under it and bursts into an electric dome like the game's shock dart,
-// while the word jolts and flickers
+// Shock Bolt: Sova's bow comes up and winds up for 0.4 s (VALORANT wiki),
+// the bolt arcs out, banks off the ground twice (its most, like in the
+// game), lands under the word and bursts into an electric dome like the
+// game's shock dart, while the word jolts and flickers
 let shocking = false;
 function shockBolt(block, item) {
   if (shocking) return;
@@ -2056,16 +2208,32 @@ function shockBolt(block, item) {
   const r = text.getBoundingClientRect();
   const x = r.left + r.width / 2 - box.left;
   const ground = r.bottom - box.top;
-  const floor = { x: r.left + r.width * 0.8 - box.left, y: ground };
   const fx = wallFx(block);
-  const bow = bowPoint(block) || { x: box.width - 30, y: 40 };
-  chargeBow(fx, bow, 400)
+  const grip = bowSpot(block, ground - 50);
+  const land = { x, y: ground };
+  const along = (f) => ({ x: grip.x + (land.x - grip.x) * f, y: ground });
+  const hops = [
+    { to: along(0.45), lift: 55, time: 0.42 },
+    { to: along(0.78), lift: 30, time: 0.26 },
+    { to: land, lift: 16, time: 0.18 }
+  ];
+  const bow = makeBow(fx, grip, launchAngle(grip, hops[0].to, hops[0].lift, hops[0].time), 56);
+  bow.draw(1, 400)
     .then(() => {
-      setTimeout(() => tink(fx, floor, 36), 520);
-      return flyBolt(fx, [
-        { from: bow, to: floor, lift: 70, time: 0.52 },
-        { from: floor, to: { x, y: ground }, lift: 24, time: 0.26 }
-      ]);
+      let from = bow.release();
+      setTimeout(() => bow.fade(), 450);
+      const legs = hops.map((hop) => {
+        const leg = { from, ...hop };
+        from = hop.to;
+        return leg;
+      });
+      // a small flash where it banks off the ground
+      let at = 0;
+      legs.slice(0, 2).forEach((leg) => {
+        at += leg.time * 1000;
+        setTimeout(() => tink(fx, leg.to, 34), at);
+      });
+      return flyBolt(fx, legs);
     })
     .then(() => {
       setTimeout(() => (shocking = false), 1100);
@@ -2137,10 +2305,10 @@ function shockBurst(fx, text, x, ground, R) {
   requestAnimationFrame(crackle);
 }
 
-// Clicking "Sova": an energy bow appears beside the name and draws back, its
-// string crackling with lightning while the arrowhead charges into a glowing
-// orb wrapped in sparks; then it lets go, the string twangs and the arrow
-// flies off. After the charged shot in Sova's trailer.
+// Clicking "Sova": his energy bow appears beside the name and draws back to
+// it, the string crackling with lightning while the arrowhead charges into a
+// glowing orb wrapped in sparks; then it lets go, the string twangs and the
+// arrow flies off. After the charged shot in Sova's trailer.
 let drawingBow = false;
 function shootArrow(item) {
   if (drawingBow || reduceMotion) return;
@@ -2148,90 +2316,21 @@ function shootArrow(item) {
   const text = item.querySelector(".ww-text");
   const r = text.getBoundingClientRect();
   const H = r.height;
-  const W = 3.4 * H;
-  const HT = 2.2 * H;
-  const cx = 0.5 * H; // the name's right edge, in the bow's own box
-  const cy = 1.1 * H; // the name's middle
-  const rest = cx + 0.25 * H; // the string at rest
-  const drawn = cx - 0.15 * H; // pulled back to the name, like to his cheek
-  const top = [rest, cy - 0.95 * H];
-  const bottom = [rest, cy + 0.95 * H];
-  const arrowLen = 1.25 * H;
-  const left = r.right + scrollX - cx;
-  const topY = r.top + r.height / 2 + scrollY - cy;
+  // held just right of the name, so the string draws back to it
+  const grip = { x: r.right + scrollX + 0.55 * H, y: r.top + r.height / 2 + scrollY };
   const fx = pageFx();
-  const bow = el("div", "bow-shot");
-  bow.setAttribute("aria-hidden", "true");
-  bow.style.cssText = `left:${left}px;top:${topY}px;width:${W}px;height:${HT}px`;
-  bow.innerHTML =
-    `<svg viewBox="0 0 ${W} ${HT}"><path class="bow-limb" d="M${top} Q${cx + 0.85 * H},${cy} ${bottom}"/>` +
-    '<line class="bow-tracer"/><polyline class="bow-string"/><line class="bow-arrow"/>' +
-    '<polyline class="bow-arc"/><polyline class="bow-arc"/><polyline class="bow-arc"/></svg>' +
-    '<span class="bow-orb"></span>';
-  fx.appendChild(bow);
-  const string = bow.querySelector(".bow-string");
-  const arrow = bow.querySelector(".bow-arrow");
-  const tracer = bow.querySelector(".bow-tracer");
-  const orb = bow.querySelector(".bow-orb");
-  const arcs = [...bow.querySelectorAll(".bow-arc")];
-  const setLine = (node, x1, x2) => {
-    node.setAttribute("x1", x1);
-    node.setAttribute("x2", x2);
-    node.setAttribute("y1", cy);
-    node.setAttribute("y2", cy);
-  };
-  requestAnimationFrame(() => bow.classList.add("on"));
+  const bow = makeBow(fx, grip, 0, H);
   // the name glows as the charge builds, brightest as the arrow leaves
   text.animate([{ textShadow: "none" }, { textShadow: sovaBloom(sovaColors()), offset: 0.62 }, { textShadow: "none" }], { duration: 2600 });
-  const RELEASE = 1600;
-  const END = 2500;
-  const start = performance.now();
-  let released = false;
-  const frame = (now) => {
-    const t = now - start;
-    const seed = Math.floor(t / 45); // the lightning changes ~20 times a second
-    if (t < RELEASE) {
-      const p = 1 - (1 - clamp01((t - 250) / 900)) ** 3;
-      const nx = rest + (drawn - rest) * p + (p === 1 ? (noise(seed, 3) - 0.5) * 1.5 : 0); // trembling at full draw
-      const tip = nx + arrowLen;
-      const zap = 6 * p;
-      string.setAttribute("points", `${jagged(straight(top, [nx, cy]), 7, zap, seed)} ${jagged(straight([nx, cy], bottom), 7, zap, seed + 9)}`);
-      setLine(arrow, nx, tip);
-      orb.style.translate = `${tip}px ${cy}px`;
-      orb.style.scale = String((0.25 + 0.75 * p) * (1 + 0.08 * Math.sin(t / 35)));
-      // sparks swirling round the charging arrowhead
-      arcs.forEach((arc, i) => {
-        if (p < 0.35) return arc.setAttribute("points", "");
-        const rr = 0.24 * H * (0.6 + 0.4 * p) * (0.85 + 0.3 * noise(i + 7, seed));
-        const a0 = noise(i, seed) * 6.28;
-        const sweep = 1.8 + noise(i + 3, seed);
-        arc.setAttribute("points", jagged((u) => [tip + rr * Math.cos(a0 + sweep * u), cy + rr * Math.sin(a0 + sweep * u)], 7, 3, seed + i * 5));
-      });
-    } else {
-      if (!released) {
-        released = true;
-        arcs.forEach((arc) => arc.setAttribute("points", ""));
-        tink(fx, { x: left + cx + 0.55 * H, y: topY + cy }, 100, 420);
-      }
-      const s = (t - RELEASE) / 1000;
-      // the string twangs back and settles; the arrow flies off
-      const nx = rest + (drawn - rest) * Math.exp(-s / 0.09) * Math.cos(2 * Math.PI * 11 * s);
-      string.setAttribute("points", `${top} ${nx},${cy} ${bottom}`);
-      const tip = drawn + arrowLen + 2800 * s;
-      setLine(arrow, tip - arrowLen, tip);
-      setLine(tracer, drawn + arrowLen, tip - arrowLen);
-      tracer.style.opacity = String(Math.max(0, 1 - s / 0.35));
-      orb.style.translate = `${tip}px ${cy}px`;
-      orb.style.scale = String(Math.max(0.5, 1 - s));
-    }
-    if (t < END) return requestAnimationFrame(frame);
-    bow.classList.remove("on");
-    setTimeout(() => {
-      bow.remove();
-      drawingBow = false;
-    }, 350);
-  };
-  requestAnimationFrame(frame);
+  setTimeout(() => bow.draw(1, 900), 250);
+  setTimeout(() => {
+    bow.release(true);
+    tink(fx, grip, 100, 420);
+  }, 1600);
+  setTimeout(() => {
+    bow.fade();
+    setTimeout(() => (drawingBow = false), 350);
+  }, 2500);
 }
 
 // Easter egg: type "sova" anywhere (or tap "Sova" on the agents wall) and
