@@ -602,6 +602,13 @@ function flashCopied(label, ok) {
         note.appendChild(face);
       }
       note.appendChild(document.createTextNode(`${w.note || ""}${w.link ? " ↗" : ""}`));
+      // Hunter's Fury: its three charges, lit while the ult is up
+      if (w.beam && !reduceMotion) {
+        const pips = el("span", "ult-pips");
+        pips.setAttribute("aria-hidden", "true");
+        for (let k = 0; k < 3; k++) pips.appendChild(el("i"));
+        note.appendChild(pips);
+      }
       item.appendChild(note);
     }
     if (w.drone) {
@@ -693,6 +700,7 @@ function flashCopied(label, ok) {
     block.classList.add("has-art");
     const art = el("div", "wordwall-art reveal");
     if (wall.art.glow) art.style.setProperty("--glow", wall.art.glow);
+    if (wall.art.bow) art.dataset.bow = wall.art.bow.join(",");
     const img = el("img");
     img.src = wall.art.src;
     img.alt = wall.art.alt || "";
@@ -1723,14 +1731,87 @@ function sovaColors() {
 const sovaBloom = ({ cyan, blue }) => `0 0 4px ${cyan}, 0 0 14px ${blue}, 0 0 30px ${blue}`;
 
 // A word lights up in Sova's blue with a bloom, like an enemy being revealed
-function flashWord(node, delay, rise = 0.15) {
+function flashWord(node, delay, rise = 0.15, duration = 1100) {
   const c = sovaColors();
   const lit = { color: c.core, textShadow: sovaBloom(c) };
-  node.animate([{ ...lit, offset: rise }, { ...lit, offset: rise + 0.3 }], { duration: 1100, delay, easing: "ease-out" });
+  node.animate([{ ...lit, offset: rise }, { ...lit, offset: rise + 0.3 }], { duration, delay, easing: "ease-out" });
 }
 
-// Recon Bolt: one soft ring pulses out from the word, and every other word on
-// the wall flashes as the ring reaches it
+// Where Sova's bow is on the wall: `art.bow` gives it as fractions across and
+// down the picture. His abilities charge and fire from there.
+function bowPoint(block) {
+  const img = block.querySelector(".wordwall-art[data-bow] img");
+  if (!img) return null;
+  const [bx, by] = img.parentNode.dataset.bow.split(",").map(Number);
+  const r = img.getBoundingClientRect();
+  const box = block.getBoundingClientRect();
+  const ratio = img.naturalWidth / img.naturalHeight || r.width / r.height;
+  // the picture is contained in its box, so find where it's actually drawn
+  let w = r.width;
+  let h = r.height;
+  if (w / h > ratio) w = h * ratio;
+  else h = w / ratio;
+  return { x: r.left + (r.width - w) / 2 + w * bx - box.left, y: r.top + (r.height - h) / 2 + h * by - box.top };
+}
+
+// The bow glows as it charges for `ms`, then flashes as it fires
+function chargeBow(fx, at, ms) {
+  const orb = el("span", "fury-charge");
+  orb.style.left = `${at.x}px`;
+  orb.style.top = `${at.y}px`;
+  fx.appendChild(orb);
+  orb.animate([{ opacity: 0, scale: "0.1" }, { opacity: 0.9, scale: "0.55" }], { duration: ms, easing: "ease-in", fill: "forwards" });
+  return new Promise((fire) => setTimeout(() => {
+    orb.animate([{ opacity: 0.9, scale: "0.55" }, { opacity: 0, scale: "0.9" }], { duration: 300, easing: "ease-out", fill: "forwards" })
+      .finished.then(() => orb.remove());
+    fire();
+  }, ms));
+}
+
+// A bolt flies like an arrow: each leg is an arc from one point to the next,
+// its top `lift` px above the higher end, and the bolt points along its path
+function flyBolt(fx, legs) {
+  const total = legs.reduce((sum, leg) => sum + leg.time, 0);
+  const frames = [];
+  let elapsed = 0;
+  let last = null;
+  legs.forEach(({ from, to, lift, time }) => {
+    const top = Math.min(from.y, to.y) - lift;
+    const g = (2 * (Math.sqrt(from.y - top) + Math.sqrt(to.y - top)) ** 2) / (time * time);
+    const vy = -Math.sqrt(2 * g * (from.y - top));
+    const vx = (to.x - from.x) / time;
+    for (let i = 0; i <= 16; i++) {
+      const t = (i / 16) * time;
+      let deg = (Math.atan2(vy + g * t, vx) * 180) / Math.PI;
+      if (last !== null) deg += Math.round((last - deg) / 360) * 360; // no spinning round
+      last = deg;
+      frames.push({
+        translate: `${from.x + vx * t}px ${from.y + vy * t + (g * t * t) / 2}px`,
+        rotate: `${deg}deg`,
+        offset: (elapsed + t) / total
+      });
+    }
+    elapsed += time;
+  });
+  frames[frames.length - 1].offset = 1;
+  const bolt = el("span", "sova-bolt");
+  fx.appendChild(bolt);
+  return bolt.animate(frames, { duration: total * 1000, fill: "forwards" }).finished.then(() => bolt.remove());
+}
+
+// A ring of blue where a bolt lands, bounces or pings
+function tink(fx, at, size = 60, duration = 380) {
+  const ring = el("span", "sova-ring");
+  ring.style.left = `${at.x}px`;
+  ring.style.top = `${at.y}px`;
+  fx.appendChild(ring);
+  ring.animate([{ width: "0px", height: "0px", opacity: 1 }, { width: `${size}px`, height: `${size}px`, opacity: 0 }],
+    { duration, easing: "ease-out", fill: "forwards" }).finished.then(() => ring.remove());
+}
+
+// Recon Bolt on the real ability's timing (VALORANT wiki): the bolt flies
+// from the bow and sticks in the word, winds up for 0.667 s, then pulses
+// twice, 1.6 s apart. Each ring lights up the other words as it reaches them.
 let pinging = false;
 function reconPing(block, item) {
   if (pinging) return;
@@ -1740,31 +1821,41 @@ function reconPing(block, item) {
   const x = src.left + src.width / 2 - box.left;
   const y = src.top + src.height / 2 - box.top;
   const reach = Math.hypot(Math.max(x, box.width - x), Math.max(y, box.height - y));
-  const duration = 1800;
-  const ring = el("span", "sova-ring");
-  ring.style.left = `${x}px`;
-  ring.style.top = `${y}px`;
-  wallFx(block).appendChild(ring);
-  ring.animate([
-    { width: "0px", height: "0px", opacity: 0.9 },
-    { width: `${reach * 2}px`, height: `${reach * 2}px`, opacity: 0 }
-  ], { duration, fill: "forwards" }).finished.then(() => {
-    ring.remove();
-    pinging = false;
-  });
-  block.querySelectorAll(".ww-text").forEach((t) => {
-    if (item.contains(t)) return;
-    const r = t.getBoundingClientRect();
-    const d = Math.hypot(r.left + r.width / 2 - box.left - x, r.top + r.height / 2 - box.top - y);
-    flashWord(t, (d / reach) * duration);
-  });
+  const fx = wallFx(block);
+  const bow = bowPoint(block) || { x: box.width - 30, y: 40 };
+  const pulse = () => {
+    tink(fx, { x, y }, reach * 2, 1800);
+    block.querySelectorAll(".ww-text").forEach((t) => {
+      if (item.contains(t)) return;
+      const r = t.getBoundingClientRect();
+      const d = Math.hypot(r.left + r.width / 2 - box.left - x, r.top + r.height / 2 - box.top - y);
+      flashWord(t, (d / reach) * 1800, 0.1, 900);
+    });
+  };
+  chargeBow(fx, bow, 400)
+    .then(() => flyBolt(fx, [{ from: bow, to: { x, y }, lift: 60, time: 0.5 }]))
+    .then(() => {
+      // stuck in the word, blinking while it winds up and scans
+      const stuck = el("span", "bolt-stuck");
+      stuck.style.left = `${x}px`;
+      stuck.style.top = `${y}px`;
+      fx.appendChild(stuck);
+      tink(fx, { x, y }, 40);
+      setTimeout(pulse, 667);
+      setTimeout(pulse, 667 + 1600);
+      setTimeout(() => {
+        stuck.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: "forwards" }).finished.then(() => stuck.remove());
+        pinging = false;
+      }, 667 + 1600 + 1800);
+    });
 }
 
 // Hunter's Fury on the real ult's timing (VALORANT wiki): 0.8 s to equip,
 // then three charges, each winding up for 1 s before a wall-piercing blast,
-// one every 2.125 s. The bow charges on Sova's side of the wall, and each
-// blast is a beam across the whole wall that pulses and fades, lighting the
-// word up for a second.
+// one every 2.125 s. The bow charges, and each blast is a beam that leaves
+// the bow and goes straight through the word, on across the wall, pulsing and
+// fading and lighting the word up for a second. Its three charge pips light
+// up with the ult and go out one blast at a time.
 let firing = false;
 function huntersFury(block, item) {
   if (firing) return;
@@ -1775,20 +1866,31 @@ function huntersFury(block, item) {
   const box = block.getBoundingClientRect();
   const text = item.querySelector(".ww-text");
   const r = text.getBoundingClientRect();
-  const y = r.top + r.height * 0.55 - box.top;
+  const hit = { x: r.left + r.width / 2 - box.left, y: r.top + r.height * 0.55 - box.top };
+  const bow = bowPoint(block) || { x: box.width - 28, y: hit.y };
+  const angle = (Math.atan2(hit.y - bow.y, hit.x - bow.x) * 180) / Math.PI - 180;
+  const reach = Math.hypot(box.width, box.height);
   const fx = wallFx(block);
+  const pipBox = item.querySelector(".ult-pips");
+  const pips = pipBox ? [...pipBox.children] : [];
+  pips.forEach((p) => p.classList.remove("used"));
+  pipBox?.classList.add("armed");
   const orb = el("span", "fury-charge");
-  orb.style.left = `${box.width - 28}px`;
-  orb.style.top = `${y}px`;
+  orb.style.left = `${bow.x}px`;
+  orb.style.top = `${bow.y}px`;
   fx.appendChild(orb);
   const orbTo = (from, to, duration, easing) => orb.animate([from, to], { duration, easing, fill: "forwards" });
   const idle = { opacity: 0.45, scale: "0.4" };
   const full = { opacity: 1, scale: "1" };
   orbTo({ opacity: 0, scale: "0.2" }, idle, EQUIP, "ease-out");
-  const blast = () => {
+  const blast = (n) => {
     const beam = el("span", "fury-beam");
-    beam.style.top = `${y}px`;
+    beam.style.left = `${bow.x - reach}px`;
+    beam.style.top = `${bow.y}px`;
+    beam.style.width = `${reach}px`;
+    beam.style.rotate = `${angle}deg`;
     fx.appendChild(beam);
+    pips[n]?.classList.add("used");
     beam.animate([
       { clipPath: "inset(0 0 0 100%)", opacity: 1, scale: "1 0.4" },
       { clipPath: "inset(0 0 0 0)", opacity: 1, scale: "1 1.35", offset: 0.12 },
@@ -1801,12 +1903,13 @@ function huntersFury(block, item) {
     const fireAt = EQUIP + WINDUP + n * EVERY;
     setTimeout(() => orbTo(idle, full, WINDUP, "ease-in"), fireAt - WINDUP);
     setTimeout(() => {
-      blast();
+      blast(n);
       orbTo({ opacity: 1, scale: "1.35" }, idle, 500, "ease-out");
     }, fireAt);
   }
   setTimeout(() => {
     orbTo(idle, { opacity: 0, scale: "0.2" }, 400, "ease-in").finished.then(() => orb.remove());
+    pipBox?.classList.remove("armed");
     firing = false;
   }, EQUIP + WINDUP + 2 * EVERY + 900);
 }
@@ -1836,6 +1939,61 @@ addEventListener("pointermove", (e) => {
   if (hud) hud.style.translate = `${pointer.x}px ${pointer.y}px`;
 }, { passive: true });
 
+// While the drone's HUD is up, clicking empty space fires its marking dart
+// there, once per flight. The dart sticks and pings twice, like the game's:
+// 1.6 s after it lands, then 1.2 s after that 0.6 s ping ends (VALORANT
+// wiki), lighting up the words near it.
+document.addEventListener("click", (e) => {
+  if (!hud || hud.dataset.fired || e.button !== 0) return;
+  if (e.target.closest("a, button, input, textarea, select, label, iframe, summary, dialog")) return;
+  hud.dataset.fired = "1";
+  scramble(hud.querySelector(".hud-label"), "BOLT FIRED", 400);
+  fireDart(e.clientX + scrollX, e.clientY + scrollY);
+});
+
+// A layer over the whole page for effects that aren't tied to one section
+function pageFx() {
+  let fx = document.querySelector(".page-fx");
+  if (!fx) {
+    fx = el("div", "page-fx");
+    fx.setAttribute("aria-hidden", "true");
+    document.body.appendChild(fx);
+  }
+  fx.style.height = `${document.documentElement.scrollHeight}px`;
+  return fx;
+}
+
+function fireDart(x, y) {
+  const fx = pageFx();
+  const dart = el("span", "sova-bolt");
+  fx.appendChild(dart);
+  // it streaks away from the drone into the page, shrinking with distance
+  dart.animate([
+    { translate: `${x}px ${y + 130}px`, rotate: "-90deg", scale: "2.4" },
+    { translate: `${x}px ${y}px`, rotate: "-90deg", scale: "0.7" }
+  ], { duration: 280, easing: "cubic-bezier(0.3, 0.6, 0.4, 1)", fill: "forwards" }).finished.then(() => {
+    dart.remove();
+    const mark = el("span", "dart-mark");
+    mark.style.left = `${x}px`;
+    mark.style.top = `${y}px`;
+    fx.appendChild(mark);
+    tink(fx, { x, y }, 44);
+    const ping = () => {
+      tink(fx, { x, y }, 520, 900);
+      document.querySelectorAll(".ww-text").forEach((t) => {
+        const r = t.getBoundingClientRect();
+        const d = Math.hypot(r.left + r.width / 2 + scrollX - x, r.top + r.height / 2 + scrollY - y);
+        if (d < 260) flashWord(t, (d / 260) * 450, 0.1, 800);
+      });
+    };
+    setTimeout(ping, 1600);
+    setTimeout(ping, 1600 + 600 + 1200);
+    setTimeout(() => {
+      mark.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: "forwards" }).finished.then(() => mark.remove());
+    }, 1600 + 600 + 1200 + 900);
+  });
+}
+
 function droneHud() {
   if (hud || !canHover) return;
   const node = (hud = el("div", "drone-hud"));
@@ -1856,19 +2014,37 @@ function droneHud() {
   }, 2600);
 }
 
-// Shock Bolt: the word takes an electric jolt and flickers blue as the bolt
-// bursts into a flash, a quick shock ring and a spray of sparks
+// Shock Bolt: the bolt charges on the bow (0.4 s windup, VALORANT wiki),
+// flies in an arc, bounces once off the bottom of the word like a bank shot
+// and bursts: the word jolts and flickers blue, with a flash, a quick shock
+// ring and a spray of electric sparks
 let shocking = false;
 function shockBolt(block, item) {
   if (shocking) return;
   shocking = true;
-  setTimeout(() => (shocking = false), 900);
   const box = block.getBoundingClientRect();
   const text = item.querySelector(".ww-text");
   const r = text.getBoundingClientRect();
   const x = r.left + r.width / 2 - box.left;
   const y = r.top + r.height / 2 - box.top;
+  const floor = { x: r.left + r.width * 0.8 - box.left, y: r.bottom - box.top };
   const fx = wallFx(block);
+  const bow = bowPoint(block) || { x: box.width - 30, y: 40 };
+  chargeBow(fx, bow, 400)
+    .then(() => {
+      setTimeout(() => tink(fx, floor, 36), 520);
+      return flyBolt(fx, [
+        { from: bow, to: floor, lift: 70, time: 0.52 },
+        { from: floor, to: { x, y }, lift: 24, time: 0.26 }
+      ]);
+    })
+    .then(() => {
+      setTimeout(() => (shocking = false), 900);
+      shockBurst(fx, text, x, y);
+    });
+}
+
+function shockBurst(fx, text, x, y) {
   const c = sovaColors();
   const lit = { color: c.core, textShadow: sovaBloom(c) };
   const off = { color: getComputedStyle(text).color, textShadow: "none" };

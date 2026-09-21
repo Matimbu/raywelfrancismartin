@@ -873,9 +873,8 @@ a.ww-card:hover .ww-text { color: var(--fg); }
 }
 .fury-beam {
   position: absolute;
-  left: 0;
-  right: 0;
   height: 16px;
+  transform-origin: 100% 50%; /* the bow end; it's turned to aim at the word */
   margin-top: -8px;
   border-radius: 8px;
   background: linear-gradient(to bottom,
@@ -899,6 +898,46 @@ a.ww-card:hover .ww-text { color: var(--fg); }
   animation: fury-pulse 0.35s linear infinite;
 }
 @keyframes fury-pulse { to { background-position: -48px 0; } }
+/* bolts fired from the bow: a glowing arrow with a tail, pointing along its
+   path (its head sits on the point it's moved to) */
+.sova-bolt {
+  position: absolute;
+  left: -22px;
+  top: -1.5px;
+  width: 22px;
+  height: 3px;
+  border-radius: 2px;
+  transform-origin: 100% 50%;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--sova-cyan) 70%, transparent) 60%, var(--sova-core));
+  filter: drop-shadow(0 0 3px var(--sova-cyan)) drop-shadow(0 0 8px var(--sova-blue));
+}
+/* a bolt stuck where it landed, blinking (Recon Bolt, the drone's dart) */
+.bolt-stuck, .dart-mark {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  translate: -50% -50%;
+  rotate: 45deg;
+  background: var(--sova-core);
+  box-shadow: 0 0 6px var(--sova-cyan), 0 0 14px var(--sova-blue);
+  animation: bolt-blink 0.5s steps(1, end) infinite;
+}
+@keyframes bolt-blink { 50% { opacity: 0.35; } }
+/* a layer over the whole page for effects outside the wall (the dart) */
+.page-fx { position: absolute; left: 0; top: 0; z-index: 65; width: 100%; overflow: hidden; pointer-events: none; }
+/* Hunter's Fury: three charge pips, lit while the ult is up */
+.ult-pips { display: inline-flex; gap: 3px; margin-left: 2px; opacity: 0; transition: opacity 0.4s ease; }
+.ult-pips.armed { opacity: 1; }
+.ult-pips i {
+  width: 3px;
+  height: 9px;
+  transform: skewX(-18deg);
+  background: var(--sova-cyan);
+  box-shadow: 0 0 4px var(--sova-cyan), 0 0 9px var(--sova-blue);
+  transition: opacity 0.3s ease, box-shadow 0.3s ease;
+}
+.ult-pips i.used { opacity: 0.25; box-shadow: none; }
+
 /* Shock Bolt: a flash, a quick shock ring and electric sparks */
 .shock-flash {
   position: absolute;
