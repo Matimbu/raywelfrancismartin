@@ -180,7 +180,8 @@ const SITE = {
   // "The story so far" in About: one row per year, oldest first.
   // `medals` adds gold medals to the title; `photo` (a gallery file name)
   // adds a button that opens that photo; `until` shows "to now" under the year;
-  // `runner: true` sends a tiny runner along the row's line as you read it.
+  // `runner: true` sends a tiny runner along the row's line as you read it,
+  // Subway Surfers style (Malolos Rush plays like it): hopping, grabbing coins.
   story: {
     label: "The story so far",
     intro: "How I got here.",

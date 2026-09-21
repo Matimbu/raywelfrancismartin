@@ -785,11 +785,18 @@ if (SITE.story && SITE.story.items && SITE.story.items.length) {
     const year = el("span", "story-year", s.year);
     if (s.until) year.appendChild(el("span", "story-until mono", `to ${s.until}`));
     li.append(year, body);
-    // `runner`: a tiny runner dashes along the row's line as it draws
+    // `runner`: a tiny runner dashes along the row's line as it draws,
+    // Subway Surfers style: hopping now and then and grabbing the coins
     if (s.runner) {
       const runner = el("span", "story-runner");
       runner.setAttribute("aria-hidden", "true");
       li.appendChild(runner);
+      for (let k = 1; k <= 6; k++) {
+        const coin = el("span", "story-coin");
+        coin.setAttribute("aria-hidden", "true");
+        coin.style.setProperty("--at", (k / 7).toFixed(3));
+        li.appendChild(coin);
+      }
     }
     list.appendChild(li);
   });

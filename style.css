@@ -14,6 +14,7 @@
   --sova-core: #eafcff;
   --sova-cyan: #53ddf8;
   --sova-blue: #3794f0;
+  --coin: #f7c948;
   --todo: #e0b93a;
   --grain: 0.06;
   color-scheme: dark;
@@ -29,6 +30,7 @@
   --sova-core: #ffffff;
   --sova-cyan: #1aa3d6;
   --sova-blue: #2b6fd8;
+  --coin: #d49a06;
   --todo: #b58a00;
   --grain: 0.09;
   color-scheme: light;
@@ -523,7 +525,8 @@ button { font: inherit; color: inherit; }
   opacity: calc(var(--in, 1) - var(--out, 0));
 }
 /* runner: true (Malolos Rush): a tiny pixel runner dashes along the line as
-   it draws. An endless runner, so it keeps running in place when you stop. */
+   it draws. An endless runner like Subway Surfers, so it keeps running in
+   place when you stop, hops now and then, and grabs the coins on the line. */
 .story-runner { display: none; }
 .story-item.gather .story-runner {
   display: block;
@@ -534,7 +537,30 @@ button { font: inherit; color: inherit; }
   height: 2px;
   color: var(--accent);
   opacity: min(1, calc(var(--fill, 1) * 12), calc((1 - var(--fill, 1)) * 12));
-  animation: runner-legs 0.32s steps(1, end) infinite;
+  animation: runner-legs 0.32s steps(1, end) infinite, runner-hop 1.8s infinite;
+  pointer-events: none;
+}
+@keyframes runner-hop {
+  0%, 64% { translate: 0 0; animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1); }
+  76% { translate: 0 -9px; animation-timing-function: cubic-bezier(0.6, 0, 0.8, 0.3); }
+  88%, 100% { translate: 0 0; }
+}
+/* coins float along the line; each pops up and fades as the runner reaches it */
+.story-coin { display: none; }
+.story-item.gather .story-coin {
+  --got: clamp(0, (var(--fill, 1) - var(--at)) * 25, 1);
+  display: block;
+  position: absolute;
+  left: calc(var(--at) * 100% - 2.5px);
+  bottom: 8px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--coin);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--coin) 60%, transparent);
+  opacity: calc(var(--in, 1) * (1 - var(--got)));
+  scale: calc(1 + var(--got) * 0.9);
+  translate: 0 calc(var(--got) * -10px);
   pointer-events: none;
 }
 @keyframes runner-legs {
