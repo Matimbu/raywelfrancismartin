@@ -751,6 +751,19 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
 .story-until { display: block; margin-top: 10px; font-style: normal; font-size: 10px; color: var(--accent); }
 .story-title { margin-bottom: 6px; font-size: 18px; }
 .story-medals { margin-left: 10px; font-size: 15px; letter-spacing: 2px; }
+/* each medal drops in and swings on its ribbon, one after the other */
+.medal { display: inline-block; transform-origin: 50% 0; }
+.js .story-medals .medal { opacity: 0; }
+.js .story-medals.swing .medal { animation: medal-swing 1.9s ease-in-out calc(var(--m, 0) * 280ms + 120ms) both; }
+@keyframes medal-swing {
+  0% { opacity: 0; translate: 0 -0.9em; rotate: 0deg; animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.6); }
+  16% { opacity: 1; translate: 0 0; rotate: 22deg; }
+  34% { rotate: -15deg; }
+  52% { rotate: 9deg; }
+  69% { rotate: -5deg; }
+  85% { rotate: 2deg; }
+  100% { opacity: 1; translate: 0 0; rotate: 0deg; }
+}
 .story-photo {
   display: inline-flex;
   align-items: center;
@@ -1178,6 +1191,9 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   transition: width 0.4s var(--ease), margin-right 0.4s var(--ease);
 }
 .video-note { color: var(--muted); flex-shrink: 0; }
+/* lengths roll up from 0:00, row by row and digit by digit */
+.video-note .odo-strip { transition: transform 1.2s var(--ease) calc(var(--r, 0) * 140ms + var(--k, 0) * 60ms + 150ms); }
+.video-list.rolled .video-note .odo-strip { transform: translateY(calc(var(--n, 0) * -1em)); }
 .video-row:hover .video-title { transform: translateX(8px); color: var(--fg); }
 .video-row.active .video-title { color: var(--fg); }
 .video-row.active .video-title::before { width: 6px; margin-right: 10px; }
@@ -1251,6 +1267,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   .js .hobby .hobby-emoji { opacity: 1; animation: none; }
   .js .now li::before { clip-path: none; }
   .js .now .now-text { opacity: 1; transform: none; }
+  .js .story-medals .medal, .js .lb-story .lb-word { opacity: 1; animation: none; }
 }
 .shot:hover img { transform: scale(1.04); }
 /* screenshots and notes: show the whole thing, centred on the card */
@@ -1373,6 +1390,14 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
 }
 .lb-story[hidden] { display: none; }
 .lb-story .digits { font-family: var(--sans); font-style: normal; font-size: 0.86em; }
+/* the punchline: a beat after the photo opens, word by word */
+.lb-word { display: inline-block; }
+.js .lb-story .lb-word { opacity: 0; }
+.js .lb-story.tell .lb-word { animation: story-word 0.7s var(--ease) calc(var(--t, 0ms) + 600ms) both; }
+@keyframes story-word {
+  from { opacity: 0; transform: translateY(0.35em); filter: blur(6px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
 .lb-btn {
   position: absolute;
   color: #f2f0eb;

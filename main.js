@@ -129,10 +129,13 @@ function scramble(node, text, duration = 1000, delay = 0) {
   }
   const chars = [...text];
   const settleAt = chars.map((_, i) => (i / chars.length) * 0.75 + Math.random() * 0.25);
+  const run = (node.scrambleRun = (node.scrambleRun || 0) + 1); // a newer one takes over
   setTimeout(() => {
+    if (node.scrambleRun !== run) return;
     node.classList.add("on");
     const start = performance.now();
     const frame = (now) => {
+      if (node.scrambleRun !== run) return;
       const p = Math.min(1, (now - start) / duration);
       node.textContent = chars
         .map((c, i) => (c === " " || p >= settleAt[i] ? c : GLYPHS[(Math.random() * GLYPHS.length) | 0]))
@@ -488,10 +491,12 @@ function copyText(text) {
   return navigator.clipboard.writeText(text).then(() => true, fallback);
 }
 
-// Show "Copied" (or a hint to copy by hand) on a label, then put it back
+// Show "Copied" (or a hint to copy by hand) on a label, then put it back.
+// Both changes scramble into place like the section labels.
 function flashCopied(label, ok) {
-  label.textContent = ok ? "Copied" : "Copy failed";
-  setTimeout(() => (label.textContent = "Copy"), 1600);
+  clearTimeout(label.flash);
+  scramble(label, ok ? "Copied" : "Copy failed", 450);
+  label.flash = setTimeout(() => scramble(label, "Copy", 450), 1600);
 }
 
 // Word walls (nicknames and the like): big words with small notes
@@ -656,6 +661,13 @@ function flashCopied(label, ok) {
 });
 
 // "The story so far": a short timeline at the end of the About section
+
+// Gold medals drop in and swing on their ribbons once their row has slid
+// into place (upper 60% of the screen), and again every time it comes back
+const medalWatch = reduceMotion ? null : new IntersectionObserver((entries) => {
+  entries.forEach((entry) => entry.target.classList.toggle("swing", entry.isIntersecting));
+}, { rootMargin: "0px 0px -40% 0px" });
+
 if (SITE.story && SITE.story.items && SITE.story.items.length) {
   const block = el("div", "wordwall story");
   const head = el("div", "wordwall-head reveal");
@@ -669,8 +681,15 @@ if (SITE.story && SITE.story.items && SITE.story.items.length) {
     const body = el("div", "story-body");
     const title = el("p", "story-title", s.title);
     if (s.medals) {
-      const medals = el("span", "story-medals", "🥇".repeat(s.medals));
+      const medals = el("span", "story-medals");
+      medals.setAttribute("role", "img");
       medals.setAttribute("aria-label", `${s.medals} gold medal${s.medals > 1 ? "s" : ""}`);
+      for (let m = 0; m < s.medals; m++) {
+        const medal = el("span", "medal", "🥇");
+        medal.style.setProperty("--m", m);
+        medals.appendChild(medal);
+      }
+      if (medalWatch) medalWatch.observe(medals);
       title.appendChild(medals);
     }
     body.append(title, el("p", "story-text", s.text));
@@ -955,6 +974,15 @@ function tiktokFrame(v) {
 
 const stageFits = [];
 
+// Video lengths roll up once half the list is on screen, and reset once it
+// has fully left so they roll again next time
+const lengthWatch = reduceMotion ? null : new IntersectionObserver((entries) => {
+  entries.forEach((entry) => {
+    if (entry.intersectionRatio >= 0.5) entry.target.classList.add("rolled");
+    else if (!entry.isIntersecting) entry.target.classList.remove("rolled");
+  });
+}, { threshold: [0, 0.5] });
+
 SITE.youtube.forEach((ch, i) => {
   const card = el("article", "channel reveal");
   card.style.setProperty("--d", i);
@@ -1076,11 +1104,32 @@ SITE.youtube.forEach((ch, i) => {
 
   if (videos.length) {
     const list = el("ul", "video-list");
-    videos.forEach((v) => {
+    videos.forEach((v, r) => {
       const row = el("button", "video-row");
       row.type = "button";
       row.dataset.id = v.id;
-      row.append(el("span", "video-title", v.title), el("span", "video-note mono", v.note || ""));
+      const note = el("span", "video-note mono", v.note || "");
+      // Lengths like 15:54 roll up from 0:00, digit strips like the clocks
+      if (lengthWatch && /^\d+(:\d\d)+$/.test(v.note || "")) {
+        note.textContent = "";
+        const digits = el("span", "roll");
+        digits.setAttribute("aria-hidden", "true");
+        let k = 0;
+        [...v.note].forEach((ch) => {
+          if (ch === ":") return digits.append(ch);
+          const strip = el("span", "odo-strip");
+          for (let d = 0; d <= 9; d++) strip.appendChild(el("span", "", String(d)));
+          strip.style.setProperty("--n", ch);
+          strip.style.setProperty("--k", k++);
+          const odo = el("span", "odo");
+          odo.appendChild(strip);
+          digits.appendChild(odo);
+        });
+        note.style.setProperty("--r", r);
+        note.append(digits, el("span", "sr-only", v.note));
+        list.dataset.rolls = "1";
+      }
+      row.append(el("span", "video-title", v.title), note);
       // Once something is playing, picking another video plays it right away
       row.addEventListener("click", () => {
         if (current && current.id === v.id) return;
@@ -1096,6 +1145,7 @@ SITE.youtube.forEach((ch, i) => {
       li.appendChild(row);
       list.appendChild(li);
     });
+    if (list.dataset.rolls) lengthWatch.observe(list);
     info.appendChild(list);
   }
 
@@ -1253,7 +1303,6 @@ function showShot(i, dir = 0) {
   const p = gallery[lbIndex];
   // Show the grid-size copy right away, then swap in the large one
   lbImg.src = shotSrc(p, 800);
-  revealShot(dir);
   lbImg.alt = p.alt || p.caption;
   const large = new Image();
   const wanted = lbIndex;
@@ -1261,13 +1310,26 @@ function showShot(i, dir = 0) {
   large.src = shotSrc(p, 1600);
   setCounter(lbIndex + 1);
   $("lbText").textContent = p.caption;
-  // The serif italic draws "1" like "l", so numbers get the sans font
+  // The story is the punchline: it waits a beat after the photo, then comes
+  // in word by word, pausing a little after commas and full stops
   const story = $("lbStory");
   story.textContent = "";
-  (p.story || "").split(/(\d+(?:x\d+)?)/).filter(Boolean).forEach((part) => {
-    story.appendChild(/^\d/.test(part) ? el("span", "digits", part) : document.createTextNode(part));
+  const words = (p.story || "").split(" ").filter(Boolean);
+  const step = Math.min(85, 1000 / words.length);
+  let t = 0;
+  words.forEach((word, w) => {
+    const span = el("span", "lb-word");
+    span.style.setProperty("--t", `${Math.round(t)}ms`);
+    // The serif italic draws "1" like "l", so numbers get the sans font
+    word.split(/(\d+(?:x\d+)?)/).filter(Boolean).forEach((part) => {
+      span.appendChild(/^\d/.test(part) ? el("span", "digits", part) : document.createTextNode(part));
+    });
+    if (w) story.append(" ");
+    story.appendChild(span);
+    t += step + (/[.!?]["”]?$/.test(word) ? 260 : /,$/.test(word) ? 110 : 0);
   });
   story.hidden = !p.story;
+  revealShot(dir);
   // Warm up the neighbours so arrowing through feels instant
   [lbIndex - 1, lbIndex + 1].forEach((j) => {
     new Image().src = shotSrc(gallery[(j + gallery.length) % gallery.length], 1600);
@@ -1275,10 +1337,13 @@ function showShot(i, dir = 0) {
 }
 
 // The photo opens like a curtain from the side you're heading towards,
-// the same reveal the gallery tiles use
+// the same reveal the gallery tiles use. Its story line follows (see .tell).
 function revealShot(dir) {
-  if (reduceMotion || !lbImg.animate) return;
+  const story = $("lbStory");
+  story.classList.remove("tell");
   const play = () => {
+    story.classList.add("tell");
+    if (reduceMotion || !lbImg.animate) return;
     lbImg.getAnimations().forEach((a) => a.cancel());
     lbImg.animate([
       {
