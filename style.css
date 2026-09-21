@@ -765,6 +765,48 @@ a.ww-card:hover .ww-text { color: var(--fg); }
   100% { filter: brightness(1); }
 }
 @keyframes lock-glow { from { opacity: 0; } to { opacity: 1; } }
+/* "LOCKED IN" under the agent, like agent select */
+.wordwall-art.has-tag { margin-bottom: 34px; }
+.lock-tag {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 14px);
+  translate: -50% 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 10px;
+  letter-spacing: 0.26em;
+  color: var(--fg);
+  white-space: nowrap;
+}
+.lock-tag::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  background: var(--accent);
+  rotate: 45deg;
+}
+
+/* Sova's abilities (Recon Bolt, Hunter's Fury) play on a layer over the wall */
+.wordwall.has-fx { position: relative; }
+.ww-fx { position: absolute; inset: 0; z-index: 2; overflow: hidden; pointer-events: none; }
+.recon-ring {
+  position: absolute;
+  translate: -50% -50%;
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  box-shadow: inset 0 0 36px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.fury-beam {
+  position: absolute;
+  left: 0;
+  height: 2px;
+  margin-top: -1px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #fff, var(--accent) 8%, color-mix(in srgb, var(--accent) 35%, transparent) 55%, transparent);
+  filter: drop-shadow(0 0 6px var(--accent));
+}
 /* settings under a wall, like a crosshair code to copy */
 .ww-specs {
   grid-column: 2;
@@ -1361,6 +1403,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   .js .now li::before { clip-path: none; }
   .js .now .now-text { opacity: 1; transform: none; }
   .js .lb-story .lb-word { opacity: 1; animation: none; }
+  .shot-meter.swish, .shot-meter.swish::after { animation: none; }
 }
 .shot:hover img { transform: scale(1.04); }
 /* screenshots and notes: show the whole thing, centred on the card */
@@ -1650,8 +1693,27 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
 .shot-meter-track { stroke: var(--line); }
 .shot-meter-fill { stroke: var(--fg); stroke-linecap: round; transition: stroke 0.3s ease; }
 .shot-meter.swish .shot-meter-fill { stroke: var(--accent); }
-.shot-meter.swish { animation: swish 0.5s var(--ease); }
-@keyframes swish { 50% { transform: scale(1.12); } }
+/* swish: the ring stretches down like the net as the ball drops through,
+   snaps back, and an orange ripple goes out */
+.shot-meter.swish { transform-origin: 50% 0; animation: swish 0.75s var(--ease); }
+@keyframes swish {
+  30% { transform: scale(0.93, 1.16); }
+  62% { transform: scale(1.03, 0.96); }
+}
+.shot-meter::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+.shot-meter.swish::after { animation: swish-ripple 0.9s ease-out 0.15s; }
+@keyframes swish-ripple {
+  from { opacity: 0.9; transform: scale(1); }
+  to { opacity: 0; transform: scale(1.9); }
+}
 .shot-meter-arrow { font-size: 14px; line-height: 1; transition: color 0.3s ease, opacity 0.25s ease; }
 .shot-meter-pct {
   position: absolute;

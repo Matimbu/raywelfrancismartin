@@ -596,6 +596,10 @@ function flashCopied(label, ok) {
       item.classList.add("ww-drone");
       item.addEventListener("click", launchDrone);
     }
+    // Sova's abilities: `ping` sends a Recon Bolt ping, `beam` fires Hunter's
+    // Fury. Hover on computers, tap on phones.
+    const ability = reduceMotion ? null : w.ping ? reconPing : w.beam ? huntersFury : null;
+    if (ability) item.addEventListener(canHover ? "mouseenter" : "click", () => ability(block, item));
     // Reuse the crafts preview card: the photo follows the cursor
     if (w.image && canHover && !cards) {
       item.addEventListener("mouseenter", () => showPreview({ image: w.image, emoji: "" }));
@@ -683,9 +687,23 @@ function flashCopied(label, ok) {
     art.appendChild(img);
     // lockIn: scanned in from the top behind an orange line, then a flash,
     // like locking in an agent (see style.css). Plays again on every return.
-    if (wall.art.lockIn && !reduceMotion) {
-      art.classList.replace("reveal", "lockin");
-      playOnView(art, "locked", 0.4);
+    // "Locked in" sits under the agent, like agent select: it hides when a
+    // scan starts and scrambles in as the scan finishes.
+    if (wall.art.lockIn) {
+      const tag = el("span", "lock-tag mono scramble", "Locked in");
+      tag.setAttribute("aria-hidden", "true");
+      art.classList.add("has-tag");
+      art.appendChild(tag);
+      if (!reduceMotion) {
+        art.classList.replace("reveal", "lockin");
+        playOnView(art, "locked", 0.4);
+        art.addEventListener("animationstart", (e) => {
+          if (e.animationName === "lock-scan") tag.classList.remove("on");
+        });
+        art.addEventListener("animationend", (e) => {
+          if (e.animationName === "lock-scan") scramble(tag, "Locked in", 700);
+        });
+      }
     }
     block.appendChild(art);
   }
@@ -1604,6 +1622,85 @@ function updateMeter(y) {
   meter.classList.toggle("swish", p > 0.995);
 }
 updateMeter(scrollY);
+
+// Sova's abilities on the agents wall. Their effects play on a layer over
+// the wall that doesn't catch clicks.
+function wallFx(block) {
+  let fx = block.querySelector(".ww-fx");
+  if (!fx) {
+    fx = el("div", "ww-fx");
+    fx.setAttribute("aria-hidden", "true");
+    block.classList.add("has-fx");
+    block.appendChild(fx);
+  }
+  return fx;
+}
+
+// A word flashes orange with a glow, like an enemy being revealed
+function flashWord(node, delay, rise = 0.15) {
+  const c = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
+  const lit = { color: c, textShadow: `0 0 18px ${c}` };
+  node.animate([{ ...lit, offset: rise }, { ...lit, offset: rise + 0.3 }], { duration: 1100, delay, easing: "ease-out" });
+}
+
+// Recon Bolt: one soft ring pulses out from the word, and every other word on
+// the wall flashes as the ring reaches it
+let pinging = false;
+function reconPing(block, item) {
+  if (pinging) return;
+  pinging = true;
+  const box = block.getBoundingClientRect();
+  const src = item.querySelector(".ww-text").getBoundingClientRect();
+  const x = src.left + src.width / 2 - box.left;
+  const y = src.top + src.height / 2 - box.top;
+  const reach = Math.hypot(Math.max(x, box.width - x), Math.max(y, box.height - y));
+  const duration = 1800;
+  const ring = el("span", "recon-ring");
+  ring.style.left = `${x}px`;
+  ring.style.top = `${y}px`;
+  wallFx(block).appendChild(ring);
+  ring.animate([
+    { width: "0px", height: "0px", opacity: 0.9 },
+    { width: `${reach * 2}px`, height: `${reach * 2}px`, opacity: 0 }
+  ], { duration, fill: "forwards" }).finished.then(() => {
+    ring.remove();
+    pinging = false;
+  });
+  block.querySelectorAll(".ww-text").forEach((t) => {
+    if (item.contains(t)) return;
+    const r = t.getBoundingClientRect();
+    const d = Math.hypot(r.left + r.width / 2 - box.left - x, r.top + r.height / 2 - box.top - y);
+    flashWord(t, (d / reach) * duration);
+  });
+}
+
+// Hunter's Fury: three blasts shoot across the wall from Sova's side, straight
+// through the word, the way the ultimate goes through walls
+let firing = false;
+function huntersFury(block, item) {
+  if (firing) return;
+  firing = true;
+  const box = block.getBoundingClientRect();
+  const text = item.querySelector(".ww-text");
+  const r = text.getBoundingClientRect();
+  const beamW = box.width * 0.4;
+  const duration = 600;
+  const gap = 420;
+  // when a blast's head reaches the middle of the word
+  const hitAt = ((box.right - (r.left + r.width / 2)) / (box.width + beamW)) * duration;
+  for (let n = 0; n < 3; n++) {
+    const beam = el("span", "fury-beam");
+    beam.style.top = `${r.top + r.height * 0.55 - box.top}px`;
+    beam.style.width = `${beamW}px`;
+    wallFx(block).appendChild(beam);
+    beam.animate([
+      { transform: `translateX(${box.width}px)` },
+      { transform: `translateX(${-beamW}px)` }
+    ], { duration, delay: n * gap, fill: "both" }).finished.then(() => beam.remove());
+    flashWord(text, n * gap + hitAt, 0.05);
+  }
+  setTimeout(() => (firing = false), 2 * gap + duration + 300);
+}
 
 // Easter egg: type "sova" anywhere (or tap "Sova" on the agents wall) and
 // an Owl Drone flies across the page

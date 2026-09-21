@@ -54,6 +54,9 @@ const SITE = {
   // `link` (the word becomes a link), `face` (small round photo by the note),
   // `image` (larger photo that follows the cursor on hover) and `credit`
   // (required for Creative Commons photos; listed under the wall).
+  // Sova's wall also uses `drone` (tap to launch the Owl Drone), `ping` (hover
+  // or tap: a Recon Bolt ping that reveals the other words) and `beam` (hover
+  // or tap: Hunter's Fury fires three blasts through the wall).
   // `section` picks where a wall goes (default: the About section).
   // `art` shows a picture beside the words (`glow` tints the light behind it;
   // `lockIn: true` scans it in behind an orange line, like locking in an agent);
@@ -156,7 +159,7 @@ const SITE = {
       ],
       words: [
         { text: "Sova", note: "main · Initiator", top: true, face: "assets/valorant/sova-icon.webp", drone: true },
-        { text: "Recon Bolt", note: "reveals enemies" },
+        { text: "Recon Bolt", note: "reveals enemies", ping: true },
         {
           text: "Owl Drone",
           note: "or my teammate, apparently",
@@ -166,7 +169,8 @@ const SITE = {
         {
           text: "Hunter's Fury",
           note: "ultimate · hits through walls",
-          link: "https://www.tiktok.com/@matimbu_/video/7032101516244782337"
+          link: "https://www.tiktok.com/@matimbu_/video/7032101516244782337",
+          beam: true
         }
       ]
     }
