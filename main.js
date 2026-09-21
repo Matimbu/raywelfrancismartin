@@ -914,7 +914,7 @@ if (spotify) {
   if (pick) {
     const pickLabel = el("div", "playlist-label");
     const kicker = el("p", "mono playlist-kicker", "Current pick");
-    // Little equalizer bars that bounce while the section is on screen
+    // Little equalizer bars that bounce only while the song is playing
     const eq = el("span", "eq");
     eq.setAttribute("aria-hidden", "true");
     for (let b = 0; b < 3; b++) eq.appendChild(el("i"));
@@ -923,14 +923,56 @@ if (spotify) {
       new IntersectionObserver(([entry]) => eq.classList.toggle("on", entry.isIntersecting)).observe(eq);
     }
     pickLabel.appendChild(kicker);
-    const pickFrame = el("iframe", "playlist-track");
-    pickFrame.src = `https://open.spotify.com/embed/track/${pick[1]}?theme=0`;
-    pickFrame.title = "My current pick on Spotify";
-    pickFrame.loading = "lazy";
-    pickFrame.allow = frame.allow;
-    block.append(pickLabel, pickFrame);
+    const slot = el("div", "pick-slot");
+    block.append(pickLabel, slot);
+    mountPick(slot, pick[1], eq);
   }
   $("hobbies").appendChild(block);
+}
+
+// The current pick plays through Spotify's iFrame API, so the page hears when
+// it plays or pauses and the equalizer only moves while the song is playing.
+// Spotify's script loads once the music section is near; if it can't load,
+// the plain player goes in instead (and the bars stay still).
+function mountPick(slot, id, eq) {
+  const title = "My current pick on Spotify";
+  let done = false;
+  const plain = () => {
+    if (done) return;
+    done = true;
+    const frame = el("iframe");
+    frame.src = `https://open.spotify.com/embed/track/${id}?theme=0`;
+    frame.title = title;
+    frame.allow = "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture";
+    slot.appendChild(frame);
+  };
+  const load = () => {
+    window.onSpotifyIframeApiReady = (api) => {
+      if (done) return;
+      done = true;
+      const spot = el("div");
+      slot.appendChild(spot);
+      // Spotify swaps `spot` for its player
+      api.createController(spot, { uri: `spotify:track:${id}`, width: "100%", height: 80, theme: "dark" }, (player) => {
+        player.addListener("playback_update", (e) => {
+          eq.classList.toggle("playing", !e.data.isPaused && !e.data.isBuffering);
+        });
+      });
+      const frame = slot.querySelector("iframe");
+      if (frame) frame.title = title;
+    };
+    const script = el("script");
+    script.src = "https://open.spotify.com/embed/iframe-api/v1";
+    script.async = true;
+    script.onerror = plain;
+    document.head.appendChild(script);
+    setTimeout(plain, 8000); // Spotify never answered
+  };
+  new IntersectionObserver(([entry], watch) => {
+    if (!entry.isIntersecting) return;
+    watch.disconnect();
+    load();
+  }, { rootMargin: "800px 0px" }).observe(slot);
 }
 
 // ============================================================
