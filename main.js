@@ -554,6 +554,15 @@ function flashCopied(label, ok) {
   label.flash = setTimeout(() => scramble(label, "Copy", 450), 1600);
 }
 
+// Hunter's Fury's ult points (see earnUlt), kept per browser
+const ULT_MAX = 8;
+let ultPoints = 0;
+try {
+  ultPoints = Math.min(ULT_MAX, Number(localStorage.getItem("sovaUlt")) || 0);
+} catch (e) {}
+// abilities that have a key, by key (see the keybinds after the walls)
+const keyAbilities = {};
+
 // Word walls (nicknames and the like): big words with small notes
 (SITE.walls || []).forEach((wall) => {
   if (!wall.words || !wall.words.length) return;
@@ -594,6 +603,7 @@ function flashCopied(label, ok) {
     item.appendChild(el("span", "ww-text", w.text));
     if (w.note || w.face) {
       const note = el("span", "ww-note mono");
+      if (w.key && !reduceMotion) note.appendChild(el("kbd", "ww-key", w.key));
       if (w.face) {
         const face = el("img", "ww-face");
         face.src = w.face;
@@ -602,8 +612,13 @@ function flashCopied(label, ok) {
         note.appendChild(face);
       }
       note.appendChild(document.createTextNode(`${w.note || ""}${w.link ? " ↗" : ""}`));
-      // Hunter's Fury: its three charges, lit while the ult is up
+      // Hunter's Fury: its ult points (it needs all of them), and its three
+      // charges, lit while the ult is up
       if (w.beam && !reduceMotion) {
+        const points = el("span", "ult-points");
+        points.setAttribute("aria-hidden", "true");
+        for (let k = 0; k < ULT_MAX; k++) points.appendChild(el("i"));
+        note.append(points, el("span", "ult-count"));
         const pips = el("span", "ult-pips");
         pips.setAttribute("aria-hidden", "true");
         for (let k = 0; k < 3; k++) pips.appendChild(el("i"));
@@ -635,6 +650,7 @@ function flashCopied(label, ok) {
     } else if (ability) {
       item.addEventListener(canHover ? "mouseenter" : "click", () => ability(block, item));
     }
+    if (ability && w.key) keyAbilities[w.key.toLowerCase()] = { block, item, ability };
     // Reuse the crafts preview card: the photo follows the cursor
     if (w.image && canHover && !cards) {
       item.addEventListener("mouseenter", () => showPreview({ image: w.image, emoji: "" }));
@@ -740,13 +756,18 @@ function flashCopied(label, ok) {
         });
       }
       // Easter egg: hovering (or tapping) "Locked in" shows who's behind the
-      // bow, Sova's real name
+      // bow, Sova's real name, and he says it: "I am the hunter". Browsers
+      // only allow sound once the visitor has clicked or tapped something,
+      // so a click on it always plays it.
       const unmask = (on) => {
-        if (reduceMotion || tag.classList.contains("on")) scramble(tag, on ? "Sasha Novikov" : "Locked in", 600);
+        if (!reduceMotion && !tag.classList.contains("on")) return;
+        scramble(tag, on ? "Sasha Novikov" : "Locked in", 600);
+        if (on) playHunter();
       };
       if (canHover) {
         tag.addEventListener("mouseenter", () => unmask(true));
         tag.addEventListener("mouseleave", () => unmask(false));
+        tag.addEventListener("click", playHunter);
       } else {
         tag.addEventListener("click", () => {
           unmask(true);
@@ -775,6 +796,28 @@ function flashCopied(label, ok) {
   if (wall.notice) block.appendChild(el("p", "ww-credits", wall.notice));
   $(wall.section || "about").appendChild(block);
 });
+
+// Game keybinds on Sova's wall, while it's on screen: Q Shock Bolt, E Recon
+// Bolt, C Owl Drone, X Hunter's Fury (their keycaps flash when pressed)
+const wallsInView = new Set();
+new Set(Object.values(keyAbilities).map((k) => k.block)).forEach((block) => {
+  new IntersectionObserver(([entry]) => {
+    if (entry.isIntersecting) wallsInView.add(block);
+    else wallsInView.delete(block);
+  }, { threshold: 0.25 }).observe(block);
+});
+document.addEventListener("keydown", (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.repeat || e.key.length !== 1) return;
+  if (e.target instanceof Element && e.target.closest("input, textarea, select, [contenteditable]")) return;
+  const bind = keyAbilities[e.key.toLowerCase()];
+  if (!bind || !wallsInView.has(bind.block)) return;
+  bind.ability(bind.block, bind.item);
+  const cap = bind.item.querySelector(".ww-key");
+  if (!cap) return;
+  cap.classList.add("pressed");
+  setTimeout(() => cap.classList.remove("pressed"), 160);
+});
+renderUltPoints();
 
 // "The story so far": a short timeline at the end of the About section.
 // As you read a row, the line under it draws itself; once the row has slid
@@ -1782,11 +1825,66 @@ function jagged(fn, steps, amount, seed) {
 }
 const straight = (a, b) => (u) => [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u];
 
+// A revealed word turns into a glowing outline for `ms`, like an enemy's
+// silhouette when Sova reveals them
+function revealWord(node, delay, ms) {
+  setTimeout(() => {
+    node.classList.add("revealed");
+    setTimeout(() => node.classList.remove("revealed"), ms);
+  }, delay);
+}
+
+// Ult points, like the game's: Hunter's Fury needs all 8. Each of Sova's
+// other abilities earns 2; once they're all in, the word glows, ready.
+// Kept per browser, so a visitor keeps their progress.
+function renderUltPoints(fresh = 0) {
+  const row = document.querySelector(".ult-points");
+  if (!row) return;
+  [...row.children].forEach((pip, i) => {
+    pip.classList.toggle("lit", i < ultPoints);
+    if (i >= ultPoints - fresh && i < ultPoints) pip.animate([{ scale: "2" }, { scale: "1" }], { duration: 450, easing: "ease-out" });
+  });
+  row.closest(".ww").classList.toggle("ult-ready", ultPoints >= ULT_MAX);
+}
+function setUltPoints(n) {
+  const before = ultPoints;
+  ultPoints = Math.max(0, Math.min(ULT_MAX, n));
+  try {
+    localStorage.setItem("sovaUlt", String(ultPoints));
+  } catch (e) {}
+  renderUltPoints(Math.max(0, ultPoints - before));
+}
+const earnUlt = () => setUltPoints(ultPoints + 2);
+// Not ready yet: the points shake and show how many are in
+function ultNotReady(item) {
+  const row = item.querySelector(".ult-points");
+  const count = item.querySelector(".ult-count");
+  row?.animate([{ translate: "0 0" }, { translate: "-3px 0" }, { translate: "3px 0" }, { translate: "-2px 0" }, { translate: "0 0" }], { duration: 320 });
+  if (!count) return;
+  scramble(count, `${ultPoints}/${ULT_MAX}`, 300);
+  count.classList.add("show");
+  clearTimeout(count.hide);
+  count.hide = setTimeout(() => count.classList.remove("show"), 1600);
+}
+
 // A word lights up in Sova's blue with a bloom, like an enemy being revealed
 function flashWord(node, delay, rise = 0.15, duration = 1100) {
   const c = sovaColors();
   const lit = { color: c.core, textShadow: sovaBloom(c) };
   node.animate([{ ...lit, offset: rise }, { ...lit, offset: rise + 0.3 }], { duration, delay, easing: "ease-out" });
+}
+
+// "I am the hunter": the sound for the Sasha easter egg, loaded the first
+// time it's needed; it won't start over while it's still playing
+let hunterCall = null;
+function playHunter() {
+  if (!hunterCall) {
+    hunterCall = new Audio("assets/audio/i-am-the-hunter.mp3");
+    hunterCall.volume = 0.7;
+  }
+  if (!hunterCall.paused) return;
+  hunterCall.currentTime = 0;
+  hunterCall.play().catch(() => {}); // blocked until the visitor has clicked something
 }
 
 // Sova's abilities come from his energy bow, not the Operator he's holding
@@ -1822,7 +1920,8 @@ function flyBolt(fx, legs) {
   let elapsed = 0;
   let last = null;
   legs.forEach(({ from, to, lift, time }) => {
-    const { g, vx, vy } = arcOf(from, to, lift, time);
+    // lift 0 is a straight shot; anything else, an arc
+    const { g, vx, vy } = lift ? arcOf(from, to, lift, time) : { g: 0, vx: (to.x - from.x) / time, vy: (to.y - from.y) / time };
     for (let i = 0; i <= 16; i++) {
       const t = (i / 16) * time;
       let deg = (Math.atan2(vy + g * t, vx) * 180) / Math.PI;
@@ -1978,21 +2077,23 @@ function tink(fx, at, size = 60, duration = 380) {
 
 // Recon Bolt on the real ability's timing (VALORANT wiki): Sova's bow comes
 // up and charges fully in a blink (both bars of the charge meter), the bolt
-// arcs into the word and sticks, and 0.667 s later it pulses, twice, 1.6 s
-// apart. Each ring lights up the other words as it reaches them.
+// shoots straight into the word and sticks, and 0.667 s later it pulses,
+// twice, 1.6 s apart. Each ring reveals the other words as it reaches them.
 let pinging = false;
 function reconPing(block, item) {
   if (pinging) return;
   pinging = true;
+  earnUlt();
   const box = block.getBoundingClientRect();
   const src = item.querySelector(".ww-text").getBoundingClientRect();
   const x = src.left + src.width / 2 - box.left;
   const y = src.top + src.height / 2 - box.top;
   const reach = Math.hypot(Math.max(x, box.width - x), Math.max(y, box.height - y));
   const fx = wallFx(block);
-  const grip = bowSpot(block, y + 10);
-  const flight = { to: { x, y }, lift: 70, time: 0.55 };
-  const bow = makeBow(fx, grip, launchAngle(grip, flight.to, flight.lift, flight.time), 56);
+  // straight at the word, fast
+  const grip = bowSpot(block, y + 16);
+  const flight = { to: { x, y }, lift: 0, time: 0.16 };
+  const bow = makeBow(fx, grip, (Math.atan2(y - grip.y, x - grip.x) * 180) / Math.PI, 56);
   const hideBars = chargeBars(fx, { x: grip.x, y: grip.y + 64 }, 420);
   const pulse = () => {
     tink(fx, { x, y }, reach * 2, 1800);
@@ -2000,7 +2101,7 @@ function reconPing(block, item) {
       if (item.contains(t)) return;
       const r = t.getBoundingClientRect();
       const d = Math.hypot(r.left + r.width / 2 - box.left - x, r.top + r.height / 2 - box.top - y);
-      flashWord(t, (d / reach) * 1800, 0.1, 900);
+      revealWord(t, (d / reach) * 1800, 750); // revealed for 0.75 s (VALORANT wiki)
     });
   };
   bow.draw(1, 420)
@@ -2035,11 +2136,14 @@ function reconPing(block, item) {
 // the picture (where he's holding an Operator), and draws for each charge;
 // each blast leaves the arrowhead and goes straight through the word, on
 // across the wall, pulsing and fading and lighting the word up for a second.
-// The three charge pips go out one by one.
+// The three charge pips go out one by one. It needs all 8 ult points first.
 let firing = false;
 function huntersFury(block, item) {
   if (firing) return;
+  if (ultPoints < ULT_MAX) return ultNotReady(item);
   firing = true;
+  setUltPoints(0);
+  item.classList.add("ulting");
   const EQUIP = 800;
   const WINDUP = 1000;
   const EVERY = 2125;
@@ -2083,6 +2187,7 @@ function huntersFury(block, item) {
   setTimeout(() => {
     bow.fade();
     pipBox?.classList.remove("armed");
+    item.classList.remove("ulting");
     firing = false;
   }, EQUIP + WINDUP + 2 * EVERY + 900);
 }
@@ -2137,6 +2242,7 @@ function pageFx() {
 }
 
 function fireDart(x, y) {
+  earnUlt();
   const fx = pageFx();
   const dart = el("span", "sova-bolt");
   fx.appendChild(dart);
@@ -2156,7 +2262,7 @@ function fireDart(x, y) {
       document.querySelectorAll(".ww-text").forEach((t) => {
         const r = t.getBoundingClientRect();
         const d = Math.hypot(r.left + r.width / 2 + scrollX - x, r.top + r.height / 2 + scrollY - y);
-        if (d < 260) flashWord(t, (d / 260) * 450, 0.1, 800);
+        if (d < 260) revealWord(t, (d / 260) * 450, 600); // 0.6 s a ping (VALORANT wiki)
       });
     };
     setTimeout(ping, 1600);
@@ -2176,6 +2282,7 @@ function droneHud(block, item) {
     pointer.y = w.top + w.height / 2;
   }
   const life = canHover ? 2600 : 3600;
+  earnUlt();
   const node = (hud = el("div", "drone-hud"));
   node.setAttribute("aria-hidden", "true");
   node.innerHTML = DRONE_HUD;
@@ -2203,6 +2310,7 @@ let shocking = false;
 function shockBolt(block, item) {
   if (shocking) return;
   shocking = true;
+  earnUlt();
   const box = block.getBoundingClientRect();
   const text = item.querySelector(".ww-text");
   const r = text.getBoundingClientRect();
@@ -2313,6 +2421,7 @@ let drawingBow = false;
 function shootArrow(item) {
   if (drawingBow || reduceMotion) return;
   drawingBow = true;
+  earnUlt();
   const text = item.querySelector(".ww-text");
   const r = text.getBoundingClientRect();
   const H = r.height;

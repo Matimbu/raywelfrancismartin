@@ -843,7 +843,7 @@ a.ww-card:hover .ww-text { color: var(--fg); }
   color: var(--fg);
   white-space: nowrap;
 }
-.lock-tag { user-select: none; }
+.lock-tag { user-select: none; cursor: default; }
 .lock-tag::before {
   content: "";
   width: 5px;
@@ -870,6 +870,52 @@ a.ww-card:hover .ww-text { color: var(--fg); }
 /* Hunter's Fury: a wide beam from the bow across the whole wall: a
    white-hot core in cyan and blue, pulses running along it, fading out
    towards the end of its range */
+/* keycaps for the game keybinds (hidden on touch screens) */
+.ww-key {
+  display: inline-grid;
+  place-items: center;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border: 1px solid color-mix(in srgb, var(--fg) 30%, transparent);
+  border-radius: 3px;
+  font: inherit;
+  font-size: 9px;
+  line-height: 1;
+  color: var(--fg);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.ww-key.pressed { background: var(--sova-cyan); border-color: var(--sova-cyan); color: var(--bg); box-shadow: 0 0 8px var(--sova-cyan); }
+@media (hover: none) { .ww-key { display: none; } }
+/* Hunter's Fury's ult points: eight, filled by using Sova's other abilities;
+   when they're all in, the word and its key glow, ready */
+.ult-points { display: inline-flex; align-items: center; gap: 4px; margin-left: 2px; }
+.ult-points i {
+  width: 5px;
+  height: 5px;
+  rotate: 45deg;
+  border: 1px solid color-mix(in srgb, var(--sova-cyan) 55%, transparent);
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.ult-points i.lit { background: var(--sova-cyan); border-color: var(--sova-cyan); box-shadow: 0 0 5px var(--sova-cyan); }
+.ww.ult-ready .ult-points i { box-shadow: 0 0 6px var(--sova-cyan), 0 0 12px var(--sova-blue); }
+.ww.ulting .ult-points, .ww.ulting .ult-count { display: none; }
+.ult-count { color: var(--sova-cyan); opacity: 0; transition: opacity 0.3s ease; }
+.ult-count.show { opacity: 1; }
+.ww.ult-ready .ww-text { animation: ult-ready 1.4s ease-in-out infinite alternate; }
+.ww.ult-ready .ww-key { border-color: var(--sova-cyan); color: var(--sova-cyan); box-shadow: 0 0 6px var(--sova-cyan); }
+@keyframes ult-ready {
+  from { text-shadow: 0 0 0 transparent; }
+  to { text-shadow: 0 0 6px var(--sova-cyan), 0 0 18px var(--sova-blue); }
+}
+/* revealed (Recon Bolt, the drone's dart): the word turns into a glowing
+   outline for a moment, like an enemy's silhouette */
+.ww-text.revealed {
+  color: transparent;
+  -webkit-text-stroke: 1.2px var(--sova-cyan);
+  filter: drop-shadow(0 0 4px var(--sova-cyan)) drop-shadow(0 0 12px var(--sova-blue));
+  transition: color 0.12s ease;
+}
 /* the charge meter under the bow: two bars filling up */
 .charge-bars { position: absolute; display: flex; gap: 4px; translate: -50% 0; }
 .charge-bars i {

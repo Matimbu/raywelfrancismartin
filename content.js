@@ -59,7 +59,8 @@ const SITE = {
   // or tap: a Recon Bolt ping that reveals the other words), `shock` (hover or
   // tap: a Shock Bolt burst of sparks), `beam` (hover or tap: Hunter's Fury
   // on the real ult's timing) and `hud` (hover: the Owl Drone's HUD around the
-  // cursor for a few seconds), all in Sova's blue.
+  // cursor for a few seconds), all in Sova's blue. `key` shows a keycap and
+  // makes that key use the ability while the wall is on screen, like the game.
   // `section` picks where a wall goes (default: the About section).
   // `art` shows a picture beside the words (`glow` tints the light behind it;
   // `lockIn: true` scans it in behind a line of blue, like locking in an agent);
@@ -162,19 +163,21 @@ const SITE = {
       ],
       words: [
         { text: "Sova", note: "main · Initiator", top: true, face: "assets/valorant/sova-icon.webp", shoot: true },
-        { text: "Recon Bolt", note: "reveals enemies", ping: true },
+        { text: "Recon Bolt", note: "reveals enemies", ping: true, key: "E" },
         {
           text: "Owl Drone",
           note: "or my teammate, apparently",
           link: "https://www.tiktok.com/@matimbu_/video/7121951680408669442",
-          hud: true
+          hud: true,
+          key: "C"
         },
-        { text: "Shock Bolt", note: "the explosive one", shock: true },
+        { text: "Shock Bolt", note: "the explosive one", shock: true, key: "Q" },
         {
           text: "Hunter's Fury",
           note: "ultimate · hits through walls",
           link: "https://www.tiktok.com/@matimbu_/video/7032101516244782337",
-          beam: true
+          beam: true,
+          key: "X"
         }
       ]
     }
