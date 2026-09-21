@@ -89,6 +89,10 @@ function updateScenes() {
   const vh = innerHeight;
   scenes.forEach((n) => {
     const r = n.getBoundingClientRect();
+    // "landed" once it's fully in; cleared once it's off screen (however far),
+    // so whatever is keyed to it (medals, a photo thumb) plays again next time
+    const onScreen = r.bottom > 0 && r.top < vh;
+    if (!onScreen) n.classList.toggle("landed", false);
     if (r.bottom < -vh * 0.25 || r.top > vh * 1.25) return;
     const edge = vh * n.dataset.leave;
     const enter = smooth(clamp01((vh - r.top) / (vh * 0.4)));
@@ -97,7 +101,17 @@ function updateScenes() {
     n.style.setProperty("--in", enter.toFixed(3));
     n.style.setProperty("--out", leave.toFixed(3));
     n.style.setProperty("--fill", fill.toFixed(3));
+    if (onScreen && enter >= 1) n.classList.toggle("landed", true);
   });
+}
+
+// Adds `cls` once `ratio` of a node is on screen and removes it once the node
+// has fully left, so whatever it starts plays again next time
+function playOnView(node, cls, ratio) {
+  new IntersectionObserver(([entry]) => {
+    if (entry.intersectionRatio >= ratio) node.classList.add(cls);
+    else if (!entry.isIntersecting) node.classList.remove(cls);
+  }, { threshold: [0, ratio] }).observe(node);
 }
 
 // Walls with `lightUp`: their words light one after another as the wall
@@ -305,6 +319,27 @@ function rollText(node, text) {
   });
 }
 
+// Digits that roll into place once (CSS moves the strips): each digit is a
+// 0-9 strip with --n (where it stops) and --k (its place among the digits).
+// `spin` adds a full turn first, like a dial searching before it settles.
+function rollingDigits(text, spin = false) {
+  const wrap = el("span", "roll");
+  wrap.setAttribute("aria-hidden", "true");
+  let k = 0;
+  [...text].forEach((ch) => {
+    // non-breaking, because a plain space at the start of a run gets dropped
+    if (!/\d/.test(ch)) return wrap.append(ch === " " ? "\u00a0" : ch);
+    const strip = el("span", "odo-strip");
+    for (let d = 0; d < (spin ? 20 : 10); d++) strip.appendChild(el("span", "", String(d % 10)));
+    strip.style.setProperty("--n", Number(ch) + (spin ? 10 : 0));
+    strip.style.setProperty("--k", k++);
+    const odo = el("span", "odo");
+    odo.appendChild(strip);
+    wrap.appendChild(odo);
+  });
+  return wrap;
+}
+
 function tick() {
   const now = new Date();
   const opts = { timeZone: SITE.timezone, hour: "2-digit", minute: "2-digit", hour12: false };
@@ -383,8 +418,16 @@ const place = $("place");
   ["place-name", SITE.place.name],
   ["place-row", `Pronounced as  ${SITE.place.pronounced}`],
   ["place-row", SITE.place.note],
-  ["place-row", SITE.place.coords]
+  ["place-row place-coords", SITE.place.coords]
 ].forEach(([cls, text]) => text && place.appendChild(el("span", cls, text)));
+// The coordinates spin and lock onto the town as the card appears, like a GPS
+// getting its fix (timed off body.ready in style.css)
+const coords = place.querySelector(".place-coords");
+if (coords && !reduceMotion) {
+  coords.textContent = "";
+  coords.classList.add("locating");
+  coords.append(rollingDigits(SITE.place.coords, true), el("span", "sr-only", SITE.place.coords));
+}
 
 // Floating cards
 const floaterEls = SITE.floaters.map((f, i) => {
@@ -638,6 +681,12 @@ function flashCopied(label, ok) {
     img.loading = "lazy";
     img.decoding = "async";
     art.appendChild(img);
+    // lockIn: scanned in from the top behind an orange line, then a flash,
+    // like locking in an agent (see style.css). Plays again on every return.
+    if (wall.art.lockIn && !reduceMotion) {
+      art.classList.replace("reveal", "lockin");
+      playOnView(art, "locked", 0.4);
+    }
     block.appendChild(art);
   }
 
@@ -660,14 +709,10 @@ function flashCopied(label, ok) {
   $(wall.section || "about").appendChild(block);
 });
 
-// "The story so far": a short timeline at the end of the About section
-
-// Gold medals drop in and swing on their ribbons once their row has slid
-// into place (upper 60% of the screen), and again every time it comes back
-const medalWatch = reduceMotion ? null : new IntersectionObserver((entries) => {
-  entries.forEach((entry) => entry.target.classList.toggle("swing", entry.isIntersecting));
-}, { rootMargin: "0px 0px -40% 0px" });
-
+// "The story so far": a short timeline at the end of the About section.
+// As you read a row, the line under it draws itself; once the row has slid
+// fully in (.landed), its medals drop in and swing on their ribbons and its
+// photo opens like a gallery tile (all in style.css).
 if (SITE.story && SITE.story.items && SITE.story.items.length) {
   const block = el("div", "wordwall story");
   const head = el("div", "wordwall-head reveal");
@@ -689,7 +734,6 @@ if (SITE.story && SITE.story.items && SITE.story.items.length) {
         medal.style.setProperty("--m", m);
         medals.appendChild(medal);
       }
-      if (medalWatch) medalWatch.observe(medals);
       title.appendChild(medals);
     }
     body.append(title, el("p", "story-text", s.text));
@@ -698,11 +742,13 @@ if (SITE.story && SITE.story.items && SITE.story.items.length) {
     if (shot >= 0) {
       const open = el("button", "story-photo");
       open.type = "button";
+      const frame = el("span", "story-photo-thumb");
       const thumb = el("img");
       thumb.src = `assets/gallery/${s.photo}-400.jpg`;
       thumb.alt = "";
       thumb.loading = "lazy";
-      open.append(thumb, el("span", "mono", "See the photo"));
+      frame.appendChild(thumb);
+      open.append(frame, el("span", "mono", "See the photo"));
       open.addEventListener("click", () => openShot(shot));
       body.appendChild(open);
     }
@@ -849,7 +895,16 @@ if (spotify) {
   const pick = SITE.playlist.pick && SITE.playlist.pick.match(/open\.spotify\.com\/track\/([A-Za-z0-9]+)/);
   if (pick) {
     const pickLabel = el("div", "playlist-label");
-    pickLabel.appendChild(el("p", "mono playlist-kicker", "Current pick"));
+    const kicker = el("p", "mono playlist-kicker", "Current pick");
+    // Little equalizer bars that bounce while the section is on screen
+    const eq = el("span", "eq");
+    eq.setAttribute("aria-hidden", "true");
+    for (let b = 0; b < 3; b++) eq.appendChild(el("i"));
+    kicker.appendChild(eq);
+    if (!reduceMotion) {
+      new IntersectionObserver(([entry]) => eq.classList.toggle("on", entry.isIntersecting)).observe(eq);
+    }
+    pickLabel.appendChild(kicker);
     const pickFrame = el("iframe", "playlist-track");
     pickFrame.src = `https://open.spotify.com/embed/track/${pick[1]}?theme=0`;
     pickFrame.title = "My current pick on Spotify";
@@ -973,15 +1028,6 @@ function tiktokFrame(v) {
 }
 
 const stageFits = [];
-
-// Video lengths roll up once half the list is on screen, and reset once it
-// has fully left so they roll again next time
-const lengthWatch = reduceMotion ? null : new IntersectionObserver((entries) => {
-  entries.forEach((entry) => {
-    if (entry.intersectionRatio >= 0.5) entry.target.classList.add("rolled");
-    else if (!entry.isIntersecting) entry.target.classList.remove("rolled");
-  });
-}, { threshold: [0, 0.5] });
 
 SITE.youtube.forEach((ch, i) => {
   const card = el("article", "channel reveal");
@@ -1109,24 +1155,11 @@ SITE.youtube.forEach((ch, i) => {
       row.type = "button";
       row.dataset.id = v.id;
       const note = el("span", "video-note mono", v.note || "");
-      // Lengths like 15:54 roll up from 0:00, digit strips like the clocks
-      if (lengthWatch && /^\d+(:\d\d)+$/.test(v.note || "")) {
+      // Lengths like 15:54 roll up from 0:00 once half the list is on screen
+      if (!reduceMotion && /^\d+(:\d\d)+$/.test(v.note || "")) {
         note.textContent = "";
-        const digits = el("span", "roll");
-        digits.setAttribute("aria-hidden", "true");
-        let k = 0;
-        [...v.note].forEach((ch) => {
-          if (ch === ":") return digits.append(ch);
-          const strip = el("span", "odo-strip");
-          for (let d = 0; d <= 9; d++) strip.appendChild(el("span", "", String(d)));
-          strip.style.setProperty("--n", ch);
-          strip.style.setProperty("--k", k++);
-          const odo = el("span", "odo");
-          odo.appendChild(strip);
-          digits.appendChild(odo);
-        });
         note.style.setProperty("--r", r);
-        note.append(digits, el("span", "sr-only", v.note));
+        note.append(rollingDigits(v.note), el("span", "sr-only", v.note));
         list.dataset.rolls = "1";
       }
       row.append(el("span", "video-title", v.title), note);
@@ -1145,7 +1178,7 @@ SITE.youtube.forEach((ch, i) => {
       li.appendChild(row);
       list.appendChild(li);
     });
-    if (list.dataset.rolls) lengthWatch.observe(list);
+    if (list.dataset.rolls) playOnView(list, "rolled", 0.5);
     info.appendChild(list);
   }
 

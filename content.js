@@ -55,7 +55,8 @@ const SITE = {
   // `image` (larger photo that follows the cursor on hover) and `credit`
   // (required for Creative Commons photos; listed under the wall).
   // `section` picks where a wall goes (default: the About section).
-  // `art` shows a picture beside the words (`glow` tints the light behind it);
+  // `art` shows a picture beside the words (`glow` tints the light behind it;
+  // `lockIn: true` scans it in behind an orange line, like locking in an agent);
   // `notice` adds a line under the wall (e.g. Riot's fan-content notice).
   // `layout: "cards"` shows each word as a photo card (`image`, `pos`, `alt`);
   // `credit` can also be a list when a card uses more than one photo.
@@ -146,7 +147,7 @@ const SITE = {
       label: "Agents I main",
       section: "hobbies",
       intro: "Sova main. Some of the clips are on my YouTube and TikTok.",
-      art: { src: "assets/valorant/sova.webp", alt: "Official art of Sova, the Valorant agent", glow: "#355285" },
+      art: { src: "assets/valorant/sova.webp", alt: "Official art of Sova, the Valorant agent", glow: "#355285", lockIn: true },
       notice: "\u201cRaywel Martin\u201d (this site) was created under Riot Games' \u201cLegal Jibber Jabber\u201d policy using assets owned by Riot Games. Riot Games does not endorse or sponsor this project.",
       specs: [
         { label: "Crosshair", value: "0;p;0;c;1;s;1;P;u;000000FF;h;0;f;0;m;1;0l;2;0v;2;0o;0;0a;1;0f;0;1b;0;A;c;8;d;1;b;1;0b;0;1b;0;S;d;0", copy: true },
