@@ -255,7 +255,19 @@ $("brand").textContent = SITE.initials;
 $("footName").textContent = SITE.fullName;
 if (SITE.motto) splitWords($("footMotto"), SITE.motto); // lights up at the very bottom
 else $("footMotto").remove();
-$("year").textContent = new Date().getFullYear();
+// The footer year rolls up from the story's first year as the footer arrives
+const thisYear = String(new Date().getFullYear());
+const sinceYear = String(SITE.story?.items?.[0]?.year || "");
+const yearNode = $("year");
+yearNode.textContent = thisYear;
+if (!reduceMotion && /^\d{4}$/.test(sinceYear) && sinceYear < thisYear) {
+  yearNode.textContent = "";
+  const digits = rollingDigits(thisYear);
+  digits.querySelectorAll(".odo-strip").forEach((strip, i) => strip.style.setProperty("--f", sinceYear[i]));
+  yearNode.append(digits, el("span", "sr-only", thisYear));
+  yearNode.classList.add("year-roll");
+  playOnView(yearNode, "rolled", 0.9);
+}
 document.title = `${SITE.firstName} ${SITE.lastName}`;
 
 const portfolioLink = $("portfolioLink");
@@ -596,9 +608,9 @@ function flashCopied(label, ok) {
       item.classList.add("ww-drone");
       item.addEventListener("click", launchDrone);
     }
-    // Sova's abilities: `ping` sends a Recon Bolt ping, `beam` fires Hunter's
-    // Fury. Hover on computers, tap on phones.
-    const ability = reduceMotion ? null : w.ping ? reconPing : w.beam ? huntersFury : null;
+    // Sova's abilities: `ping` sends a Recon Bolt ping, `shock` sets off a
+    // Shock Bolt, `beam` fires Hunter's Fury. Hover on computers, tap on phones.
+    const ability = reduceMotion ? null : w.ping ? reconPing : w.shock ? shockBolt : w.beam ? huntersFury : null;
     if (ability) item.addEventListener(canHover ? "mouseenter" : "click", () => ability(block, item));
     // Reuse the crafts preview card: the photo follows the cursor
     if (w.image && canHover && !cards) {
@@ -773,6 +785,12 @@ if (SITE.story && SITE.story.items && SITE.story.items.length) {
     const year = el("span", "story-year", s.year);
     if (s.until) year.appendChild(el("span", "story-until mono", `to ${s.until}`));
     li.append(year, body);
+    // `runner`: a tiny runner dashes along the row's line as it draws
+    if (s.runner) {
+      const runner = el("span", "story-runner");
+      runner.setAttribute("aria-hidden", "true");
+      li.appendChild(runner);
+    }
     list.appendChild(li);
   });
   block.append(head, list);
@@ -913,7 +931,9 @@ if (spotify) {
   const pick = SITE.playlist.pick && SITE.playlist.pick.match(/open\.spotify\.com\/track\/([A-Za-z0-9]+)/);
   if (pick) {
     const pickLabel = el("div", "playlist-label");
-    const kicker = el("p", "mono playlist-kicker", "Current pick");
+    const kicker = el("p", "mono playlist-kicker");
+    const pickText = el("span", "", "Current pick");
+    kicker.appendChild(pickText);
     // Little equalizer bars that bounce only while the song is playing
     const eq = el("span", "eq");
     eq.setAttribute("aria-hidden", "true");
@@ -925,16 +945,20 @@ if (spotify) {
     pickLabel.appendChild(kicker);
     const slot = el("div", "pick-slot");
     block.append(pickLabel, slot);
-    mountPick(slot, pick[1], eq);
+    // While it plays, the bars dance and the label turns into "Now playing"
+    mountPick(slot, pick[1], (playing) => {
+      eq.classList.toggle("playing", playing);
+      scramble(pickText, playing ? "Now playing" : "Current pick", 500);
+    });
   }
   $("hobbies").appendChild(block);
 }
 
 // The current pick plays through Spotify's iFrame API, so the page hears when
-// it plays or pauses and the equalizer only moves while the song is playing.
-// Spotify's script loads once the music section is near; if it can't load,
-// the plain player goes in instead (and the bars stay still).
-function mountPick(slot, id, eq) {
+// it plays or pauses (onPlaying gets true/false on each change). Spotify's
+// script loads once the music section is near; if it can't load, the plain
+// player goes in instead (and nothing reacts to it).
+function mountPick(slot, id, onPlaying) {
   const title = "My current pick on Spotify";
   let done = false;
   const plain = () => {
@@ -954,8 +978,9 @@ function mountPick(slot, id, eq) {
       slot.appendChild(spot);
       // Spotify swaps `spot` for its player
       api.createController(spot, { uri: `spotify:track:${id}`, width: "100%", height: 80, theme: "dark" }, (player) => {
+        let playing = false;
         player.addListener("playback_update", (e) => {
-          eq.classList.toggle("playing", !e.data.isPaused && !e.data.isBuffering);
+          if (!e.data.isPaused !== playing) onPlaying((playing = !e.data.isPaused));
         });
       });
       const frame = slot.querySelector("iframe");
@@ -1678,10 +1703,20 @@ function wallFx(block) {
   return fx;
 }
 
-// A word flashes orange with a glow, like an enemy being revealed
+// Sova's effect colours (tokens in style.css): a white-hot core, and the cyan
+// and electric blue sampled from the glowing parts of his official art
+function sovaColors() {
+  const css = getComputedStyle(document.documentElement);
+  const get = (name) => css.getPropertyValue(name).trim();
+  return { core: get("--sova-core"), cyan: get("--sova-cyan"), blue: get("--sova-blue") };
+}
+// the bloom: a tight cyan glow inside a wider blue one
+const sovaBloom = ({ cyan, blue }) => `0 0 4px ${cyan}, 0 0 14px ${blue}, 0 0 30px ${blue}`;
+
+// A word lights up in Sova's blue with a bloom, like an enemy being revealed
 function flashWord(node, delay, rise = 0.15) {
-  const c = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
-  const lit = { color: c, textShadow: `0 0 18px ${c}` };
+  const c = sovaColors();
+  const lit = { color: c.core, textShadow: sovaBloom(c) };
   node.animate([{ ...lit, offset: rise }, { ...lit, offset: rise + 0.3 }], { duration: 1100, delay, easing: "ease-out" });
 }
 
@@ -1697,7 +1732,7 @@ function reconPing(block, item) {
   const y = src.top + src.height / 2 - box.top;
   const reach = Math.hypot(Math.max(x, box.width - x), Math.max(y, box.height - y));
   const duration = 1800;
-  const ring = el("span", "recon-ring");
+  const ring = el("span", "sova-ring");
   ring.style.left = `${x}px`;
   ring.style.top = `${y}px`;
   wallFx(block).appendChild(ring);
@@ -1742,6 +1777,57 @@ function huntersFury(block, item) {
     flashWord(text, n * gap + hitAt, 0.05);
   }
   setTimeout(() => (firing = false), 2 * gap + duration + 300);
+}
+
+// Shock Bolt: the word takes an electric jolt and flickers blue as the bolt
+// bursts into a flash, a quick shock ring and a spray of sparks
+let shocking = false;
+function shockBolt(block, item) {
+  if (shocking) return;
+  shocking = true;
+  setTimeout(() => (shocking = false), 900);
+  const box = block.getBoundingClientRect();
+  const text = item.querySelector(".ww-text");
+  const r = text.getBoundingClientRect();
+  const x = r.left + r.width / 2 - box.left;
+  const y = r.top + r.height / 2 - box.top;
+  const fx = wallFx(block);
+  const c = sovaColors();
+  const lit = { color: c.core, textShadow: sovaBloom(c) };
+  const off = { color: getComputedStyle(text).color, textShadow: "none" };
+  text.animate([
+    { ...lit, offset: 0 }, { ...off, offset: 0.1 }, { ...lit, offset: 0.18 },
+    { ...off, offset: 0.3 }, { ...lit, offset: 0.38 }, { ...lit, offset: 0.55 }, { ...off, offset: 1 }
+  ], { duration: 800 });
+  text.animate([
+    { translate: "0 0" }, { translate: "-3px 1px" }, { translate: "3px -1px" },
+    { translate: "-2px 0" }, { translate: "2px 1px" }, { translate: "0 0" }
+  ], { duration: 360 });
+  const burst = (cls, keyframes, duration) => {
+    const node = el("span", cls);
+    node.style.left = `${x}px`;
+    node.style.top = `${y}px`;
+    fx.appendChild(node);
+    node.animate(keyframes, { duration, easing: "cubic-bezier(0.2, 0.7, 0.3, 1)", fill: "forwards" })
+      .finished.then(() => node.remove());
+    return node;
+  };
+  burst("shock-flash", [{ opacity: 1, scale: "0.2" }, { opacity: 0, scale: "1.3" }], 420);
+  burst("sova-ring", [
+    { width: "0px", height: "0px", opacity: 1 },
+    { width: "200px", height: "200px", opacity: 0 }
+  ], 520);
+  // electric sparks: little zigzags flying out in every direction
+  for (let k = 0; k < 12; k++) {
+    const deg = (k / 12) * 360 + Math.random() * 24;
+    const dist = 50 + Math.random() * 55;
+    const zig = [0, 1, 2, 3, 4].map((i) => `${i * 8},${i % 2 ? 1 + Math.random() * 4 : 7 + Math.random() * 4}`).join(" ");
+    const spark = burst("shock-spark", [
+      { transform: `rotate(${deg}deg) translateX(8px) scaleX(0.3)`, opacity: 1 },
+      { transform: `rotate(${deg}deg) translateX(${dist}px) scaleX(1)`, opacity: 0 }
+    ], 500 + Math.random() * 300);
+    spark.innerHTML = `<svg viewBox="0 0 32 12"><polyline points="${zig}"/></svg>`;
+  }
 }
 
 // Easter egg: type "sova" anywhere (or tap "Sova" on the agents wall) and

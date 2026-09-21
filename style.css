@@ -9,6 +9,11 @@
   --line: #222220;
   --card: #161615;
   --accent: #ff5a1f;
+  /* Sova's effects: a white-hot core, and the cyan and electric blue sampled
+     from the glowing parts of his official art */
+  --sova-core: #eafcff;
+  --sova-cyan: #53ddf8;
+  --sova-blue: #3794f0;
   --todo: #e0b93a;
   --grain: 0.06;
   color-scheme: dark;
@@ -21,6 +26,9 @@
   --line: #dcd8cf;
   --card: #e6e2d9;
   --accent: #e2470b;
+  --sova-core: #ffffff;
+  --sova-cyan: #1aa3d6;
+  --sova-blue: #2b6fd8;
   --todo: #b58a00;
   --grain: 0.09;
   color-scheme: light;
@@ -514,6 +522,28 @@ button { font: inherit; color: inherit; }
   transform: translateX(calc((1 - var(--in, 1)) * 60px));
   opacity: calc(var(--in, 1) - var(--out, 0));
 }
+/* runner: true (Malolos Rush): a tiny pixel runner dashes along the line as
+   it draws. An endless runner, so it keeps running in place when you stop. */
+.story-runner { display: none; }
+.story-item.gather .story-runner {
+  display: block;
+  position: absolute;
+  left: calc(var(--fill, 1) * 100% - 7px);
+  bottom: 14px; /* its feet (16px below the top) on the line */
+  width: 2px;
+  height: 2px;
+  color: var(--accent);
+  opacity: min(1, calc(var(--fill, 1) * 12), calc((1 - var(--fill, 1)) * 12));
+  animation: runner-legs 0.32s steps(1, end) infinite;
+  pointer-events: none;
+}
+@keyframes runner-legs {
+  0% { box-shadow: 8px 0px, 10px 0px, 8px 2px, 10px 2px, 6px 4px, 8px 4px, 4px 6px, 8px 6px, 10px 6px, 2px 8px, 8px 8px, 12px 8px, 6px 10px, 8px 10px, 4px 12px, 10px 12px, 2px 14px, 12px 14px; }
+  50% { box-shadow: 8px 0px, 10px 0px, 8px 2px, 10px 2px, 6px 4px, 8px 4px, 4px 6px, 6px 6px, 8px 6px, 8px 8px, 10px 8px, 6px 10px, 8px 10px, 4px 12px, 10px 12px, 4px 14px, 12px 14px; }
+  100% { box-shadow: 8px 0px, 10px 0px, 8px 2px, 10px 2px, 6px 4px, 8px 4px, 4px 6px, 8px 6px, 10px 6px, 2px 8px, 8px 8px, 12px 8px, 6px 10px, 8px 10px, 4px 12px, 10px 12px, 2px 14px, 12px 14px; }
+}
+
+
 /* the line under a row draws itself left to right as you read it, with an
    orange tip at the pen's end, in step with the year's fill */
 .story-item.gather { position: relative; border-bottom-color: transparent; }
@@ -725,8 +755,9 @@ a.ww-card:hover .ww-text { color: var(--fg); }
   max-height: 420px;
   object-fit: contain;
 }
-/* lockIn: the art is scanned in from the top behind a thin orange line, then
-   flashes as its glow powers up, like locking in an agent */
+/* lockIn: the art is scanned in from the top behind a thin line of Sova's
+   blue, then flashes with a blue bloom as its glow powers up, like locking in
+   an agent */
 .wordwall-art.lockin::after {
   content: "";
   position: absolute;
@@ -735,8 +766,8 @@ a.ww-card:hover .ww-text { color: var(--fg); }
   top: 0;
   height: 56px;
   translate: 0 -100%;
-  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--accent) 16%, transparent) calc(100% - 2px), var(--accent) calc(100% - 2px));
-  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 70%, transparent));
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--sova-cyan) 14%, transparent) calc(100% - 2px), var(--sova-core) calc(100% - 2px));
+  filter: drop-shadow(0 0 3px var(--sova-cyan)) drop-shadow(0 0 10px var(--sova-blue));
   opacity: 0;
   pointer-events: none;
 }
@@ -760,9 +791,8 @@ a.ww-card:hover .ww-text { color: var(--fg); }
   100% { top: 100%; opacity: 0; }
 }
 @keyframes lock-flash {
-  0% { filter: brightness(1); }
-  22% { filter: brightness(1.75) saturate(1.15); }
-  100% { filter: brightness(1); }
+  0%, 100% { filter: brightness(1) drop-shadow(0 0 0 transparent); }
+  22% { filter: brightness(1.6) drop-shadow(0 0 18px var(--sova-blue)); }
 }
 @keyframes lock-glow { from { opacity: 0; } to { opacity: 1; } }
 /* "LOCKED IN" under the agent, like agent select */
@@ -784,29 +814,53 @@ a.ww-card:hover .ww-text { color: var(--fg); }
   content: "";
   width: 5px;
   height: 5px;
-  background: var(--accent);
+  background: var(--sova-cyan);
+  box-shadow: 0 0 6px var(--sova-blue);
   rotate: 45deg;
 }
 
 /* Sova's abilities (Recon Bolt, Hunter's Fury) play on a layer over the wall */
 .wordwall.has-fx { position: relative; }
 .ww-fx { position: absolute; inset: 0; z-index: 2; overflow: hidden; pointer-events: none; }
-.recon-ring {
+/* everything glows in Sova's blue: a bright core inside a wider bloom */
+.sova-ring {
   position: absolute;
   translate: -50% -50%;
-  border: 1px solid var(--accent);
+  border: 1px solid var(--sova-cyan);
   border-radius: 50%;
-  box-shadow: inset 0 0 36px color-mix(in srgb, var(--accent) 16%, transparent);
+  box-shadow:
+    0 0 8px var(--sova-cyan),
+    0 0 22px color-mix(in srgb, var(--sova-blue) 70%, transparent),
+    inset 0 0 36px color-mix(in srgb, var(--sova-cyan) 18%, transparent);
 }
 .fury-beam {
   position: absolute;
   left: 0;
-  height: 2px;
-  margin-top: -1px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, #fff, var(--accent) 8%, color-mix(in srgb, var(--accent) 35%, transparent) 55%, transparent);
-  filter: drop-shadow(0 0 6px var(--accent));
+  height: 3px;
+  margin-top: -1.5px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--sova-core), var(--sova-cyan) 10%, color-mix(in srgb, var(--sova-blue) 45%, transparent) 55%, transparent);
+  filter: drop-shadow(0 0 3px var(--sova-cyan)) drop-shadow(0 0 10px var(--sova-blue)) drop-shadow(0 0 20px var(--sova-blue));
 }
+/* Shock Bolt: a flash, a quick shock ring and electric sparks */
+.shock-flash {
+  position: absolute;
+  width: 160px;
+  height: 160px;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--sova-core), color-mix(in srgb, var(--sova-cyan) 70%, transparent) 35%, color-mix(in srgb, var(--sova-blue) 30%, transparent) 65%, transparent);
+}
+.shock-spark {
+  position: absolute;
+  width: 32px;
+  height: 12px;
+  margin-top: -6px;
+  transform-origin: 0 50%;
+  filter: drop-shadow(0 0 2px var(--sova-cyan)) drop-shadow(0 0 7px var(--sova-blue));
+}
+.shock-spark svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.shock-spark polyline { fill: none; stroke: var(--sova-core); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 /* settings under a wall, like a crosshair code to copy */
 .ww-specs {
   grid-column: 2;
@@ -1667,6 +1721,9 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   color: var(--muted);
 }
 .footer a:hover { color: var(--fg); }
+/* the year rolls up from the story's first year as the footer arrives */
+.year-roll .odo-strip { transform: translateY(calc(var(--f, 0) * -1em)); transition: transform 1.8s var(--ease) 0.2s; }
+.year-roll.rolled .odo-strip { transform: translateY(calc(var(--n, 0) * -1em)); }
 .foot-motto {
   font-family: var(--serif);
   font-style: italic;
@@ -1746,13 +1803,13 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   z-index: 60;
   width: 104px;
   pointer-events: none;
-  filter: drop-shadow(0 0 14px rgba(79, 140, 230, 0.85));
+  filter: drop-shadow(0 0 4px var(--sova-cyan)) drop-shadow(0 0 16px var(--sova-blue));
 }
 .drone svg { display: block; width: 100%; }
 .drone-body { fill: var(--fg); }
 .drone-wing { fill: var(--fg); opacity: 0.78; }
 .drone-wing-back { opacity: 0.45; }
-.drone-eye { fill: #8fd3ff; }
+.drone-eye { fill: var(--sova-cyan); }
 .drone-toast {
   position: fixed;
   left: var(--pad);
@@ -1776,8 +1833,8 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #4f8ce6;
-  box-shadow: 0 0 10px #4f8ce6;
+  background: var(--sova-cyan);
+  box-shadow: 0 0 4px var(--sova-cyan), 0 0 12px var(--sova-blue);
 }
 .drone-toast.on { opacity: 1; transform: none; }
 

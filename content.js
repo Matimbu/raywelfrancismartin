@@ -55,11 +55,12 @@ const SITE = {
   // `image` (larger photo that follows the cursor on hover) and `credit`
   // (required for Creative Commons photos; listed under the wall).
   // Sova's wall also uses `drone` (tap to launch the Owl Drone), `ping` (hover
-  // or tap: a Recon Bolt ping that reveals the other words) and `beam` (hover
-  // or tap: Hunter's Fury fires three blasts through the wall).
+  // or tap: a Recon Bolt ping that reveals the other words), `shock` (hover or
+  // tap: a Shock Bolt burst of sparks) and `beam` (hover or tap: Hunter's Fury
+  // fires three blasts through the wall), all in Sova's blue.
   // `section` picks where a wall goes (default: the About section).
   // `art` shows a picture beside the words (`glow` tints the light behind it;
-  // `lockIn: true` scans it in behind an orange line, like locking in an agent);
+  // `lockIn: true` scans it in behind a line of blue, like locking in an agent);
   // `notice` adds a line under the wall (e.g. Riot's fan-content notice).
   // `layout: "cards"` shows each word as a photo card (`image`, `pos`, `alt`);
   // `credit` can also be a list when a card uses more than one photo.
@@ -165,7 +166,7 @@ const SITE = {
           note: "or my teammate, apparently",
           link: "https://www.tiktok.com/@matimbu_/video/7121951680408669442"
         },
-        { text: "Shock Bolt", note: "the explosive one" },
+        { text: "Shock Bolt", note: "the explosive one", shock: true },
         {
           text: "Hunter's Fury",
           note: "ultimate · hits through walls",
@@ -178,7 +179,8 @@ const SITE = {
 
   // "The story so far" in About: one row per year, oldest first.
   // `medals` adds gold medals to the title; `photo` (a gallery file name)
-  // adds a button that opens that photo; `until` shows "to now" under the year.
+  // adds a button that opens that photo; `until` shows "to now" under the year;
+  // `runner: true` sends a tiny runner along the row's line as you read it.
   story: {
     label: "The story so far",
     intro: "How I got here.",
@@ -198,7 +200,7 @@ const SITE = {
         title: "College days",
         text: "Where the maturity began. Every kind of hardship: physical, mental, emotional, spiritual. And the most important lesson of all, the wisdom of life."
       },
-      { year: "2026", title: "Malolos Rush", text: "Building my capstone game in Unity." }
+      { year: "2026", title: "Malolos Rush", text: "Building my capstone game in Unity.", runner: true }
     ]
   },
 
