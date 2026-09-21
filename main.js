@@ -609,8 +609,10 @@ function flashCopied(label, ok) {
       item.addEventListener("click", launchDrone);
     }
     // Sova's abilities: `ping` sends a Recon Bolt ping, `shock` sets off a
-    // Shock Bolt, `beam` fires Hunter's Fury. Hover on computers, tap on phones.
-    const ability = reduceMotion ? null : w.ping ? reconPing : w.shock ? shockBolt : w.beam ? huntersFury : null;
+    // Shock Bolt, `beam` fires Hunter's Fury, `hud` flies the Owl Drone.
+    // Hover on computers, tap on phones.
+    const ability = reduceMotion ? null
+      : w.ping ? reconPing : w.shock ? shockBolt : w.beam ? huntersFury : w.hud ? droneHud : null;
     if (ability) item.addEventListener(canHover ? "mouseenter" : "click", () => ability(block, item));
     // Reuse the crafts preview card: the photo follows the cursor
     if (w.image && canHover && !cards) {
@@ -1758,32 +1760,100 @@ function reconPing(block, item) {
   });
 }
 
-// Hunter's Fury: three blasts shoot across the wall from Sova's side, straight
-// through the word, the way the ultimate goes through walls
+// Hunter's Fury on the real ult's timing (VALORANT wiki): 0.8 s to equip,
+// then three charges, each winding up for 1 s before a wall-piercing blast,
+// one every 2.125 s. The bow charges on Sova's side of the wall, and each
+// blast is a beam across the whole wall that pulses and fades, lighting the
+// word up for a second.
 let firing = false;
 function huntersFury(block, item) {
   if (firing) return;
   firing = true;
+  const EQUIP = 800;
+  const WINDUP = 1000;
+  const EVERY = 2125;
   const box = block.getBoundingClientRect();
   const text = item.querySelector(".ww-text");
   const r = text.getBoundingClientRect();
-  const beamW = box.width * 0.4;
-  const duration = 600;
-  const gap = 420;
-  // when a blast's head reaches the middle of the word
-  const hitAt = ((box.right - (r.left + r.width / 2)) / (box.width + beamW)) * duration;
-  for (let n = 0; n < 3; n++) {
+  const y = r.top + r.height * 0.55 - box.top;
+  const fx = wallFx(block);
+  const orb = el("span", "fury-charge");
+  orb.style.left = `${box.width - 28}px`;
+  orb.style.top = `${y}px`;
+  fx.appendChild(orb);
+  const orbTo = (from, to, duration, easing) => orb.animate([from, to], { duration, easing, fill: "forwards" });
+  const idle = { opacity: 0.45, scale: "0.4" };
+  const full = { opacity: 1, scale: "1" };
+  orbTo({ opacity: 0, scale: "0.2" }, idle, EQUIP, "ease-out");
+  const blast = () => {
     const beam = el("span", "fury-beam");
-    beam.style.top = `${r.top + r.height * 0.55 - box.top}px`;
-    beam.style.width = `${beamW}px`;
-    wallFx(block).appendChild(beam);
+    beam.style.top = `${y}px`;
+    fx.appendChild(beam);
     beam.animate([
-      { transform: `translateX(${box.width}px)` },
-      { transform: `translateX(${-beamW}px)` }
-    ], { duration, delay: n * gap, fill: "both" }).finished.then(() => beam.remove());
-    flashWord(text, n * gap + hitAt, 0.05);
+      { clipPath: "inset(0 0 0 100%)", opacity: 1, scale: "1 0.4" },
+      { clipPath: "inset(0 0 0 0)", opacity: 1, scale: "1 1.35", offset: 0.12 },
+      { clipPath: "inset(0 0 0 0)", opacity: 0.85, scale: "1 1", offset: 0.4 },
+      { clipPath: "inset(0 0 0 0)", opacity: 0, scale: "1 0.25" }
+    ], { duration: 950, easing: "ease-out" }).finished.then(() => beam.remove());
+    flashWord(text, 60, 0.05);
+  };
+  for (let n = 0; n < 3; n++) {
+    const fireAt = EQUIP + WINDUP + n * EVERY;
+    setTimeout(() => orbTo(idle, full, WINDUP, "ease-in"), fireAt - WINDUP);
+    setTimeout(() => {
+      blast();
+      orbTo({ opacity: 1, scale: "1.35" }, idle, 500, "ease-out");
+    }, fireAt);
   }
-  setTimeout(() => (firing = false), 2 * gap + duration + 300);
+  setTimeout(() => {
+    orbTo(idle, { opacity: 0, scale: "0.2" }, 400, "ease-in").finished.then(() => orb.remove());
+    firing = false;
+  }, EQUIP + WINDUP + 2 * EVERY + 900);
+}
+
+// Owl Drone: hovering the word puts the drone's HUD (from the game) around
+// your cursor for a few seconds, like flying it. Computers only.
+const DRONE_HUD =
+  '<svg viewBox="-160 -160 320 320">' +
+  '<path class="hud-arc" d="M-68.8 98.3A120 120 0 0 1-68.8-98.3"/>' +
+  '<path class="hud-arc" d="M68.8-98.3A120 120 0 0 1 68.8 98.3"/>' +
+  '<path class="hud-bar" d="M-91.9 77.1A120 120 0 0 1-119.9 4.2"/>' +
+  '<path class="hud-energy" d="M119.9 4.2A120 120 0 0 1 91.9 77.1"/>' +
+  '<path class="hud-fuel-track" d="M-68 117.8A136 136 0 0 0 68 117.8"/>' +
+  '<path class="hud-fuel" d="M-68 117.8A136 136 0 0 0 68 117.8"/>' +
+  '<path class="hud-line" d="M-58-100H58M-58-74H58"/>' +
+  '<text class="hud-label" x="0" y="-87"></text>' +
+  '<path class="hud-line" d="M-156 0H-86M86 0H156M-150-44H-128M-150 44H-128M128-44H150M128 44H150' +
+  'M-96 2L-62 36L-84 66M96 2L62 36L84 66M-110 28H-102M-106 24V32M108 22L104 29H109L105 36' +
+  'M-4 142h8v13h-8ZM-2 140h4M-19 0H-15M15 0H19"/>' +
+  '<path class="hud-dot" d="M-2 148h4v5h-4Z"/>' +
+  '<circle class="hud-reticle" r="9"/><circle class="hud-dot" r="1.6"/></svg>';
+const pointer = { x: innerWidth / 2, y: innerHeight / 2 };
+let hud = null;
+addEventListener("pointermove", (e) => {
+  pointer.x = e.clientX;
+  pointer.y = e.clientY;
+  if (hud) hud.style.translate = `${pointer.x}px ${pointer.y}px`;
+}, { passive: true });
+
+function droneHud() {
+  if (hud || !canHover) return;
+  const node = (hud = el("div", "drone-hud"));
+  node.setAttribute("aria-hidden", "true");
+  node.innerHTML = DRONE_HUD;
+  node.style.translate = `${pointer.x}px ${pointer.y}px`;
+  document.body.appendChild(node);
+  document.documentElement.classList.add("drone-view"); // the reticle is the cursor
+  requestAnimationFrame(() => requestAnimationFrame(() => node.classList.add("on")));
+  scramble(node.querySelector(".hud-label"), "FIRE BOLT", 500, 150);
+  setTimeout(() => {
+    node.classList.remove("on");
+    document.documentElement.classList.remove("drone-view");
+    setTimeout(() => {
+      node.remove();
+      hud = null;
+    }, 400);
+  }, 2600);
 }
 
 // Shock Bolt: the word takes an electric jolt and flickers blue as the bolt

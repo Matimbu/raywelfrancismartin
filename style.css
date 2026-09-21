@@ -859,15 +859,46 @@ a.ww-card:hover .ww-text { color: var(--fg); }
     0 0 22px color-mix(in srgb, var(--sova-blue) 70%, transparent),
     inset 0 0 36px color-mix(in srgb, var(--sova-cyan) 18%, transparent);
 }
+/* Hunter's Fury: the bow charging on Sova's side, then a wide beam across
+   the whole wall: a white-hot core in cyan and blue, pulses running along it,
+   fading out towards the end of its range */
+.fury-charge {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--sova-core), color-mix(in srgb, var(--sova-cyan) 75%, transparent) 30%, color-mix(in srgb, var(--sova-blue) 35%, transparent) 60%, transparent);
+  opacity: 0;
+}
 .fury-beam {
   position: absolute;
   left: 0;
-  height: 3px;
-  margin-top: -1.5px;
-  border-radius: 3px;
-  background: linear-gradient(90deg, var(--sova-core), var(--sova-cyan) 10%, color-mix(in srgb, var(--sova-blue) 45%, transparent) 55%, transparent);
-  filter: drop-shadow(0 0 3px var(--sova-cyan)) drop-shadow(0 0 10px var(--sova-blue)) drop-shadow(0 0 20px var(--sova-blue));
+  right: 0;
+  height: 16px;
+  margin-top: -8px;
+  border-radius: 8px;
+  background: linear-gradient(to bottom,
+    transparent,
+    color-mix(in srgb, var(--sova-blue) 45%, transparent) 25%,
+    var(--sova-cyan) 42%,
+    var(--sova-core) 50%,
+    var(--sova-cyan) 58%,
+    color-mix(in srgb, var(--sova-blue) 45%, transparent) 75%,
+    transparent);
+  filter: drop-shadow(0 0 6px var(--sova-cyan)) drop-shadow(0 0 18px var(--sova-blue));
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%);
+  mask-image: linear-gradient(90deg, transparent, #000 12%);
 }
+.fury-beam::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: repeating-linear-gradient(90deg, transparent 0, color-mix(in srgb, var(--sova-core) 55%, transparent) 24px, transparent 48px);
+  animation: fury-pulse 0.35s linear infinite;
+}
+@keyframes fury-pulse { to { background-position: -48px 0; } }
 /* Shock Bolt: a flash, a quick shock ring and electric sparks */
 .shock-flash {
   position: absolute;
@@ -1819,6 +1850,45 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
 .shot-meter.scrolling .shot-meter-pct { opacity: 1; }
 .shot-meter.scrolling .shot-meter-arrow { opacity: 0; }
 .shot-meter:hover .shot-meter-arrow { color: var(--accent); }
+
+/* Owl Drone HUD (hover the word): the drone's view from the game around the
+   cursor for a few seconds; its reticle stands in for the cursor */
+.drone-view, .drone-view * { cursor: none !important; }
+.drone-hud {
+  position: fixed;
+  left: -160px;
+  top: -160px;
+  z-index: 70;
+  width: 320px;
+  height: 320px;
+  color: var(--fg);
+  pointer-events: none;
+  opacity: 0;
+  scale: 1.08;
+  filter: drop-shadow(0 0 2px color-mix(in srgb, var(--sova-cyan) 45%, transparent));
+  transition: opacity 0.25s ease, scale 0.45s var(--ease);
+}
+.drone-hud.on { opacity: 1; scale: 1; }
+.drone-hud svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.hud-line, .hud-arc, .hud-bar, .hud-fuel-track, .hud-fuel { fill: none; stroke: currentColor; }
+.hud-line { stroke-width: 1.2; opacity: 0.85; }
+.hud-arc { stroke-width: 1.4; stroke-dasharray: 240; stroke-dashoffset: 240; transition: stroke-dashoffset 0.7s var(--ease); }
+.drone-hud.on .hud-arc { stroke-dashoffset: 0; }
+.hud-bar { stroke-width: 5; }
+.hud-energy {
+  fill: none;
+  stroke: var(--sova-cyan);
+  stroke-width: 5;
+  filter: drop-shadow(0 0 4px var(--sova-cyan)) drop-shadow(0 0 10px var(--sova-blue));
+  animation: hud-pulse 1.1s ease-in-out infinite alternate;
+}
+.hud-fuel-track { stroke-width: 3; opacity: 0.3; }
+.hud-fuel { stroke-width: 3; stroke-dasharray: 143; animation: hud-fuel 2.6s linear forwards; }
+.hud-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.24em; fill: currentColor; text-anchor: middle; dominant-baseline: middle; }
+.hud-reticle { fill: none; stroke: var(--sova-cyan); stroke-width: 1.3; }
+.hud-dot { fill: currentColor; }
+@keyframes hud-pulse { from { opacity: 0.6; } to { opacity: 1; } }
+@keyframes hud-fuel { to { stroke-dashoffset: 143; } }
 
 /* Owl Drone easter egg */
 .ww-drone { cursor: pointer; }

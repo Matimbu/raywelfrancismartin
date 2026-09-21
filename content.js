@@ -56,8 +56,9 @@ const SITE = {
   // (required for Creative Commons photos; listed under the wall).
   // Sova's wall also uses `drone` (tap to launch the Owl Drone), `ping` (hover
   // or tap: a Recon Bolt ping that reveals the other words), `shock` (hover or
-  // tap: a Shock Bolt burst of sparks) and `beam` (hover or tap: Hunter's Fury
-  // fires three blasts through the wall), all in Sova's blue.
+  // tap: a Shock Bolt burst of sparks), `beam` (hover or tap: Hunter's Fury
+  // on the real ult's timing) and `hud` (hover: the Owl Drone's HUD around the
+  // cursor for a few seconds), all in Sova's blue.
   // `section` picks where a wall goes (default: the About section).
   // `art` shows a picture beside the words (`glow` tints the light behind it;
   // `lockIn: true` scans it in behind a line of blue, like locking in an agent);
@@ -164,7 +165,8 @@ const SITE = {
         {
           text: "Owl Drone",
           note: "or my teammate, apparently",
-          link: "https://www.tiktok.com/@matimbu_/video/7121951680408669442"
+          link: "https://www.tiktok.com/@matimbu_/video/7121951680408669442",
+          hud: true
         },
         { text: "Shock Bolt", note: "the explosive one", shock: true },
         {
