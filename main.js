@@ -615,6 +615,10 @@ function flashCopied(label, ok) {
       item.classList.add("ww-drone");
       item.addEventListener("click", launchDrone);
     }
+    if (w.shoot) {
+      item.classList.add("ww-shoot");
+      item.addEventListener("click", () => shootArrow(item));
+    }
     // Sova's abilities: `ping` sends a Recon Bolt ping, `shock` sets off a
     // Shock Bolt, `beam` fires Hunter's Fury, `hud` flies the Owl Drone.
     // Hover on computers, tap on phones.
@@ -1730,6 +1734,31 @@ function sovaColors() {
 // the bloom: a tight cyan glow inside a wider blue one
 const sovaBloom = ({ cyan, blue }) => `0 0 4px ${cyan}, 0 0 14px ${blue}, 0 0 30px ${blue}`;
 
+// The Shock Bolt's own colours, sampled from its dome in the game (bluer and
+// more violet than Sova's cyan). Same shape as sovaColors, so sovaBloom works.
+function shockColors() {
+  const css = getComputedStyle(document.documentElement);
+  const get = (name) => css.getPropertyValue(name).trim();
+  return { core: get("--shock-core"), cyan: get("--shock-glow"), blue: get("--shock-deep") };
+}
+
+// Electricity: numbers that look random but hold still for one flicker (the
+// same seed gives the same shape), and a jagged line along any curve fn(0..1)
+const noise = (i, seed) => {
+  const s = Math.sin(i * 12.9898 + seed * 78.233) * 43758.5453;
+  return s - Math.floor(s);
+};
+function jagged(fn, steps, amount, seed) {
+  const points = [];
+  for (let i = 0; i <= steps; i++) {
+    const [x, y] = fn(i / steps);
+    const j = i === 0 || i === steps ? 0 : amount;
+    points.push(`${x + (noise(i, seed) - 0.5) * 2 * j},${y + (noise(i + 50, seed) - 0.5) * 2 * j}`);
+  }
+  return points.join(" ");
+}
+const straight = (a, b) => (u) => [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u];
+
 // A word lights up in Sova's blue with a bloom, like an enemy being revealed
 function flashWord(node, delay, rise = 0.15, duration = 1100) {
   const c = sovaColors();
@@ -1945,7 +1974,7 @@ addEventListener("pointermove", (e) => {
 // wiki), lighting up the words near it.
 document.addEventListener("click", (e) => {
   if (!hud || hud.dataset.fired || e.button !== 0) return;
-  if (e.target.closest("a, button, input, textarea, select, label, iframe, summary, dialog")) return;
+  if (e.target.closest("a, button, input, textarea, select, label, iframe, summary, dialog, .ww-shoot")) return;
   hud.dataset.fired = "1";
   scramble(hud.querySelector(".hud-label"), "BOLT FIRED", 400);
   fireDart(e.clientX + scrollX, e.clientY + scrollY);
@@ -2015,9 +2044,9 @@ function droneHud() {
 }
 
 // Shock Bolt: the bolt charges on the bow (0.4 s windup, VALORANT wiki),
-// flies in an arc, bounces once off the bottom of the word like a bank shot
-// and bursts: the word jolts and flickers blue, with a flash, a quick shock
-// ring and a spray of electric sparks
+// flies in an arc, bounces once off the bottom of the word like a bank shot,
+// lands under it and bursts into an electric dome like the game's shock dart,
+// while the word jolts and flickers
 let shocking = false;
 function shockBolt(block, item) {
   if (shocking) return;
@@ -2026,8 +2055,8 @@ function shockBolt(block, item) {
   const text = item.querySelector(".ww-text");
   const r = text.getBoundingClientRect();
   const x = r.left + r.width / 2 - box.left;
-  const y = r.top + r.height / 2 - box.top;
-  const floor = { x: r.left + r.width * 0.8 - box.left, y: r.bottom - box.top };
+  const ground = r.bottom - box.top;
+  const floor = { x: r.left + r.width * 0.8 - box.left, y: ground };
   const fx = wallFx(block);
   const bow = bowPoint(block) || { x: box.width - 30, y: 40 };
   chargeBow(fx, bow, 400)
@@ -2035,52 +2064,174 @@ function shockBolt(block, item) {
       setTimeout(() => tink(fx, floor, 36), 520);
       return flyBolt(fx, [
         { from: bow, to: floor, lift: 70, time: 0.52 },
-        { from: floor, to: { x, y }, lift: 24, time: 0.26 }
+        { from: floor, to: { x, y: ground }, lift: 24, time: 0.26 }
       ]);
     })
     .then(() => {
-      setTimeout(() => (shocking = false), 900);
-      shockBurst(fx, text, x, y);
+      setTimeout(() => (shocking = false), 1100);
+      shockBurst(fx, text, x, ground, Math.max(r.width * 0.62, r.height * 1.15));
     });
 }
 
-function shockBurst(fx, text, x, y) {
-  const c = sovaColors();
+// The shock dart's dome: a half-sphere of lightning on the ground, its arcs
+// crawling over it and curling inside, flaring up fast and fading out
+function shockBurst(fx, text, x, ground, R) {
+  const c = shockColors();
   const lit = { color: c.core, textShadow: sovaBloom(c) };
   const off = { color: getComputedStyle(text).color, textShadow: "none" };
   text.animate([
     { ...lit, offset: 0 }, { ...off, offset: 0.1 }, { ...lit, offset: 0.18 },
     { ...off, offset: 0.3 }, { ...lit, offset: 0.38 }, { ...lit, offset: 0.55 }, { ...off, offset: 1 }
-  ], { duration: 800 });
+  ], { duration: 900 });
   text.animate([
     { translate: "0 0" }, { translate: "-3px 1px" }, { translate: "3px -1px" },
     { translate: "-2px 0" }, { translate: "2px 1px" }, { translate: "0 0" }
   ], { duration: 360 });
-  const burst = (cls, keyframes, duration) => {
-    const node = el("span", cls);
-    node.style.left = `${x}px`;
-    node.style.top = `${y}px`;
-    fx.appendChild(node);
-    node.animate(keyframes, { duration, easing: "cubic-bezier(0.2, 0.7, 0.3, 1)", fill: "forwards" })
-      .finished.then(() => node.remove());
-    return node;
+  const dome = el("span", "shock-dome");
+  dome.style.left = `${x}px`;
+  dome.style.top = `${ground}px`;
+  const size = `left:${-R}px;top:${-R}px;width:${2 * R}px;height:${R}px`;
+  dome.innerHTML =
+    `<span class="dome-glow" style="${size};border-radius:${R}px ${R}px 0 0"></span>` +
+    `<svg style="${size}" viewBox="${-R} ${-R} ${2 * R} ${R}"><polyline class="dome-bolt edge"/>` +
+    '<polyline class="dome-bolt"/>'.repeat(5) + "</svg>";
+  fx.appendChild(dome);
+  const bolts = [...dome.querySelectorAll(".dome-bolt")];
+  const LIFE = 1050;
+  dome.animate([
+    { scale: "0.15", opacity: 1 },
+    { scale: "1", opacity: 1, offset: 0.16 },
+    { scale: "1", opacity: 0.95, offset: 0.62 },
+    { scale: "1.06", opacity: 0 }
+  ], { duration: LIFE, easing: "ease-out", fill: "forwards" });
+  // half-ellipses over the top (a = half-width, h = height)
+  const over = (a, h) => (u) => [a * Math.cos(Math.PI * (1 - u)), -h * Math.sin(Math.PI * (1 - u))];
+  const start = performance.now();
+  const crackle = (now) => {
+    const t = now - start;
+    const seed = Math.floor(t / 45); // new lightning ~20 times a second
+    const band = R * (0.3 + 0.4 * noise(3, seed));
+    const bandW = Math.sqrt(R * R - band * band);
+    const curl = (k) => {
+      const rr = R * (0.16 + 0.12 * noise(k + 6, seed));
+      const sx = R * (noise(k, seed) - 0.5) * 0.9;
+      const sy = -rr - R * 0.3 * noise(k + 3, seed);
+      const a0 = noise(k + 9, seed) * 6.28;
+      return (u) => [sx + rr * (1 - 0.6 * u) * Math.cos(a0 + 4 * u), sy + rr * (1 - 0.6 * u) * Math.sin(a0 + 4 * u)];
+    };
+    const shapes = [
+      over(R, R), // the dome's edge
+      over(R * (0.25 + 0.6 * noise(1, seed)), R * 0.98),
+      over(-R * (0.2 + 0.5 * noise(2, seed)), R * 0.96),
+      (u) => [bandW * Math.cos(Math.PI * (1 - u)), -band + 0.18 * bandW * Math.sin(Math.PI * (1 - u))],
+      curl(11),
+      curl(23)
+    ];
+    bolts.forEach((bolt, i) => {
+      bolt.setAttribute("points", jagged(shapes[i], i ? 14 : 22, i ? 5 : 3.5, seed + i * 11));
+      bolt.style.opacity = String(0.7 + 0.3 * noise(i + 20, seed));
+    });
+    if (t < LIFE) requestAnimationFrame(crackle);
+    else dome.remove();
   };
-  burst("shock-flash", [{ opacity: 1, scale: "0.2" }, { opacity: 0, scale: "1.3" }], 420);
-  burst("sova-ring", [
-    { width: "0px", height: "0px", opacity: 1 },
-    { width: "200px", height: "200px", opacity: 0 }
-  ], 520);
-  // electric sparks: little zigzags flying out in every direction
-  for (let k = 0; k < 12; k++) {
-    const deg = (k / 12) * 360 + Math.random() * 24;
-    const dist = 50 + Math.random() * 55;
-    const zig = [0, 1, 2, 3, 4].map((i) => `${i * 8},${i % 2 ? 1 + Math.random() * 4 : 7 + Math.random() * 4}`).join(" ");
-    const spark = burst("shock-spark", [
-      { transform: `rotate(${deg}deg) translateX(8px) scaleX(0.3)`, opacity: 1 },
-      { transform: `rotate(${deg}deg) translateX(${dist}px) scaleX(1)`, opacity: 0 }
-    ], 500 + Math.random() * 300);
-    spark.innerHTML = `<svg viewBox="0 0 32 12"><polyline points="${zig}"/></svg>`;
-  }
+  requestAnimationFrame(crackle);
+}
+
+// Clicking "Sova": an energy bow appears beside the name and draws back, its
+// string crackling with lightning while the arrowhead charges into a glowing
+// orb wrapped in sparks; then it lets go, the string twangs and the arrow
+// flies off. After the charged shot in Sova's trailer.
+let drawingBow = false;
+function shootArrow(item) {
+  if (drawingBow || reduceMotion) return;
+  drawingBow = true;
+  const text = item.querySelector(".ww-text");
+  const r = text.getBoundingClientRect();
+  const H = r.height;
+  const W = 3.4 * H;
+  const HT = 2.2 * H;
+  const cx = 0.5 * H; // the name's right edge, in the bow's own box
+  const cy = 1.1 * H; // the name's middle
+  const rest = cx + 0.25 * H; // the string at rest
+  const drawn = cx - 0.15 * H; // pulled back to the name, like to his cheek
+  const top = [rest, cy - 0.95 * H];
+  const bottom = [rest, cy + 0.95 * H];
+  const arrowLen = 1.25 * H;
+  const left = r.right + scrollX - cx;
+  const topY = r.top + r.height / 2 + scrollY - cy;
+  const fx = pageFx();
+  const bow = el("div", "bow-shot");
+  bow.setAttribute("aria-hidden", "true");
+  bow.style.cssText = `left:${left}px;top:${topY}px;width:${W}px;height:${HT}px`;
+  bow.innerHTML =
+    `<svg viewBox="0 0 ${W} ${HT}"><path class="bow-limb" d="M${top} Q${cx + 0.85 * H},${cy} ${bottom}"/>` +
+    '<line class="bow-tracer"/><polyline class="bow-string"/><line class="bow-arrow"/>' +
+    '<polyline class="bow-arc"/><polyline class="bow-arc"/><polyline class="bow-arc"/></svg>' +
+    '<span class="bow-orb"></span>';
+  fx.appendChild(bow);
+  const string = bow.querySelector(".bow-string");
+  const arrow = bow.querySelector(".bow-arrow");
+  const tracer = bow.querySelector(".bow-tracer");
+  const orb = bow.querySelector(".bow-orb");
+  const arcs = [...bow.querySelectorAll(".bow-arc")];
+  const setLine = (node, x1, x2) => {
+    node.setAttribute("x1", x1);
+    node.setAttribute("x2", x2);
+    node.setAttribute("y1", cy);
+    node.setAttribute("y2", cy);
+  };
+  requestAnimationFrame(() => bow.classList.add("on"));
+  // the name glows as the charge builds, brightest as the arrow leaves
+  text.animate([{ textShadow: "none" }, { textShadow: sovaBloom(sovaColors()), offset: 0.62 }, { textShadow: "none" }], { duration: 2600 });
+  const RELEASE = 1600;
+  const END = 2500;
+  const start = performance.now();
+  let released = false;
+  const frame = (now) => {
+    const t = now - start;
+    const seed = Math.floor(t / 45); // the lightning changes ~20 times a second
+    if (t < RELEASE) {
+      const p = 1 - (1 - clamp01((t - 250) / 900)) ** 3;
+      const nx = rest + (drawn - rest) * p + (p === 1 ? (noise(seed, 3) - 0.5) * 1.5 : 0); // trembling at full draw
+      const tip = nx + arrowLen;
+      const zap = 6 * p;
+      string.setAttribute("points", `${jagged(straight(top, [nx, cy]), 7, zap, seed)} ${jagged(straight([nx, cy], bottom), 7, zap, seed + 9)}`);
+      setLine(arrow, nx, tip);
+      orb.style.translate = `${tip}px ${cy}px`;
+      orb.style.scale = String((0.25 + 0.75 * p) * (1 + 0.08 * Math.sin(t / 35)));
+      // sparks swirling round the charging arrowhead
+      arcs.forEach((arc, i) => {
+        if (p < 0.35) return arc.setAttribute("points", "");
+        const rr = 0.24 * H * (0.6 + 0.4 * p) * (0.85 + 0.3 * noise(i + 7, seed));
+        const a0 = noise(i, seed) * 6.28;
+        const sweep = 1.8 + noise(i + 3, seed);
+        arc.setAttribute("points", jagged((u) => [tip + rr * Math.cos(a0 + sweep * u), cy + rr * Math.sin(a0 + sweep * u)], 7, 3, seed + i * 5));
+      });
+    } else {
+      if (!released) {
+        released = true;
+        arcs.forEach((arc) => arc.setAttribute("points", ""));
+        tink(fx, { x: left + cx + 0.55 * H, y: topY + cy }, 100, 420);
+      }
+      const s = (t - RELEASE) / 1000;
+      // the string twangs back and settles; the arrow flies off
+      const nx = rest + (drawn - rest) * Math.exp(-s / 0.09) * Math.cos(2 * Math.PI * 11 * s);
+      string.setAttribute("points", `${top} ${nx},${cy} ${bottom}`);
+      const tip = drawn + arrowLen + 2800 * s;
+      setLine(arrow, tip - arrowLen, tip);
+      setLine(tracer, drawn + arrowLen, tip - arrowLen);
+      tracer.style.opacity = String(Math.max(0, 1 - s / 0.35));
+      orb.style.translate = `${tip}px ${cy}px`;
+      orb.style.scale = String(Math.max(0.5, 1 - s));
+    }
+    if (t < END) return requestAnimationFrame(frame);
+    bow.classList.remove("on");
+    setTimeout(() => {
+      bow.remove();
+      drawingBow = false;
+    }, 350);
+  };
+  requestAnimationFrame(frame);
 }
 
 // Easter egg: type "sova" anywhere (or tap "Sova" on the agents wall) and

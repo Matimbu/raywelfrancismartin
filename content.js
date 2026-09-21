@@ -54,7 +54,8 @@ const SITE = {
   // `link` (the word becomes a link), `face` (small round photo by the note),
   // `image` (larger photo that follows the cursor on hover) and `credit`
   // (required for Creative Commons photos; listed under the wall).
-  // Sova's wall also uses `drone` (tap to launch the Owl Drone), `ping` (hover
+  // Sova's wall also uses `shoot` (click: Sova draws his bow and fires a
+  // charged arrow), `drone` (tap to launch the Owl Drone), `ping` (hover
   // or tap: a Recon Bolt ping that reveals the other words), `shock` (hover or
   // tap: a Shock Bolt burst of sparks), `beam` (hover or tap: Hunter's Fury
   // on the real ult's timing) and `hud` (hover: the Owl Drone's HUD around the
@@ -162,7 +163,7 @@ const SITE = {
         { label: "DPI", value: "800" }
       ],
       words: [
-        { text: "Sova", note: "main · Initiator", top: true, face: "assets/valorant/sova-icon.webp", drone: true },
+        { text: "Sova", note: "main · Initiator", top: true, face: "assets/valorant/sova-icon.webp", shoot: true },
         { text: "Recon Bolt", note: "reveals enemies", ping: true },
         {
           text: "Owl Drone",
