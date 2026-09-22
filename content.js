@@ -155,6 +155,7 @@ const SITE = {
       label: "Agents I main",
       section: "hobbies",
       ign: "Jenduks", // my in-game name: on the agent select card and the kill feed
+      soundSwitch: true, // an on/off switch for the wall's sounds
       intro: "Sova main. Some of the clips are on my YouTube and TikTok.",
       art: { src: "assets/valorant/sova.webp", alt: "Official art of Sova, the Valorant agent", glow: "#355285", lockIn: true },
       notice: "\u201cRaywel Martin\u201d (this site) was created under Riot Games' \u201cLegal Jibber Jabber\u201d policy using assets owned by Riot Games. Riot Games does not endorse or sponsor this project.",

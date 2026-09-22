@@ -563,6 +563,15 @@ try {
 // abilities that have a key, by key (see the keybinds after the walls)
 const keyAbilities = {};
 
+// speaker icons for the sound switch
+const SOUND_ON = '<svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>';
+const SOUND_OFF = '<svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="m17 9 5 6M22 9l-5 6"/></svg>';
+// whether the wall's sounds are off (see playSound), remembered per browser
+let muted = false;
+try {
+  muted = localStorage.getItem("sovaMuted") === "1";
+} catch (e) {}
+
 // Word walls (nicknames and the like): big words with small notes
 (SITE.walls || []).forEach((wall) => {
   if (!wall.words || !wall.words.length) return;
@@ -570,6 +579,25 @@ const keyAbilities = {};
   if (wall.ign) block.dataset.ign = wall.ign;
   const head = el("div", "wordwall-head reveal");
   head.append(el("p", "now-label mono", wall.label), el("p", "wordwall-intro", wall.intro || ""));
+  // `soundSwitch`: turns the wall's sounds on and off (remembered per browser)
+  if (wall.soundSwitch) {
+    const toggle = el("button", "sound-switch mono");
+    toggle.type = "button";
+    const show = () => {
+      toggle.innerHTML = muted ? `${SOUND_OFF}<span>Sound off</span>` : `${SOUND_ON}<span>Sound on</span>`;
+      toggle.setAttribute("aria-pressed", String(!muted));
+    };
+    toggle.addEventListener("click", () => {
+      muted = !muted;
+      try {
+        localStorage.setItem("sovaMuted", muted ? "1" : "0");
+      } catch (e) {}
+      Object.values(sounds).forEach((audio) => muted && audio.pause());
+      show();
+    });
+    show();
+    head.appendChild(toggle);
+  }
   const words = el("div", "wordwall-words");
   const cards = wall.layout === "cards";
   if (cards) block.classList.add("cards");
@@ -1883,6 +1911,7 @@ function flashWord(node, delay, rise = 0.15, duration = 1100) {
 // tapped something on the page.
 const sounds = {};
 function playSound(src, volume = 0.7) {
+  if (muted) return;
   let audio = sounds[src];
   if (!audio) {
     audio = sounds[src] = new Audio(src);
@@ -1910,32 +1939,59 @@ function toast(text, ms = 2800) {
   }, ms);
 }
 
-// A kill feed in the top corner, like the game's: the player, what they used
-// (a small icon) and what it hit; each line fades after a few seconds
+// A kill feed in the top corner of Sova's wall, styled like the game's: the
+// killer's portrait and name on the ally teal, what they used, the victim on
+// the enemy red, with a gold rim because they're the player's own kills.
+// Four lines at most; each fades after a few seconds.
 const FEED_ICONS = {
   shock: '<path d="M13 2 7 13h5l-2 9 7-12h-5l2-8z"/>',
   fury: '<path d="M2 9h13M2 15h13M14 5l7 7-7 7"/>',
   recon: '<path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.5"/>'
 };
-function killFeed(kind, target) {
-  let feed = document.querySelector(".kill-feed");
+const ENEMY = '<svg viewBox="0 0 24 24"><path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9zm-8 10a8 8 0 0 1 16 0z"/></svg>';
+function killFeed(block, kind, target) {
+  let feed = block.querySelector(".kill-feed");
   if (!feed) {
     feed = el("div", "kill-feed");
     feed.setAttribute("aria-hidden", "true");
-    document.body.appendChild(feed);
+    block.classList.add("has-fx");
+    block.appendChild(feed);
   }
-  const who = document.querySelector(".wordwall[data-ign]")?.dataset.ign || SITE.firstName;
   const row = el("div", "kf-row");
-  const icon = el("span", "kf-icon");
-  icon.innerHTML = `<svg viewBox="0 0 24 24">${FEED_ICONS[kind]}</svg>`;
-  row.append(el("span", "kf-who", who), icon, el("span", "kf-target", target));
+  row.innerHTML =
+    '<span class="kf-side kf-ally"><img class="kf-agent" alt=""><span class="kf-name"></span></span>' +
+    `<span class="kf-weapon"><svg viewBox="0 0 24 24">${FEED_ICONS[kind]}</svg></span>` +
+    `<span class="kf-side kf-enemy"><span class="kf-name"></span><span class="kf-agent kf-unknown">${ENEMY}</span></span>`;
+  row.querySelector(".kf-agent").src = block.querySelector(".ww-face")?.src || "";
+  const [who, victim] = row.querySelectorAll(".kf-name");
+  who.textContent = block.dataset.ign || SITE.firstName;
+  victim.textContent = target;
   feed.appendChild(row);
-  while (feed.children.length > 5) feed.firstChild.remove();
+  while (feed.children.length > 4) feed.firstChild.remove();
   requestAnimationFrame(() => row.classList.add("on"));
   setTimeout(() => {
     row.classList.remove("on");
     setTimeout(() => row.remove(), 450);
   }, 4200);
+}
+
+// ACE: all three blasts of the ult landed, so a Valorant-style banner sweeps
+// across the wall
+function aceBanner(block) {
+  const banner = el("div", "ace-banner");
+  banner.innerHTML = '<span class="ace-word">Ace</span><span class="ace-sub mono">3 hits · Hunter\'s Fury</span>';
+  wallFx(block).appendChild(banner);
+  banner.animate([
+    { clipPath: "inset(0 50% 0 50%)", opacity: 1 },
+    { clipPath: "inset(0 0 0 0)", opacity: 1, offset: 0.14 },
+    { clipPath: "inset(0 0 0 0)", opacity: 1, offset: 0.8 },
+    { clipPath: "inset(0 0 0 0)", opacity: 0 }
+  ], { duration: 2400, easing: "ease-out", fill: "forwards" }).finished.then(() => banner.remove());
+  banner.querySelector(".ace-word").animate([
+    { letterSpacing: "0.9em", filter: "blur(8px)", opacity: 0 },
+    { letterSpacing: "0.3em", filter: "blur(0)", opacity: 1, offset: 0.22 },
+    { letterSpacing: "0.34em", filter: "blur(0)", opacity: 1 }
+  ], { duration: 2400, easing: "cubic-bezier(0.2, 0.8, 0.3, 1)", fill: "forwards" });
 }
 
 // Sova's abilities come from his energy bow, not the Operator he's holding
@@ -2150,7 +2206,7 @@ function reconPing(block, item) {
   const pulse = () => {
     tink(fx, { x, y }, reach * 2, 1800);
     const others = [...block.querySelectorAll(".ww-text")].filter((t) => !item.contains(t));
-    if (!pulses++) killFeed("recon", `${others.length} revealed`);
+    if (!pulses++) killFeed(block, "recon", `${others.length} revealed`);
     others.forEach((t) => {
       const r = t.getBoundingClientRect();
       const d = Math.hypot(r.left + r.width / 2 - box.left - x, r.top + r.height / 2 - box.top - y);
@@ -2228,7 +2284,8 @@ function huntersFury(block, item) {
       { clipPath: "inset(0 0 0 0)", opacity: 0, scale: "1 0.25" }
     ], { duration: 950, easing: "ease-out" }).finished.then(() => beam.remove());
     flashWord(text, 60, 0.05);
-    killFeed("fury", text.textContent);
+    killFeed(block, "fury", text.textContent);
+    if (n === 2) setTimeout(() => aceBanner(block), 450); // all three landed
   };
   for (let n = 0; n < 3; n++) {
     const fireAt = EQUIP + WINDUP + n * EVERY;
@@ -2400,7 +2457,7 @@ function shockBolt(block, item) {
     .then(() => {
       setTimeout(() => (shocking = false), 1100);
       shockBurst(fx, text, x, ground, Math.max(r.width * 0.62, r.height * 1.15));
-      killFeed("shock", text.textContent);
+      killFeed(block, "shock", text.textContent);
     });
 }
 
@@ -2515,6 +2572,7 @@ function agentSelect(block, item) {
   if (!art) return shootArrow(item);
   const panel = el("div", "agent-select");
   panel.innerHTML =
+    '<div class="pick-timer"><span class="pick-time mono"></span><span class="pick-bar"></span></div>' +
     '<button class="lock-in-btn" type="button">Lock in</button>' +
     '<div class="agent-card"><span class="agent-portrait"><img alt=""></span>' +
     `<span class="agent-badge" aria-hidden="true">${AGENT_BADGE}</span>` +
@@ -2527,12 +2585,21 @@ function agentSelect(block, item) {
   requestAnimationFrame(() => requestAnimationFrame(() => panel.classList.add("on")));
   const lockBtn = panel.querySelector(".lock-in-btn");
   const status = panel.querySelector(".agent-status");
+  // the pick timer counts down the 12 s, like the agent select's
+  const time = panel.querySelector(".pick-time");
+  let left = 12;
+  rollText(time, `0:${pad2(left)}`);
+  const ticking = setInterval(() => {
+    left = Math.max(0, left - 1);
+    rollText(time, `0:${pad2(left)}`);
+  }, 1000);
   lockBtn.focus({ preventScroll: true });
   const onKey = (e) => {
     if (e.key === "Escape") close();
   };
   const close = () => {
     clearTimeout(timer);
+    clearInterval(ticking);
     document.removeEventListener("keydown", onKey);
     panel.classList.remove("on");
     art.classList.remove("picking");
@@ -2544,6 +2611,7 @@ function agentSelect(block, item) {
   panel.querySelector(".agent-voice").addEventListener("click", playHunter);
   lockBtn.addEventListener("click", () => {
     clearTimeout(timer);
+    clearInterval(ticking);
     lockBtn.disabled = true;
     panel.classList.add("locked");
     scramble(lockBtn, "Locked in", 400);
