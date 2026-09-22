@@ -2010,6 +2010,16 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   transition: opacity 0.3s ease, scale 0.45s var(--ease);
 }
 .agent-select.on { opacity: 1; scale: 1; }
+/* the agent's name in gold with the role over it, like the game's */
+.agent-title { display: grid; justify-items: center; gap: 4px; margin-bottom: -2px; }
+.agent-role { color: #8fd8d2; font-size: 10px; letter-spacing: 0.32em; margin-right: -0.32em; }
+.agent-name {
+  font: 800 40px/0.9 var(--sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #ead38c;
+  text-shadow: 0 0 16px rgba(234, 211, 140, 0.35);
+}
 .lock-in-btn {
   width: 100%;
   padding: 13px 0 12px;

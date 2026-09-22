@@ -577,6 +577,7 @@ try {
   if (!wall.words || !wall.words.length) return;
   const block = el("div", "wordwall");
   if (wall.ign) block.dataset.ign = wall.ign;
+  if (wall.role) block.dataset.role = wall.role;
   const head = el("div", "wordwall-head reveal");
   head.append(el("p", "now-label mono", wall.label), el("p", "wordwall-intro", wall.intro || ""));
   // `soundSwitch`: turns the wall's sounds on and off (remembered per browser)
@@ -662,6 +663,7 @@ try {
     if (w.pick) {
       item.classList.add("ww-pick");
       item.addEventListener("click", () => agentSelect(block, item));
+      item.addEventListener("mouseenter", () => uiSound("hover"));
     }
     // Sova's abilities: `ping` sends a Recon Bolt ping, `shock` sets off a
     // Shock Bolt, `beam` fires Hunter's Fury, `hud` flies the Owl Drone.
@@ -1910,6 +1912,64 @@ function flashWord(node, delay, rise = 0.15, duration = 1100) {
 // it's still playing. Browsers block them until the visitor has clicked or
 // tapped something on the page.
 const sounds = {};
+// Valorant-like UI sounds, made right in the browser (no files): a soft tick
+// for hovering, a whoosh when the agent select opens, and the lock-in hit
+let audioCtx = null;
+function uiSound(kind) {
+  if (muted) return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+  } catch (e) {
+    return;
+  }
+  const ctx = audioCtx;
+  if (ctx.state === "suspended") ctx.resume().catch(() => {});
+  const t = ctx.currentTime;
+  const out = ctx.createGain();
+  out.gain.value = 0.35;
+  out.connect(ctx.destination);
+  const tone = (freq, at, dur, type, peak, endFreq) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t + at);
+    if (endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq, t + at + dur);
+    gain.gain.setValueAtTime(0.0001, t + at);
+    gain.gain.exponentialRampToValueAtTime(peak, t + at + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + at + dur);
+    osc.connect(gain).connect(out);
+    osc.start(t + at);
+    osc.stop(t + at + dur + 0.02);
+  };
+  const whoosh = (at, dur, from, to, peak) => {
+    const buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    const band = ctx.createBiquadFilter();
+    band.type = "bandpass";
+    band.Q.value = 1.2;
+    band.frequency.setValueAtTime(from, t + at);
+    band.frequency.exponentialRampToValueAtTime(to, t + at + dur);
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, t + at);
+    gain.gain.exponentialRampToValueAtTime(peak, t + at + dur * 0.7);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + at + dur);
+    src.connect(band).connect(gain).connect(out);
+    src.start(t + at);
+    src.stop(t + at + dur);
+  };
+  if (kind === "hover") tone(2400, 0, 0.05, "sine", 0.25);
+  if (kind === "open") whoosh(0, 0.35, 400, 2800, 0.35);
+  if (kind === "lock") {
+    whoosh(0, 0.3, 300, 5000, 0.5);
+    tone(110, 0.28, 0.5, "sine", 0.9, 45);
+    tone(1320, 0.3, 0.6, "triangle", 0.18);
+    tone(1980, 0.34, 0.5, "sine", 0.1);
+  }
+}
+
 function playSound(src, volume = 0.7) {
   if (muted) return;
   let audio = sounds[src];
@@ -2573,6 +2633,7 @@ function agentSelect(block, item) {
   const panel = el("div", "agent-select");
   panel.innerHTML =
     '<div class="pick-timer"><span class="pick-time mono"></span><span class="pick-bar"></span></div>' +
+    '<div class="agent-title"><span class="agent-role mono"></span><span class="agent-name">Sova</span></div>' +
     '<button class="lock-in-btn" type="button">Lock in</button>' +
     '<div class="agent-card"><span class="agent-portrait"><img alt=""></span>' +
     `<span class="agent-badge" aria-hidden="true">${AGENT_BADGE}</span>` +
@@ -2582,6 +2643,9 @@ function agentSelect(block, item) {
   panel.querySelector(".agent-ign").textContent = block.dataset.ign || SITE.firstName;
   art.appendChild(panel);
   art.classList.add("picking");
+  panel.querySelector(".agent-role").textContent = block.dataset.role || "";
+  uiSound("open");
+  panel.querySelectorAll("button").forEach((button) => button.addEventListener("mouseenter", () => button.disabled || uiSound("hover")));
   requestAnimationFrame(() => requestAnimationFrame(() => panel.classList.add("on")));
   const lockBtn = panel.querySelector(".lock-in-btn");
   const status = panel.querySelector(".agent-status");
@@ -2616,7 +2680,8 @@ function agentSelect(block, item) {
     panel.classList.add("locked");
     scramble(lockBtn, "Locked in", 400);
     scramble(status, "Sova", 400);
-    playHunter();
+    uiSound("lock");
+    setTimeout(playHunter, 350); // his line right after the lock-in hit
     // the lock-in again: the scan, the flash, the glow, "Locked in"
     art.classList.remove("locked");
     void art.offsetWidth;
