@@ -567,6 +567,7 @@ const keyAbilities = {};
 (SITE.walls || []).forEach((wall) => {
   if (!wall.words || !wall.words.length) return;
   const block = el("div", "wordwall");
+  if (wall.ign) block.dataset.ign = wall.ign;
   const head = el("div", "wordwall-head reveal");
   head.append(el("p", "now-label mono", wall.label), el("p", "wordwall-intro", wall.intro || ""));
   const words = el("div", "wordwall-words");
@@ -630,9 +631,9 @@ const keyAbilities = {};
       item.classList.add("ww-drone");
       item.addEventListener("click", launchDrone);
     }
-    if (w.shoot) {
-      item.classList.add("ww-shoot");
-      item.addEventListener("click", () => shootArrow(item));
+    if (w.pick) {
+      item.classList.add("ww-pick");
+      item.addEventListener("click", () => agentSelect(block, item));
     }
     // Sova's abilities: `ping` sends a Recon Bolt ping, `shock` sets off a
     // Shock Bolt, `beam` fires Hunter's Fury, `hud` flies the Owl Drone.
@@ -1853,6 +1854,9 @@ function setUltPoints(n) {
     localStorage.setItem("sovaUlt", String(ultPoints));
   } catch (e) {}
   renderUltPoints(Math.max(0, ultPoints - before));
+  if (before < ULT_MAX && ultPoints >= ULT_MAX) {
+    toast(canHover ? "Ultimate ready · press X" : "Ultimate ready · tap Hunter's Fury");
+  }
 }
 const earnUlt = () => setUltPoints(ultPoints + 2);
 // Not ready yet: the points shake and show how many are in
@@ -1874,17 +1878,64 @@ function flashWord(node, delay, rise = 0.15, duration = 1100) {
   node.animate([{ ...lit, offset: rise }, { ...lit, offset: rise + 0.3 }], { duration, delay, easing: "ease-out" });
 }
 
-// "I am the hunter": the sound for the Sasha easter egg, loaded the first
-// time it's needed; it won't start over while it's still playing
-let hunterCall = null;
-function playHunter() {
-  if (!hunterCall) {
-    hunterCall = new Audio("assets/audio/i-am-the-hunter.mp3");
-    hunterCall.volume = 0.7;
+// Sounds, each loaded the first time it's needed; one won't start over while
+// it's still playing. Browsers block them until the visitor has clicked or
+// tapped something on the page.
+const sounds = {};
+function playSound(src, volume = 0.7) {
+  let audio = sounds[src];
+  if (!audio) {
+    audio = sounds[src] = new Audio(src);
+    audio.volume = volume;
   }
-  if (!hunterCall.paused) return;
-  hunterCall.currentTime = 0;
-  hunterCall.play().catch(() => {}); // blocked until the visitor has clicked something
+  if (!audio.paused) return;
+  audio.currentTime = 0;
+  audio.play().catch(() => {});
+}
+// "I am the hunter": the Sasha easter egg, the agent select's voice button
+// and locking in
+function playHunter() {
+  playSound("assets/audio/i-am-the-hunter.mp3");
+}
+
+// A small message in the corner (like the Owl Drone's)
+function toast(text, ms = 2800) {
+  const node = el("div", "drone-toast mono", text);
+  node.setAttribute("role", "status");
+  document.body.appendChild(node);
+  requestAnimationFrame(() => node.classList.add("on"));
+  setTimeout(() => {
+    node.classList.remove("on");
+    setTimeout(() => node.remove(), 500);
+  }, ms);
+}
+
+// A kill feed in the top corner, like the game's: the player, what they used
+// (a small icon) and what it hit; each line fades after a few seconds
+const FEED_ICONS = {
+  shock: '<path d="M13 2 7 13h5l-2 9 7-12h-5l2-8z"/>',
+  fury: '<path d="M2 9h13M2 15h13M14 5l7 7-7 7"/>',
+  recon: '<path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.5"/>'
+};
+function killFeed(kind, target) {
+  let feed = document.querySelector(".kill-feed");
+  if (!feed) {
+    feed = el("div", "kill-feed");
+    feed.setAttribute("aria-hidden", "true");
+    document.body.appendChild(feed);
+  }
+  const who = document.querySelector(".wordwall[data-ign]")?.dataset.ign || SITE.firstName;
+  const row = el("div", "kf-row");
+  const icon = el("span", "kf-icon");
+  icon.innerHTML = `<svg viewBox="0 0 24 24">${FEED_ICONS[kind]}</svg>`;
+  row.append(el("span", "kf-who", who), icon, el("span", "kf-target", target));
+  feed.appendChild(row);
+  while (feed.children.length > 5) feed.firstChild.remove();
+  requestAnimationFrame(() => row.classList.add("on"));
+  setTimeout(() => {
+    row.classList.remove("on");
+    setTimeout(() => row.remove(), 450);
+  }, 4200);
 }
 
 // Sova's abilities come from his energy bow, not the Operator he's holding
@@ -2095,10 +2146,12 @@ function reconPing(block, item) {
   const flight = { to: { x, y }, lift: 0, time: 0.16 };
   const bow = makeBow(fx, grip, (Math.atan2(y - grip.y, x - grip.x) * 180) / Math.PI, 56);
   const hideBars = chargeBars(fx, { x: grip.x, y: grip.y + 64 }, 420);
+  let pulses = 0;
   const pulse = () => {
     tink(fx, { x, y }, reach * 2, 1800);
-    block.querySelectorAll(".ww-text").forEach((t) => {
-      if (item.contains(t)) return;
+    const others = [...block.querySelectorAll(".ww-text")].filter((t) => !item.contains(t));
+    if (!pulses++) killFeed("recon", `${others.length} revealed`);
+    others.forEach((t) => {
       const r = t.getBoundingClientRect();
       const d = Math.hypot(r.left + r.width / 2 - box.left - x, r.top + r.height / 2 - box.top - y);
       revealWord(t, (d / reach) * 1800, 750); // revealed for 0.75 s (VALORANT wiki)
@@ -2175,6 +2228,7 @@ function huntersFury(block, item) {
       { clipPath: "inset(0 0 0 0)", opacity: 0, scale: "1 0.25" }
     ], { duration: 950, easing: "ease-out" }).finished.then(() => beam.remove());
     flashWord(text, 60, 0.05);
+    killFeed("fury", text.textContent);
   };
   for (let n = 0; n < 3; n++) {
     const fireAt = EQUIP + WINDUP + n * EVERY;
@@ -2223,7 +2277,7 @@ addEventListener("pointermove", (e) => {
 // wiki), lighting up the words near it.
 document.addEventListener("click", (e) => {
   if (!hud || hud.dataset.fired || e.button !== 0) return;
-  if (e.target.closest("a, button, input, textarea, select, label, iframe, summary, dialog, .ww-shoot")) return;
+  if (e.target.closest("a, button, input, textarea, select, label, iframe, summary, dialog, .ww-pick, .agent-select")) return;
   hud.dataset.fired = "1";
   scramble(hud.querySelector(".hud-label"), "BOLT FIRED", 400);
   fireDart(e.clientX + scrollX, e.clientY + scrollY);
@@ -2346,6 +2400,7 @@ function shockBolt(block, item) {
     .then(() => {
       setTimeout(() => (shocking = false), 1100);
       shockBurst(fx, text, x, ground, Math.max(r.width * 0.62, r.height * 1.15));
+      killFeed("shock", text.textContent);
     });
 }
 
@@ -2440,6 +2495,68 @@ function shootArrow(item) {
     bow.fade();
     setTimeout(() => (drawingBow = false), 350);
   }, 2500);
+}
+
+// Clicking "Sova": the agent select screen from the game comes up under his
+// picture, the LOCK IN button over the player's card (his portrait, the role
+// badge, the player's name, "Picking...", a voice button). Locking in plays
+// his line, runs the lock-in scan again and has him fire his bow. Clicking
+// "Sova" again, Escape or 12 s of waiting closes it.
+const AGENT_BADGE =
+  '<svg viewBox="0 0 64 24"><path class="badge-rim" d="M10 1h44l9 11-9 11H10L1 12z"/>' +
+  '<path class="badge-body" d="M12 4h40l7 8-7 8H12l-7-8z"/>' +
+  '<path class="badge-icon" d="M26.4 10A6 6 0 0 1 37.2 9M37.6 14A6 6 0 0 1 26.8 15M37.6 6.2 37.2 9l-2.8-.4M26.4 17.8l.4-2.8 2.8.4"/></svg>';
+const SPEAKER = '<svg viewBox="0 0 16 16"><path d="M2 6h3l4-3v10L5 10H2z"/></svg>';
+let picking = null;
+function agentSelect(block, item) {
+  if (reduceMotion) return;
+  if (picking) return picking.close();
+  const art = block.querySelector(".wordwall-art");
+  if (!art) return shootArrow(item);
+  const panel = el("div", "agent-select");
+  panel.innerHTML =
+    '<button class="lock-in-btn" type="button">Lock in</button>' +
+    '<div class="agent-card"><span class="agent-portrait"><img alt=""></span>' +
+    `<span class="agent-badge" aria-hidden="true">${AGENT_BADGE}</span>` +
+    '<span class="agent-ign"></span><span class="agent-status">Picking<span class="dots">...</span></span>' +
+    `<button class="agent-voice" type="button" aria-label="Play Sova's voice line">${SPEAKER}</button></div>`;
+  panel.querySelector(".agent-portrait img").src = item.querySelector(".ww-face")?.src || "";
+  panel.querySelector(".agent-ign").textContent = block.dataset.ign || SITE.firstName;
+  art.appendChild(panel);
+  art.classList.add("picking");
+  requestAnimationFrame(() => requestAnimationFrame(() => panel.classList.add("on")));
+  const lockBtn = panel.querySelector(".lock-in-btn");
+  const status = panel.querySelector(".agent-status");
+  lockBtn.focus({ preventScroll: true });
+  const onKey = (e) => {
+    if (e.key === "Escape") close();
+  };
+  const close = () => {
+    clearTimeout(timer);
+    document.removeEventListener("keydown", onKey);
+    panel.classList.remove("on");
+    art.classList.remove("picking");
+    picking = null;
+    setTimeout(() => panel.remove(), 450);
+  };
+  const timer = setTimeout(close, 12000);
+  document.addEventListener("keydown", onKey);
+  panel.querySelector(".agent-voice").addEventListener("click", playHunter);
+  lockBtn.addEventListener("click", () => {
+    clearTimeout(timer);
+    lockBtn.disabled = true;
+    panel.classList.add("locked");
+    scramble(lockBtn, "Locked in", 400);
+    scramble(status, "Sova", 400);
+    playHunter();
+    // the lock-in again: the scan, the flash, the glow, "Locked in"
+    art.classList.remove("locked");
+    void art.offsetWidth;
+    art.classList.add("locked");
+    shootArrow(item);
+    setTimeout(close, 2200);
+  });
+  picking = { close };
 }
 
 // Easter egg: type "sova" anywhere (or tap "Sova" on the agents wall) and

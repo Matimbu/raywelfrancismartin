@@ -1025,7 +1025,7 @@ a.ww-card:hover .ww-text { color: var(--fg); }
 .dome-bolt.edge { stroke-width: 3; }
 
 /* clicking "Sova": an energy bow draws, crackles and fires */
-.ww-shoot { cursor: pointer; }
+.ww-pick { cursor: pointer; }
 .bow-shot {
   position: absolute;
   pointer-events: none;
@@ -1991,6 +1991,113 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
 .shot-meter.scrolling .shot-meter-pct { opacity: 1; }
 .shot-meter.scrolling .shot-meter-arrow { opacity: 0; }
 .shot-meter:hover .shot-meter-arrow { color: var(--accent); }
+
+/* clicking "Sova": the game's agent select, under his picture (colours
+   sampled from a screenshot of it) */
+.wordwall-art.picking .lock-tag { opacity: 0 !important; }
+.agent-select {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 8px);
+  z-index: 5;
+  width: 210px;
+  translate: -50% 0;
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  opacity: 0;
+  scale: 1.05;
+  transition: opacity 0.3s ease, scale 0.45s var(--ease);
+}
+.agent-select.on { opacity: 1; scale: 1; }
+.lock-in-btn {
+  width: 100%;
+  padding: 13px 0 12px;
+  border: 0;
+  background: #fc4e5a;
+  color: #ece8e1;
+  font: 700 19px/1 var(--sans);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 3px #fc4e5a, inset 0 0 0 4px rgba(236, 232, 225, 0.5);
+  transition: filter 0.2s ease, opacity 0.4s ease;
+}
+.lock-in-btn:hover { filter: brightness(1.12); }
+.lock-in-btn:disabled { cursor: default; }
+.agent-select.locked .lock-in-btn { animation: lock-in-flash 0.7s ease-out forwards; }
+@keyframes lock-in-flash {
+  0% { background: #ece8e1; color: #0f1923; }
+  100% { background: #fc4e5a; color: #ece8e1; opacity: 0.55; }
+}
+.agent-card {
+  display: grid;
+  justify-items: center;
+  width: 150px;
+  padding-bottom: 10px;
+  background: linear-gradient(to bottom, transparent 64px, rgba(12, 18, 24, 0.9) 64px);
+}
+.agent-portrait {
+  display: block;
+  width: 104px;
+  height: 104px;
+  overflow: hidden;
+  border: 1.5px solid #d2f6f6;
+  background: radial-gradient(circle at 50% 38%, #2f7d86, #122a36 72%);
+  box-shadow: 0 0 14px rgba(104, 188, 190, 0.4);
+}
+.agent-portrait img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.agent-badge { width: 56px; height: 21px; margin-top: -11px; }
+.agent-badge svg { display: block; width: 100%; height: 100%; }
+.badge-rim { fill: #bdb178; }
+.badge-body { fill: #0c121e; }
+.badge-icon { fill: none; stroke: #e2e6e7; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.agent-ign { margin-top: 6px; font: 700 15px/1.2 var(--sans); color: #d9bc7a; }
+.agent-status { font: 500 12px/1.3 var(--sans); color: #8b8f94; }
+.agent-select.locked .agent-status { color: #ece8e1; letter-spacing: 0.08em; text-transform: uppercase; }
+.dots { display: inline-block; width: 0; overflow: hidden; vertical-align: bottom; animation: picking-dots 1.4s steps(4, jump-none) infinite; }
+@keyframes picking-dots { to { width: 0.9em; } }
+.agent-voice {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 28px;
+  margin-top: 10px;
+  padding: 0;
+  border: 1px solid #3a3f46;
+  background: #07070c;
+  color: #dee0de;
+  cursor: pointer;
+}
+.agent-voice svg { width: 14px; height: 14px; fill: currentColor; }
+.agent-voice:hover { border-color: var(--sova-cyan); color: var(--sova-cyan); }
+
+/* the kill feed in the top corner, like the game's: an ally's part on the
+   left, the victim's on the right */
+.kill-feed {
+  position: fixed;
+  top: 76px;
+  right: var(--pad);
+  z-index: 60;
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+  pointer-events: none;
+}
+.kf-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 12px;
+  background: linear-gradient(90deg, rgba(40, 120, 120, 0.6), rgba(12, 18, 24, 0.85) 38%, rgba(12, 18, 24, 0.85) 62%, rgba(170, 45, 55, 0.6));
+  color: #ece8e1;
+  font: 600 12px/1.2 var(--sans);
+  opacity: 0;
+  translate: 24px 0;
+  transition: opacity 0.35s ease, translate 0.45s var(--ease);
+}
+.kf-row.on { opacity: 1; translate: 0 0; }
+.kf-icon svg { display: block; width: 16px; height: 16px; fill: none; stroke: #ece8e1; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
 /* Owl Drone HUD (hover the word): the drone's view from the game around the
    cursor for a few seconds; its reticle stands in for the cursor */

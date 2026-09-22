@@ -54,8 +54,9 @@ const SITE = {
   // `link` (the word becomes a link), `face` (small round photo by the note),
   // `image` (larger photo that follows the cursor on hover) and `credit`
   // (required for Creative Commons photos; listed under the wall).
-  // Sova's wall also uses `shoot` (click: Sova draws his bow and fires a
-  // charged arrow), `drone` (tap to launch the Owl Drone), `ping` (hover
+  // Sova's wall also uses `pick` (click: the game's agent select comes up
+  // under the picture, with the wall's `ign` as the player; LOCK IN replays
+  // the lock-in and Sova fires his bow), `drone` (tap to launch the Owl Drone), `ping` (hover
   // or tap: a Recon Bolt ping that reveals the other words), `shock` (hover or
   // tap: a Shock Bolt burst of sparks), `beam` (hover or tap: Hunter's Fury
   // on the real ult's timing) and `hud` (hover: the Owl Drone's HUD around the
@@ -153,6 +154,7 @@ const SITE = {
     {
       label: "Agents I main",
       section: "hobbies",
+      ign: "Jenduks", // my in-game name: on the agent select card and the kill feed
       intro: "Sova main. Some of the clips are on my YouTube and TikTok.",
       art: { src: "assets/valorant/sova.webp", alt: "Official art of Sova, the Valorant agent", glow: "#355285", lockIn: true },
       notice: "\u201cRaywel Martin\u201d (this site) was created under Riot Games' \u201cLegal Jibber Jabber\u201d policy using assets owned by Riot Games. Riot Games does not endorse or sponsor this project.",
@@ -162,7 +164,7 @@ const SITE = {
         { label: "DPI", value: "800" }
       ],
       words: [
-        { text: "Sova", note: "main · Initiator", top: true, face: "assets/valorant/sova-icon.webp", shoot: true },
+        { text: "Sova", note: "main · Initiator", top: true, face: "assets/valorant/sova-icon.webp", pick: true },
         { text: "Recon Bolt", note: "reveals enemies", ping: true, key: "E" },
         {
           text: "Owl Drone",
