@@ -320,6 +320,8 @@ const SITE = {
 
   // Video IDs come from the URL: youtube.com/watch?v=THIS_PART or
   // youtube.com/shorts/THIS_PART. `featuredVideo` plays right on the page.
+  // `cover` (optional) shows a picture made for the clip in place of the one
+  // YouTube generates.
   youtube: [
     {
       name: "Matimbu",
@@ -334,7 +336,7 @@ const SITE = {
         { title: "BAIT MY TEAMMATE", note: "Short", id: "1QQ4ncdYBoA", short: true },
         { title: "NEVER BACK DOWN NEVER WHAT?", note: "Short", id: "lXQqb-qdOAg", short: true },
         // the ace: called by what it is, with its real title as the note
-        { title: "RAZE ACE", note: "calmado", id: "WWy2S5vndPk", short: true }
+        { title: "RAZE ACE", note: "calmado", id: "WWy2S5vndPk", short: true, cover: "assets/youtube/raze-ace.jpg" }
       ]
     },
     {
@@ -357,6 +359,8 @@ const SITE = {
   // has -400, -800 and -1600 versions). `wide` photos span two columns.
   // `story` (optional) shows under the caption when the photo is opened.
   // `fit: "contain"` shows the whole image (for screenshots and notes).
+  // An item with `video` (a YouTube id) is a clip: `cover` is its picture and
+  // the viewer plays it instead of opening a photo.
   gallery: [
     {
       file: "studio-chair",
@@ -439,6 +443,14 @@ const SITE = {
       alt: "Raywel's white Converse on gravel next to his black Converse on concrete",
       wide: true,
       story: "All-time favourite, whatever the OOTD."
+    },
+    {
+      cover: "assets/youtube/raze-ace.jpg",
+      video: "WWy2S5vndPk",
+      caption: "Raze ace",
+      alt: "The Showstopper kill that ended the round, five down",
+      fit: "contain",
+      story: "Five down, one round."
     }
   ],
 

@@ -1736,6 +1736,60 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   margin: auto;
   border-radius: 6px;
 }
+.shot-clip { cursor: pointer; }
+.shot-play, .lb-play-mark {
+  display: block;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: rgba(12, 12, 12, 0.55);
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(3px);
+}
+.shot-play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  pointer-events: none;
+  transition: scale 0.35s var(--ease), background 0.3s ease;
+}
+.shot-play::after, .lb-play-mark::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -42% -50%;
+  border-left: 15px solid #fff;
+  border-top: 9px solid transparent;
+  border-bottom: 9px solid transparent;
+}
+.shot-clip:hover .shot-play { scale: 1.1; background: rgba(255, 90, 31, 0.8); }
+.lb-stage { position: relative; display: grid; justify-items: center; max-width: 100%; }
+.lb-play {
+  position: absolute;
+  left: 50%;
+  top: 40%; /* above the card's own title, not across it */
+  translate: -50% -50%;
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #fff;
+  cursor: pointer;
+}
+.lb-play .lb-play-mark { position: relative; transition: scale 0.35s var(--ease), background 0.3s ease; }
+.lb-play:hover .lb-play-mark, .lb-play:focus-visible .lb-play-mark { scale: 1.1; background: rgba(255, 90, 31, 0.85); }
+.lb-frame {
+  width: min(44vh, 100%);
+  aspect-ratio: 9 / 16;
+  max-height: calc(100dvh - 220px);
+  border: 0;
+  border-radius: 6px;
+}
+
 .shot-caption {
   position: absolute;
   left: 12px;

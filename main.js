@@ -1189,6 +1189,11 @@ function youtubeThumb(v) {
   const img = el("img");
   img.alt = "";
   img.loading = "lazy";
+  // a picture made for the clip, if there is one
+  if (v.cover) {
+    img.src = v.cover;
+    return img;
+  }
   const fallback = `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`;
   const useFallback = () => { if (img.src !== fallback) img.src = fallback; };
   img.onerror = useFallback;
@@ -1438,17 +1443,19 @@ const captionWatch = new IntersectionObserver((entries) => {
     setTimeout(() => typeCaption(caption, text), delay);
   });
 }, { threshold: 0.3 });
-const shotSrc = (p, width) => `assets/gallery/${p.file}-${width}.jpg`;
+const shotSrc = (p, width) => p.cover || `assets/gallery/${p.file}-${width}.jpg`;
 
 gallery.forEach((p, i) => {
   const tile = el("button", ["shot", p.wide && "wide", p.fit === "contain" && "contain", "shot-reveal"].filter(Boolean).join(" "));
   tile.type = "button";
   tile.style.setProperty("--d", i % 3);
-  tile.setAttribute("aria-label", `View photo: ${p.caption}`);
+  tile.setAttribute("aria-label", p.video ? `Play the clip: ${p.caption}` : `View photo: ${p.caption}`);
   const img = el("img");
   img.src = shotSrc(p, 800);
-  img.srcset = `${shotSrc(p, 400)} 400w, ${shotSrc(p, 800)} 800w`;
-  img.sizes = p.wide ? "(max-width: 760px) 100vw, 800px" : "(max-width: 760px) 50vw, 400px";
+  if (!p.cover) {
+    img.srcset = `${shotSrc(p, 400)} 400w, ${shotSrc(p, 800)} 800w`;
+    img.sizes = p.wide ? "(max-width: 760px) 100vw, 800px" : "(max-width: 760px) 50vw, 400px";
+  }
   img.alt = p.alt || p.caption;
   img.loading = "lazy";
   img.decoding = "async";
@@ -1461,6 +1468,10 @@ gallery.forEach((p, i) => {
   }
   const caption = el("span", "shot-caption mono", p.caption);
   tile.append(img, caption);
+  if (p.video) {
+    tile.classList.add("shot-clip");
+    tile.appendChild(el("span", "shot-play"));
+  }
   // Captions type themselves out: on each hover on computers, and once the
   // tile has finished revealing on phones (where captions always show)
   if (!reduceMotion) {
@@ -1516,6 +1527,40 @@ const lightbox = $("lightbox");
 const lbImg = $("lbImg");
 let lbIndex = 0;
 
+// A gallery item with `video` is a clip: its cover opens with a play button
+// over it and the Short plays right there in the viewer.
+const lbFigure = document.querySelector(".lb-figure");
+const lbStage = el("div", "lb-stage");
+lbImg.replaceWith(lbStage);
+lbStage.appendChild(lbImg);
+const lbPlay = el("button", "lb-play");
+lbPlay.type = "button";
+lbPlay.hidden = true;
+lbPlay.append(el("span", "lb-play-mark"), el("span", "mono", "Play the clip"));
+lbStage.appendChild(lbPlay);
+let lbFrame = null;
+function stopShotVideo() {
+  if (!lbFrame) return;
+  lbFrame.remove();
+  lbFrame = null;
+  lbImg.hidden = false;
+}
+lbPlay.addEventListener("click", () => {
+  const p = gallery[lbIndex];
+  if (!p || !p.video) return;
+  // opened straight off the disk, YouTube would refuse to play it here
+  if (!location.protocol.startsWith("http")) {
+    window.open(`https://www.youtube.com/shorts/${p.video}`, "_blank", "noopener");
+    return;
+  }
+  stopShotVideo();
+  lbFrame = youtubeFrame({ id: p.video, short: true, title: p.caption });
+  lbFrame.classList.add("lb-frame");
+  lbImg.hidden = true;
+  lbPlay.hidden = true;
+  lbStage.appendChild(lbFrame);
+});
+
 // "02 / 17": both digits roll like the belief odometers
 const lbCount = $("lbCount");
 const counterStrips = [];
@@ -1541,6 +1586,8 @@ function setCounter(n) {
 function showShot(i, dir = 0) {
   lbIndex = (i + gallery.length) % gallery.length;
   const p = gallery[lbIndex];
+  stopShotVideo();
+  lbPlay.hidden = !p.video;
   // Show the grid-size copy right away, then swap in the large one
   lbImg.src = shotSrc(p, 800);
   lbImg.alt = p.alt || p.caption;
@@ -1572,7 +1619,8 @@ function showShot(i, dir = 0) {
   revealShot(dir);
   // Warm up the neighbours so arrowing through feels instant
   [lbIndex - 1, lbIndex + 1].forEach((j) => {
-    new Image().src = shotSrc(gallery[(j + gallery.length) % gallery.length], 1600);
+    const next = gallery[(j + gallery.length) % gallery.length];
+    if (!next.video) new Image().src = shotSrc(next, 1600);
   });
 }
 
@@ -1604,7 +1652,10 @@ function openShot(i) {
   if (lenis) lenis.stop();
 }
 
-lightbox.addEventListener("close", () => { if (lenis) lenis.start(); });
+lightbox.addEventListener("close", () => {
+  stopShotVideo();
+  if (lenis) lenis.start();
+});
 $("lbClose").addEventListener("click", () => lightbox.close());
 $("lbPrev").addEventListener("click", () => showShot(lbIndex - 1, -1));
 $("lbNext").addEventListener("click", () => showShot(lbIndex + 1, 1));
