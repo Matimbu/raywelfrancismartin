@@ -62,6 +62,8 @@ const SITE = {
   // on the real ult's timing) and `hud` (hover: the Owl Drone's HUD around the
   // cursor for a few seconds), all in Sova's blue. `key` shows a keycap and
   // makes that key use the ability while the wall is on screen, like the game.
+  // `desc` (Riot's own wording) shows in the agent select when you hover the
+  // ability's key there.
   // `section` picks where a wall goes (default: the About section).
   // `art` shows a picture beside the words (`glow` tints the light behind it;
   // `lockIn: true` scans it in behind a line of blue, like locking in an agent);
@@ -167,21 +169,35 @@ const SITE = {
       ],
       words: [
         { text: "Sova", note: "main · Initiator", top: true, face: "assets/valorant/sova-icon.webp", pick: true },
-        { text: "Recon Bolt", note: "reveals enemies", ping: true, key: "E" },
+        {
+          text: "Recon Bolt",
+          note: "reveals enemies",
+          ping: true,
+          key: "E",
+          desc: "EQUIP a bow with recon bolt. FIRE to send the recon bolt forward, activating upon collision and Revealing the location of nearby enemies caught in the line of sight of the bolt. Enemies can destroy this bolt. HOLD FIRE to extend the range of the projectile. ALT FIRE to add up to two bounces to this arrow."
+        },
         {
           text: "Owl Drone",
           note: "or my teammate, apparently",
           link: "https://www.tiktok.com/@matimbu_/video/7121951680408669442",
           hud: true,
-          key: "C"
+          key: "C",
+          desc: "EQUIP an owl drone. FIRE to deploy and take control of movement of the drone. While in control of the drone, FIRE to shoot a marking dart. This dart will Reveal the location of any player struck by the dart. Enemies can destroy the Owl Drone."
         },
-        { text: "Shock Bolt", note: "the explosive one", shock: true, key: "Q" },
+        {
+          text: "Shock Bolt",
+          note: "the explosive one",
+          shock: true,
+          key: "Q",
+          desc: "EQUIP a bow with a shock bolt. FIRE to send the explosive bolt forward, detonating upon collision and damaging players nearby. HOLD FIRE to extend the range of the projectile. ALT FIRE to add up to two bounces to this arrow."
+        },
         {
           text: "Hunter's Fury",
           note: "ultimate · hits through walls",
           link: "https://www.tiktok.com/@matimbu_/video/7032101516244782337",
           beam: true,
-          key: "X"
+          key: "X",
+          desc: "EQUIP a bow with three long-range, wall-piercing energy blasts. FIRE to release an energy blast in a line in front of Sova, dealing damage and Revealing the location of enemies caught in the line. This ability can be RE-USED up to two more times while the ability timer is active."
         }
       ]
     }

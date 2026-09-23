@@ -593,7 +593,7 @@ try {
       try {
         localStorage.setItem("sovaMuted", muted ? "1" : "0");
       } catch (e) {}
-      Object.values(sounds).forEach((audio) => muted && audio.pause());
+      if (muted) stopSounds();
       show();
     });
     show();
@@ -663,7 +663,7 @@ try {
     if (w.pick) {
       item.classList.add("ww-pick");
       item.addEventListener("click", () => agentSelect(block, item));
-      item.addEventListener("mouseenter", () => uiSound("hover"));
+      item.addEventListener("mouseenter", () => playSound(SOUND_HOVER, 0.5));
     }
     // Sova's abilities: `ping` sends a Recon Bolt ping, `shock` sets off a
     // Shock Bolt, `beam` fires Hunter's Fury, `hud` flies the Owl Drone.
@@ -682,6 +682,7 @@ try {
       item.addEventListener(canHover ? "mouseenter" : "click", () => ability(block, item));
     }
     if (ability && w.key) keyAbilities[w.key.toLowerCase()] = { block, item, ability };
+    if (w.desc) item.dataset.desc = w.desc;
     // Reuse the crafts preview card: the photo follows the cursor
     if (w.image && canHover && !cards) {
       item.addEventListener("mouseenter", () => showPreview({ image: w.image, emoji: "" }));
@@ -1911,19 +1912,34 @@ function flashWord(node, delay, rise = 0.15, duration = 1100) {
 // Sounds, each loaded the first time it's needed; one won't start over while
 // it's still playing. Browsers block them until the visitor has clicked or
 // tapped something on the page.
-const sounds = {};
-// Valorant-like UI sounds, made right in the browser (no files): a soft tick
-// for hovering, a whoosh when the agent select opens, and the lock-in hit
+// Everything goes through one Web Audio mixer, so quiet clips can be brought
+// up to a normal level and the switch can cut them off mid-sound
 let audioCtx = null;
-function uiSound(kind) {
-  if (muted) return;
+const playingNow = new Set();
+function audio() {
+  if (muted) return null;
   try {
     audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
   } catch (e) {
-    return;
+    return null;
   }
-  const ctx = audioCtx;
-  if (ctx.state === "suspended") ctx.resume().catch(() => {});
+  if (audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
+  return audioCtx;
+}
+function stopSounds() {
+  playingNow.forEach((source) => {
+    try {
+      source.stop();
+    } catch (e) {}
+  });
+  playingNow.clear();
+}
+
+// Valorant-like UI sounds, made right in the browser (no files): a whoosh when
+// the agent select opens
+function uiSound(kind) {
+  const ctx = audio();
+  if (!ctx) return;
   const t = ctx.currentTime;
   const out = ctx.createGain();
   out.gain.value = 0.35;
@@ -1970,19 +1986,42 @@ function uiSound(kind) {
   }
 }
 
-function playSound(src, volume = 0.7) {
-  if (muted) return;
-  let audio = sounds[src];
-  if (!audio) {
-    audio = sounds[src] = new Audio(src);
-    audio.volume = volume;
+// A sound file, decoded and measured the first time it's asked for: quiet
+// recordings get lifted to the same level as the rest
+const clips = {};
+function playSound(src, level = 0.7) {
+  const ctx = audio();
+  if (!ctx) return;
+  if (!clips[src]) {
+    clips[src] = fetch(src)
+      .then((res) => res.arrayBuffer())
+      .then((data) => ctx.decodeAudioData(data))
+      .then((buffer) => {
+        const wave = buffer.getChannelData(0);
+        let peak = 0;
+        for (let i = 0; i < wave.length; i += 4) peak = Math.max(peak, Math.abs(wave[i]));
+        return { buffer, gain: Math.min(0.85 / Math.max(peak, 0.002), 220) };
+      })
+      .catch(() => null);
   }
-  if (!audio.paused) return;
-  audio.currentTime = 0;
-  audio.play().catch(() => {});
+  clips[src].then((clip) => {
+    if (!clip || muted) return;
+    const source = ctx.createBufferSource();
+    source.buffer = clip.buffer;
+    const gain = ctx.createGain();
+    gain.gain.value = clip.gain * level;
+    source.connect(gain).connect(ctx.destination);
+    source.addEventListener("ended", () => playingNow.delete(source));
+    playingNow.add(source);
+    source.start();
+  });
 }
-// "I am the hunter": the Sasha easter egg, the agent select's voice button
-// and locking in
+// The agent select's own sounds
+const SOUND_HOVER = "assets/audio/lock-in-hover.mp3"; // hovering LOCK IN
+const SOUND_LOCK = "assets/audio/lock-in.mp3"; // the lock-in itself
+const SOUND_LOCKED = "assets/audio/sova-locked-in.mp3"; // Sova, once he's locked in
+
+// "I am the hunter": the Sasha easter egg
 function playHunter() {
   playSound("assets/audio/i-am-the-hunter.mp3");
 }
@@ -2645,7 +2684,9 @@ function agentSelect(block, item) {
   art.classList.add("picking");
   panel.querySelector(".agent-role").textContent = block.dataset.role || "";
   uiSound("open");
-  panel.querySelectorAll("button").forEach((button) => button.addEventListener("mouseenter", () => button.disabled || uiSound("hover")));
+  panel.querySelectorAll("button").forEach((button) => {
+    button.addEventListener("mouseenter", () => button.disabled || playSound(SOUND_HOVER, 0.5));
+  });
   requestAnimationFrame(() => requestAnimationFrame(() => panel.classList.add("on")));
   const lockBtn = panel.querySelector(".lock-in-btn");
   const status = panel.querySelector(".agent-status");
@@ -2672,7 +2713,28 @@ function agentSelect(block, item) {
   };
   const timer = setTimeout(close, 12000);
   document.addEventListener("keydown", onKey);
-  panel.querySelector(".agent-voice").addEventListener("click", playHunter);
+  panel.querySelector(".agent-voice").addEventListener("click", () => playSound(SOUND_LOCKED));
+  // the abilities, like the agent select's: hover a key to read what it does
+  const kit = el("div", "agent-kit");
+  const info = el("div", "kit-info");
+  info.innerHTML = '<span class="kit-name"></span><span class="kit-text"></span>';
+  [...block.querySelectorAll(".ww")].forEach((word) => {
+    const cap = word.querySelector(".ww-key");
+    if (!cap || !word.dataset.desc) return;
+    const slot = el("button", "kit-slot mono", cap.textContent);
+    slot.type = "button";
+    const show = () => {
+      info.querySelector(".kit-name").textContent = `${word.querySelector(".ww-text").textContent} · ${cap.textContent}`;
+      info.querySelector(".kit-text").textContent = word.dataset.desc;
+      info.classList.add("on");
+    };
+    slot.addEventListener("mouseenter", show);
+    slot.addEventListener("focus", show);
+    slot.addEventListener("click", show);
+    slot.addEventListener("mouseleave", () => info.classList.remove("on"));
+    kit.appendChild(slot);
+  });
+  if (kit.children.length) panel.querySelector(".agent-title").after(kit, info);
   lockBtn.addEventListener("click", () => {
     clearTimeout(timer);
     clearInterval(ticking);
@@ -2680,8 +2742,15 @@ function agentSelect(block, item) {
     panel.classList.add("locked");
     scramble(lockBtn, "Locked in", 400);
     scramble(status, "Sova", 400);
-    uiSound("lock");
-    setTimeout(playHunter, 350); // his line right after the lock-in hit
+    playSound(SOUND_LOCK);
+    setTimeout(() => playSound(SOUND_LOCKED), 1900); // Sova speaks once the lock-in sound is done
+    // the light sweeping across the card, like the game's when someone locks in
+    const sweep = el("span", "lock-sweep");
+    panel.appendChild(sweep);
+    sweep.animate([{ translate: "-130% 0" }, { translate: "130% 0" }], {
+      duration: 850,
+      easing: "cubic-bezier(0.35, 0, 0.2, 1)"
+    }).finished.then(() => sweep.remove());
     // the lock-in again: the scan, the flash, the glow, "Locked in"
     art.classList.remove("locked");
     void art.offsetWidth;

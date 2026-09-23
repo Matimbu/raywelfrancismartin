@@ -8,3 +8,6 @@ videos/
 
 # images made for socials (story cards, covers), not part of the site
 exports/
+
+# source audio (the web-ready copies live in assets/audio/)
+audios/

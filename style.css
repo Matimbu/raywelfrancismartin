@@ -2143,6 +2143,53 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
 }
 .ace-sub { color: #ff8a93; font-size: 11px; letter-spacing: 0.2em; }
 
+/* the abilities in the agent select: hover a key to read what it does */
+.agent-kit { display: flex; gap: 6px; }
+.kit-slot {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid rgba(236, 232, 225, 0.35);
+  background: rgba(12, 18, 24, 0.85);
+  color: #ece8e1;
+  font-size: 11px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+.kit-slot:hover, .kit-slot:focus-visible { border-color: var(--sova-cyan); color: var(--sova-cyan); background: rgba(12, 32, 40, 0.9); }
+.kit-info {
+  position: absolute;
+  right: calc(100% + 16px);
+  top: 96px;
+  width: 232px;
+  padding: 12px 14px;
+  background: rgba(12, 18, 24, 0.92);
+  border-left: 2px solid var(--sova-cyan);
+  color: #c9cdd2;
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: left;
+  opacity: 0;
+  translate: 8px 0;
+  transition: opacity 0.25s ease, translate 0.35s var(--ease);
+}
+.kit-info.on { opacity: 1; translate: 0 0; }
+.kit-name { display: block; margin-bottom: 6px; color: #ead38c; font-weight: 700; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+
+/* locking in: a light sweeps across the card, like the game's */
+.lock-sweep {
+  position: absolute;
+  inset: -20% -40%;
+  background: linear-gradient(105deg, transparent 42%, rgba(210, 246, 246, 0.7) 50%, transparent 58%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+.agent-select.locked .agent-card { animation: card-locked 0.9s ease-out; }
+@keyframes card-locked {
+  0% { filter: brightness(1.6); }
+  100% { filter: brightness(1); }
+}
+
 /* the agent select's pick timer: seconds rolling down over a draining bar */
 .pick-timer { display: grid; justify-items: center; gap: 6px; width: 100%; }
 .pick-time { color: #ece8e1; font-size: 13px; letter-spacing: 0.1em; }
@@ -2286,6 +2333,8 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
    Responsive
    ============================================================ */
 @media (max-width: 960px) {
+  /* the ability's description sits under its keys when there's no room beside */
+  .kit-info { position: static; width: 100%; margin-top: -4px; }
   .about-grid { grid-template-columns: 1fr; }
   .wordwall, .wordwall.has-art { grid-template-columns: 1fr; }
   .ww-credits, .ww-specs { grid-column: 1; }
