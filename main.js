@@ -663,8 +663,6 @@ try {
     if (w.pick) {
       item.classList.add("ww-pick");
       item.addEventListener("click", () => agentSelect(block, item));
-      // his little portrait shows the player HUD, like in a round
-      item.querySelector(".ww-face")?.addEventListener("mouseenter", () => sovaHud(block));
     }
     // Sova's abilities: `ping` sends a Recon Bolt ping, `shock` sets off a
     // Shock Bolt, `beam` fires Hunter's Fury, `hud` flies the Owl Drone.
@@ -680,10 +678,7 @@ try {
         droneHud(block, item);
       });
     } else if (ability) {
-      item.addEventListener(canHover ? "mouseenter" : "click", () => {
-        ability(block, item);
-        if (w.key) hudUse(w.key);
-      });
+      item.addEventListener(canHover ? "mouseenter" : "click", () => ability(block, item));
     }
     if (ability && w.key) keyAbilities[w.key.toLowerCase()] = { block, item, ability };
     if (w.desc) item.dataset.desc = w.desc;
@@ -842,9 +837,8 @@ document.addEventListener("keydown", (e) => {
   const bind = keyAbilities[e.key.toLowerCase()];
   if (!bind || !wallsInView.has(bind.block)) return;
   bind.ability(bind.block, bind.item);
-  hudUse(e.key.toUpperCase());
   const cap = bind.item.querySelector(".ww-key");
-  if (!cap) return;
+  if (!cap || abilityBusy) return; // it didn't fire, so don't flash the key
   cap.classList.add("pressed");
   setTimeout(() => cap.classList.remove("pressed"), 160);
 });
@@ -1876,7 +1870,6 @@ function renderUltPoints(fresh = 0) {
     if (i >= ultPoints - fresh && i < ultPoints) pip.animate([{ scale: "2" }, { scale: "1" }], { duration: 450, easing: "ease-out" });
   });
   row.closest(".ww").classList.toggle("ult-ready", ultPoints >= ULT_MAX);
-  document.querySelectorAll(".sova-hud .hud-pips i").forEach((pip, i) => pip.classList.toggle("lit", i < ultPoints));
 }
 function setUltPoints(n) {
   const before = ultPoints;
@@ -2104,6 +2097,16 @@ function aceBanner(block) {
   ], { duration: 2400, easing: "cubic-bezier(0.2, 0.8, 0.3, 1)", fill: "forwards" });
 }
 
+// Only one of Sova's abilities runs at a time: whatever is playing has to
+// finish its animation before anything else can start
+let abilityBusy = false;
+function claimAbility(ms) {
+  if (abilityBusy) return false;
+  abilityBusy = true;
+  setTimeout(() => (abilityBusy = false), ms);
+  return true;
+}
+
 // Sova's abilities come from his energy bow, not the Operator he's holding
 // in the picture: it appears in the open space between the words and the
 // picture (or near the wall's right edge when they're stacked), at height y
@@ -2298,7 +2301,7 @@ function tink(fx, at, size = 60, duration = 380) {
 // twice, 1.6 s apart. Each ring reveals the other words as it reaches them.
 let pinging = false;
 function reconPing(block, item) {
-  if (pinging) return;
+  if (pinging || !claimAbility(4800)) return;
   pinging = true;
   earnUlt();
   const box = block.getBoundingClientRect();
@@ -2360,6 +2363,7 @@ let firing = false;
 function huntersFury(block, item) {
   if (firing) return;
   if (ultPoints < ULT_MAX) return ultNotReady(item);
+  if (!claimAbility(7200)) return;
   firing = true;
   setUltPoints(0);
   item.classList.add("ulting");
@@ -2503,6 +2507,7 @@ function droneHud(block, item) {
     pointer.y = w.top + w.height / 2;
   }
   const life = canHover ? 2600 : 3600;
+  if (!claimAbility(life)) return;
   earnUlt();
   const node = (hud = el("div", "drone-hud"));
   node.setAttribute("aria-hidden", "true");
@@ -2529,7 +2534,7 @@ function droneHud(block, item) {
 // game's shock dart, while the word jolts and flickers
 let shocking = false;
 function shockBolt(block, item) {
-  if (shocking) return;
+  if (shocking || !claimAbility(2500)) return;
   shocking = true;
   earnUlt();
   const box = block.getBoundingClientRect();
@@ -2642,6 +2647,7 @@ function shockBurst(fx, text, x, ground, R) {
 let drawingBow = false;
 function shootArrow(item) {
   if (drawingBow || reduceMotion) return;
+  if (!claimAbility(2900)) return;
   drawingBow = true;
   earnUlt();
   const text = item.querySelector(".ww-text");
@@ -2662,54 +2668,6 @@ function shootArrow(item) {
     bow.fade();
     setTimeout(() => (drawingBow = false), 350);
   }, 2500);
-}
-
-// The player HUD from the game, along the bottom of Sova's wall: health and
-// shield, the four ability slots with their keys (the ult carries the ult
-// points), and the ammo. Hovering Sova's little portrait brings it up, and a
-// slot lights when that ability is used. Computers only, like the drone view.
-const HUD_ICONS = {
-  C: '<path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z"/><path d="M8.5 10 3 6.5M15.5 10 21 6.5M8.5 14 3 17.5M15.5 14 21 17.5"/>',
-  Q: '<path d="M13 2 7 13h5l-2 9 7-12h-5l2-8z"/>',
-  E: '<path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.5"/>',
-  X: '<path d="M2 9h13M2 15h13M14 5l7 7-7 7"/>'
-};
-let hudTimer = null;
-function sovaHud(block) {
-  if (!canHover || reduceMotion) return;
-  let hudBar = block.querySelector(".sova-hud");
-  if (!hudBar) {
-    hudBar = el("div", "sova-hud");
-    hudBar.setAttribute("aria-hidden", "true");
-    const slots = [...block.querySelectorAll(".ww")]
-      .map((word) => {
-        const key = word.querySelector(".ww-key")?.textContent;
-        if (!key || !HUD_ICONS[key]) return "";
-        const pips = key === "X" ? `<span class="hud-pips">${'<i></i>'.repeat(ULT_MAX)}</span>` : "";
-        return `<span class="hud-slot" data-key="${key}">${pips}` +
-          `<svg viewBox="0 0 24 24">${HUD_ICONS[key]}</svg><span class="hud-bar"></span>` +
-          `<span class="hud-key mono">${key}</span></span>`;
-      })
-      .join("");
-    hudBar.innerHTML =
-      '<span class="hud-life"><svg class="hud-shield" viewBox="0 0 24 26"><path d="M12 1 22 6.5v13L12 25 2 19.5v-13z"/></svg>' +
-      '<span class="hud-armour mono">50</span><span class="hud-hp">100</span></span>' +
-      `<span class="hud-slots">${slots}</span>` +
-      '<span class="hud-ammo"><span class="hud-mag">25</span><svg viewBox="0 0 12 16"><path d="M2 1h8v14H2z"/><path d="M4 4h4M4 7h4M4 10h4"/></svg><span class="hud-spare mono">75</span></span>';
-    block.classList.add("has-fx");
-    block.appendChild(hudBar);
-  }
-  [...hudBar.querySelectorAll(".hud-pips i")].forEach((pip, i) => pip.classList.toggle("lit", i < ultPoints));
-  hudBar.classList.add("on");
-  clearTimeout(hudTimer);
-  hudTimer = setTimeout(() => hudBar.classList.remove("on"), 4500);
-}
-// An ability was used: its slot flashes and empties for a moment
-function hudUse(key) {
-  const slot = document.querySelector(`.sova-hud .hud-slot[data-key="${key}"]`);
-  if (!slot) return;
-  slot.classList.add("used");
-  setTimeout(() => slot.classList.remove("used"), 1400);
 }
 
 // Clicking "Sova": the agent select screen from the game comes up under his
