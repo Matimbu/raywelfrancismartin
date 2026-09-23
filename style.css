@@ -2235,6 +2235,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   text-align: left;
   opacity: 0;
   translate: 8px 0;
+  pointer-events: none; /* never covers the wall behind it */
   transition: opacity 0.25s ease, translate 0.35s var(--ease);
 }
 .kit-info.on { opacity: 1; translate: 0 0; }

@@ -685,7 +685,8 @@ try {
         droneHud(block, item);
       });
     } else if (ability) {
-      item.addEventListener(canHover ? "mouseenter" : "click", () => ability(block, item));
+      if (canHover) hoverAbility(item, () => ability(block, item));
+      else item.addEventListener("click", () => ability(block, item));
     }
     if (ability && w.key) keyAbilities[w.key.toLowerCase()] = { block, item, ability };
     if (w.desc) item.dataset.desc = w.desc;
@@ -1866,6 +1867,22 @@ function revealWord(node, delay, ms) {
     node.classList.add("revealed");
     setTimeout(() => node.classList.remove("revealed"), ms);
   }, delay);
+}
+
+// A hover has to be one the visitor actually made. "mouseenter" alone isn't
+// that: closing a panel over a word, or the page shifting under a still
+// cursor, hands the word a hover nobody asked for — and an ability would go
+// off by itself. A real hover always carries a mousemove inside the word in
+// the same breath, so wait for that.
+function hoverAbility(node, run) {
+  let entered = false;
+  node.addEventListener("mouseenter", () => (entered = true));
+  node.addEventListener("mouseleave", () => (entered = false));
+  node.addEventListener("mousemove", () => {
+    if (!entered) return;
+    entered = false; // once per visit, like mouseenter was
+    run();
+  });
 }
 
 // Ult points, like the game's: Hunter's Fury needs all 8. Each of Sova's
