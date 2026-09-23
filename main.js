@@ -687,6 +687,7 @@ try {
     }
     if (ability && w.key) keyAbilities[w.key.toLowerCase()] = { block, item, ability };
     if (w.desc) item.dataset.desc = w.desc;
+    if (w.stat) item.dataset.stat = w.stat;
     // Reuse the crafts preview card: the photo follows the cursor
     if (w.image && canHover && !cards) {
       item.addEventListener("mouseenter", () => showPreview({ image: w.image, emoji: "" }));
@@ -2777,7 +2778,7 @@ function agentSelect(block, item) {
   // the abilities, like the agent select's: hover a key to read what it does
   const kit = el("div", "agent-kit");
   const info = el("div", "kit-info");
-  info.innerHTML = '<span class="kit-name"></span><span class="kit-text"></span>';
+  info.innerHTML = '<span class="kit-name"></span><span class="kit-text"></span><span class="kit-stat mono"></span>';
   [...block.querySelectorAll(".ww")].forEach((word) => {
     const cap = word.querySelector(".ww-key");
     if (!cap || !word.dataset.desc) return;
@@ -2786,6 +2787,7 @@ function agentSelect(block, item) {
     const show = () => {
       info.querySelector(".kit-name").textContent = `${word.querySelector(".ww-text").textContent} · ${cap.textContent}`;
       info.querySelector(".kit-text").textContent = word.dataset.desc;
+      info.querySelector(".kit-stat").textContent = word.dataset.stat || "";
       info.classList.add("on");
     };
     slot.addEventListener("mouseenter", show);

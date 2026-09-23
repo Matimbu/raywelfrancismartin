@@ -174,7 +174,8 @@ const SITE = {
           note: "reveals enemies",
           ping: true,
           key: "E",
-          desc: "EQUIP a bow with recon bolt. FIRE to send the recon bolt forward, activating upon collision and Revealing the location of nearby enemies caught in the line of sight of the bolt. Enemies can destroy this bolt. HOLD FIRE to extend the range of the projectile. ALT FIRE to add up to two bounces to this arrow."
+          desc: "Sticks where it lands and scans twice, showing anyone in its line of sight.",
+          stat: "2 scans · 40s cooldown · shootable"
         },
         {
           text: "Owl Drone",
@@ -182,14 +183,16 @@ const SITE = {
           link: "https://www.tiktok.com/@matimbu_/video/7121951680408669442",
           hud: true,
           key: "C",
-          desc: "EQUIP an owl drone. FIRE to deploy and take control of movement of the drone. While in control of the drone, FIRE to shoot a marking dart. This dart will Reveal the location of any player struck by the dart. Enemies can destroy the Owl Drone."
+          desc: "Fly the drone and dart someone to light them up for the team.",
+          stat: "7s flight · one dart · shootable"
         },
         {
           text: "Shock Bolt",
           note: "the explosive one",
           shock: true,
           key: "Q",
-          desc: "EQUIP a bow with a shock bolt. FIRE to send the explosive bolt forward, detonating upon collision and damaging players nearby. HOLD FIRE to extend the range of the projectile. ALT FIRE to add up to two bounces to this arrow."
+          desc: "An explosive arrow. Bank it off walls to hit what you cannot see.",
+          stat: "2 bounces · 75 damage · 150 creds"
         },
         {
           text: "Hunter's Fury",
@@ -197,7 +200,8 @@ const SITE = {
           link: "https://www.tiktok.com/@matimbu_/video/7032101516244782337",
           beam: true,
           key: "X",
-          desc: "EQUIP a bow with three long-range, wall-piercing energy blasts. FIRE to release an energy blast in a line in front of Sova, dealing damage and Revealing the location of enemies caught in the line. This ability can be RE-USED up to two more times while the ability timer is active."
+          desc: "Three energy blasts straight through walls. They damage and reveal.",
+          stat: "3 blasts · 80 damage · 8 ult points"
         }
       ]
     }

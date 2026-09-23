@@ -2203,7 +2203,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   position: absolute;
   right: calc(100% + 16px);
   top: 96px;
-  width: 232px;
+  width: 210px;
   padding: 12px 14px;
   background: rgba(12, 18, 24, 0.92);
   border-left: 2px solid var(--sova-cyan);
@@ -2217,6 +2217,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
 }
 .kit-info.on { opacity: 1; translate: 0 0; }
 .kit-name { display: block; margin-bottom: 6px; color: #ead38c; font-weight: 700; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+.kit-stat { display: block; margin-top: 8px; color: var(--sova-cyan); font-size: 9px; letter-spacing: 0.12em; }
 
 /* locking in: a light sweeps across the card, like the game's */
 .lock-sweep {
