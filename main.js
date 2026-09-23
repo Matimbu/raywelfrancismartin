@@ -683,6 +683,7 @@ try {
     if (ability && w.key) keyAbilities[w.key.toLowerCase()] = { block, item, ability };
     if (w.desc) item.dataset.desc = w.desc;
     if (w.stat) item.dataset.stat = w.stat;
+    if (w.icon) item.dataset.icon = w.icon;
     // Reuse the crafts preview card: the photo follows the cursor
     if (w.image && canHover && !cards) {
       item.addEventListener("mouseenter", () => showPreview({ image: w.image, emoji: "" }));
@@ -2740,10 +2741,22 @@ function agentSelect(block, item) {
   [...block.querySelectorAll(".ww")].forEach((word) => {
     const cap = word.querySelector(".ww-key");
     if (!cap || !word.dataset.desc) return;
-    const slot = el("button", "kit-slot mono", cap.textContent);
+    // the ability's own icon, with its key under it, like the game's
+    const slot = el("button", "kit-slot");
     slot.type = "button";
+    const name = word.querySelector(".ww-text").textContent;
+    slot.setAttribute("aria-label", `${name} (${cap.textContent})`);
+    if (word.dataset.icon) {
+      const icon = el("img");
+      icon.src = word.dataset.icon;
+      icon.alt = "";
+      slot.appendChild(icon);
+    } else {
+      slot.append(el("span", "mono", cap.textContent));
+    }
+    slot.appendChild(el("span", "kit-key mono", cap.textContent));
     const show = () => {
-      info.querySelector(".kit-name").textContent = `${word.querySelector(".ww-text").textContent} · ${cap.textContent}`;
+      info.querySelector(".kit-name").textContent = `${name} · ${cap.textContent}`;
       info.querySelector(".kit-text").textContent = word.dataset.desc;
       info.querySelector(".kit-stat").textContent = word.dataset.stat || "";
       info.classList.add("on");

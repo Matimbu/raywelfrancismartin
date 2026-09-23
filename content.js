@@ -175,7 +175,8 @@ const SITE = {
           ping: true,
           key: "E",
           desc: "Sticks where it lands and scans twice, showing anyone in its line of sight.",
-          stat: "2 scans · 40s cooldown · shootable"
+          stat: "2 scans · 40s cooldown · shootable",
+          icon: "assets/valorant/abilities/recon-bolt.webp"
         },
         {
           text: "Owl Drone",
@@ -184,7 +185,8 @@ const SITE = {
           hud: true,
           key: "C",
           desc: "Fly the drone and dart someone to light them up for the team.",
-          stat: "7s flight · one dart · shootable"
+          stat: "7s flight · one dart · shootable",
+          icon: "assets/valorant/abilities/owl-drone.webp"
         },
         {
           text: "Shock Bolt",
@@ -192,7 +194,8 @@ const SITE = {
           shock: true,
           key: "Q",
           desc: "An explosive arrow. Bank it off walls to hit what you cannot see.",
-          stat: "2 bounces · 75 damage · 150 creds"
+          stat: "2 bounces · 75 damage · 150 creds",
+          icon: "assets/valorant/abilities/shock-bolt.webp"
         },
         {
           text: "Hunter's Fury",
@@ -201,7 +204,8 @@ const SITE = {
           beam: true,
           key: "X",
           desc: "Three energy blasts straight through walls. They damage and reveal.",
-          stat: "3 blasts · 80 damage · 8 ult points"
+          stat: "3 blasts · 80 damage · 8 ult points",
+          icon: "assets/valorant/abilities/hunters-fury.webp"
         }
       ]
     }
