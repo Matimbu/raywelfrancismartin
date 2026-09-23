@@ -663,7 +663,6 @@ try {
     if (w.pick) {
       item.classList.add("ww-pick");
       item.addEventListener("click", () => agentSelect(block, item));
-      item.addEventListener("mouseenter", () => playSound(SOUND_HOVER, 0.5));
     }
     // Sova's abilities: `ping` sends a Recon Bolt ping, `shock` sets off a
     // Shock Bolt, `beam` fires Hunter's Fury, `hud` flies the Owl Drone.
@@ -1989,21 +1988,25 @@ function uiSound(kind) {
 // A sound file, decoded and measured the first time it's asked for: quiet
 // recordings get lifted to the same level as the rest
 const clips = {};
+// Load and measure a clip (once), so it's ready the moment it's needed
+function primeSound(src) {
+  const ctx = audio();
+  if (!ctx || clips[src]) return;
+  clips[src] = fetch(src)
+    .then((res) => res.arrayBuffer())
+    .then((data) => ctx.decodeAudioData(data))
+    .then((buffer) => {
+      const wave = buffer.getChannelData(0);
+      let peak = 0;
+      for (let i = 0; i < wave.length; i += 4) peak = Math.max(peak, Math.abs(wave[i]));
+      return { buffer, gain: Math.min(0.85 / Math.max(peak, 0.002), 220) };
+    })
+    .catch(() => null);
+}
 function playSound(src, level = 0.7) {
   const ctx = audio();
   if (!ctx) return;
-  if (!clips[src]) {
-    clips[src] = fetch(src)
-      .then((res) => res.arrayBuffer())
-      .then((data) => ctx.decodeAudioData(data))
-      .then((buffer) => {
-        const wave = buffer.getChannelData(0);
-        let peak = 0;
-        for (let i = 0; i < wave.length; i += 4) peak = Math.max(peak, Math.abs(wave[i]));
-        return { buffer, gain: Math.min(0.85 / Math.max(peak, 0.002), 220) };
-      })
-      .catch(() => null);
-  }
+  primeSound(src);
   clips[src].then((clip) => {
     if (!clip || muted) return;
     const source = ctx.createBufferSource();
@@ -2684,6 +2687,8 @@ function agentSelect(block, item) {
   art.classList.add("picking");
   panel.querySelector(".agent-role").textContent = block.dataset.role || "";
   uiSound("open");
+  primeSound(SOUND_HOVER);
+  primeSound(SOUND_LOCK);
   panel.querySelectorAll("button").forEach((button) => {
     button.addEventListener("mouseenter", () => button.disabled || playSound(SOUND_HOVER, 0.5));
   });
@@ -2742,8 +2747,7 @@ function agentSelect(block, item) {
     panel.classList.add("locked");
     scramble(lockBtn, "Locked in", 400);
     scramble(status, "Sova", 400);
-    playSound(SOUND_LOCK);
-    setTimeout(() => playSound(SOUND_LOCKED), 1900); // Sova speaks once the lock-in sound is done
+    playSound(SOUND_LOCK); // his line is in this one, so nothing follows it
     // the light sweeping across the card, like the game's when someone locks in
     const sweep = el("span", "lock-sweep");
     panel.appendChild(sweep);
