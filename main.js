@@ -633,6 +633,13 @@ try {
     item.appendChild(el("span", "ww-text", w.text));
     if (w.note || w.face) {
       const note = el("span", "ww-note mono");
+      // the ability's own icon and its key, like the game's HUD
+      if (w.icon && !reduceMotion) {
+        const mark = el("img", "ww-ability");
+        mark.src = w.icon;
+        mark.alt = "";
+        note.appendChild(mark);
+      }
       if (w.key && !reduceMotion) note.appendChild(el("kbd", "ww-key", w.key));
       if (w.face) {
         const face = el("img", "ww-face");
@@ -684,6 +691,7 @@ try {
     if (w.desc) item.dataset.desc = w.desc;
     if (w.stat) item.dataset.stat = w.stat;
     if (w.icon) item.dataset.icon = w.icon;
+    if (w.key) item.dataset.key = w.key;
     // Reuse the crafts preview card: the photo follows the cursor
     if (w.image && canHover && !cards) {
       item.addEventListener("mouseenter", () => showPreview({ image: w.image, emoji: "" }));
@@ -2101,10 +2109,16 @@ function aceBanner(block) {
 // Only one of Sova's abilities runs at a time: whatever is playing has to
 // finish its animation before anything else can start
 let abilityBusy = false;
-function claimAbility(ms) {
+function claimAbility(ms, block, item) {
   if (abilityBusy) return false;
   abilityBusy = true;
-  setTimeout(() => (abilityBusy = false), ms);
+  block?.classList.add("abilities-busy"); // the others sit it out meanwhile
+  item?.classList.add("casting");
+  setTimeout(() => {
+    abilityBusy = false;
+    block?.classList.remove("abilities-busy");
+    item?.classList.remove("casting");
+  }, ms);
   return true;
 }
 
@@ -2302,7 +2316,7 @@ function tink(fx, at, size = 60, duration = 380) {
 // twice, 1.6 s apart. Each ring reveals the other words as it reaches them.
 let pinging = false;
 function reconPing(block, item) {
-  if (pinging || !claimAbility(4800)) return;
+  if (pinging || !claimAbility(4800, block, item)) return;
   pinging = true;
   earnUlt();
   const box = block.getBoundingClientRect();
@@ -2318,7 +2332,10 @@ function reconPing(block, item) {
   const hideBars = chargeBars(fx, { x: grip.x, y: grip.y + 64 }, 420);
   let pulses = 0;
   const pulse = () => {
+    // a few rings go out together, the way the bolt's sonar does
     tink(fx, { x, y }, reach * 2, 1800);
+    setTimeout(() => tink(fx, { x, y }, reach * 1.4, 1300), 140);
+    setTimeout(() => tink(fx, { x, y }, reach, 1000), 280);
     const others = [...block.querySelectorAll(".ww-text")].filter((t) => !item.contains(t));
     if (!pulses++) killFeed(block, "recon", `${others.length} revealed`);
     others.forEach((t) => {
@@ -2364,7 +2381,7 @@ let firing = false;
 function huntersFury(block, item) {
   if (firing) return;
   if (ultPoints < ULT_MAX) return ultNotReady(item);
-  if (!claimAbility(7200)) return;
+  if (!claimAbility(7200, block, item)) return;
   firing = true;
   setUltPoints(0);
   item.classList.add("ulting");
@@ -2384,6 +2401,9 @@ function huntersFury(block, item) {
   pips.forEach((p) => p.classList.remove("used"));
   pipBox?.classList.add("armed");
   const bow = makeBow(fx, grip, angle, 60);
+  const label = el("div", "ult-label mono", text.textContent);
+  label.setAttribute("aria-hidden", "true");
+  fx.appendChild(label);
   const blast = (n, from) => {
     const beam = el("span", "fury-beam");
     beam.style.left = `${from.x - reach}px`;
@@ -2412,6 +2432,7 @@ function huntersFury(block, item) {
   }
   setTimeout(() => {
     bow.fade();
+    label.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: "forwards" }).finished.then(() => label.remove());
     pipBox?.classList.remove("armed");
     item.classList.remove("ulting");
     firing = false;
@@ -2508,7 +2529,7 @@ function droneHud(block, item) {
     pointer.y = w.top + w.height / 2;
   }
   const life = canHover ? 2600 : 3600;
-  if (!claimAbility(life)) return;
+  if (!claimAbility(life, block, item)) return;
   earnUlt();
   const node = (hud = el("div", "drone-hud"));
   node.setAttribute("aria-hidden", "true");
@@ -2535,7 +2556,7 @@ function droneHud(block, item) {
 // game's shock dart, while the word jolts and flickers
 let shocking = false;
 function shockBolt(block, item) {
-  if (shocking || !claimAbility(2500)) return;
+  if (shocking || !claimAbility(2500, block, item)) return;
   shocking = true;
   earnUlt();
   const box = block.getBoundingClientRect();
@@ -2648,7 +2669,7 @@ function shockBurst(fx, text, x, ground, R) {
 let drawingBow = false;
 function shootArrow(item) {
   if (drawingBow || reduceMotion) return;
-  if (!claimAbility(2900)) return;
+  if (!claimAbility(2900, item.closest(".wordwall"), item)) return;
   drawingBow = true;
   earnUlt();
   const text = item.querySelector(".ww-text");
@@ -2738,8 +2759,10 @@ function agentSelect(block, item) {
   const kit = el("div", "agent-kit");
   const info = el("div", "kit-info");
   info.innerHTML = '<span class="kit-name"></span><span class="kit-text"></span><span class="kit-stat mono"></span>';
-  [...block.querySelectorAll(".ww")].forEach((word) => {
-    const cap = word.querySelector(".ww-key");
+  const words = [...block.querySelectorAll(".ww")];
+  ["C", "Q", "E", "X"].forEach((slotKey) => {
+    const word = words.find((w) => w.dataset.key === slotKey);
+    const cap = word && word.querySelector(".ww-key");
     if (!cap || !word.dataset.desc) return;
     // the ability's own icon, with its key under it, like the game's
     const slot = el("button", "kit-slot");

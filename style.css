@@ -712,6 +712,7 @@ button { font: inherit; color: inherit; }
   font-size: 10px;
 }
 a.ww:hover .ww-text { color: var(--fg); }
+.ww-ability { width: 15px; height: 15px; object-fit: contain; opacity: 0.9; }
 .ww-face {
   width: 24px;
   height: 24px;
@@ -886,6 +887,9 @@ a.ww-card:hover .ww-text { color: var(--fg); }
   transition: background 0.15s ease, color 0.15s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 .ww-key.pressed { background: var(--sova-cyan); border-color: var(--sova-cyan); color: var(--bg); box-shadow: 0 0 8px var(--sova-cyan); }
+/* while one ability is playing, the others sit it out */
+.ww[data-key] { transition: opacity 0.4s ease; }
+.wordwall.abilities-busy .ww[data-key]:not(.casting) { opacity: 0.4; }
 @media (hover: none) { .ww-key { display: none; } }
 /* Hunter's Fury's ult points: eight, filled by using Sova's other abilities;
    when they're all in, the word and its key glow, ready */
@@ -956,6 +960,41 @@ a.ww-card:hover .ww-text { color: var(--fg); }
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%);
   mask-image: linear-gradient(90deg, transparent, #000 12%);
 }
+/* the ult, like the game's: its name over the wall, and angular shards
+   flying along the beam */
+.ult-label {
+  position: absolute;
+  left: 50%;
+  top: 16px;
+  translate: -50% 0;
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  color: #ece8e1;
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+}
+.ult-label::after {
+  content: "";
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid #ece8e1;
+}
+.fury-beam::before {
+  content: "";
+  position: absolute;
+  inset: -7px 0;
+  background: repeating-linear-gradient(74deg, transparent 0 15px, color-mix(in srgb, var(--sova-cyan) 55%, transparent) 15px 17px, transparent 17px 32px);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%);
+  mask-image: linear-gradient(90deg, transparent, #000 14%);
+  animation: fury-shards 0.5s linear infinite;
+}
+@keyframes fury-shards { to { background-position: -32px 0; } }
 .fury-beam::after {
   content: "";
   position: absolute;
@@ -1058,6 +1097,25 @@ a.ww-card:hover .ww-text { color: var(--fg); }
   border-radius: 50%;
   background: radial-gradient(closest-side, var(--sova-core), color-mix(in srgb, var(--sova-cyan) 80%, transparent) 35%, color-mix(in srgb, var(--sova-blue) 35%, transparent) 65%, transparent);
 }
+/* rings turning round the arrowhead while it charges, like on his bow */
+.bow-orb::before, .bow-orb::after {
+  content: "";
+  position: absolute;
+  inset: 18%;
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, var(--sova-cyan) 70%, transparent);
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+  animation: charge-ring 1.1s linear infinite;
+}
+.bow-orb::after {
+  inset: 34%;
+  border-color: transparent;
+  border-top-color: var(--sova-core);
+  animation-duration: 0.75s;
+  animation-direction: reverse;
+}
+@keyframes charge-ring { to { rotate: 360deg; } }
 
 /* settings under a wall, like a crosshair code to copy */
 .ww-specs {
