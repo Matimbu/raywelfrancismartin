@@ -11,3 +11,6 @@ exports/
 
 # source audio (the web-ready copies live in assets/audio/)
 audios/
+
+# screenshots kept from our sessions (references, site captures, photo work)
+screenshots/
