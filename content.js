@@ -73,9 +73,10 @@ const SITE = {
   // A card's `card` turns its photo over into an NBA 2K26 MyTEAM card (hover
   // on computers, tap on phones), and the cards open like a pack the first
   // time they're on screen: `ovr`, `tier` ("Invincible", "Dark Matter",
-  // "Galaxy Opal", "Pink Diamond" or "Diamond"), the `name` on it and three
+  // "Galaxy Opal", "Pink Diamond" or "Diamond"), the `name` on it, three
   // `badges`, each [name, level] with the level "HOF", "Gold", "Silver" or
-  // "Bronze".
+  // "Bronze", and four `stats`, each [attribute, rating] (the card's second
+  // layer; the best one is the last clue of its walkout).
   // `board: true` draws the words on a coach's play board beside the wall, one
   // step for each word as it lights up (made for On the court with `lightUp`).
   // `specs` lists small settings under the words; `copy: true` adds a Copy button.
@@ -138,31 +139,51 @@ const SITE = {
           pos: "PG", text: "Rondo", note: "the passer",
           link: "https://en.wikipedia.org/wiki/Rajon_Rondo",
           image: "assets/five/rondo-celtics.jpg", alt: "Rajon Rondo calling a play as he brings the ball up for the Celtics",
-          card: { ovr: 92, tier: "Pink Diamond", name: "Rajon Rondo", badges: [["Dimer", "HOF"], ["Needle Threader", "HOF"], ["Interceptor", "Gold"]] }
+          card: {
+            ovr: 92, tier: "Pink Diamond", name: "Rajon Rondo",
+            badges: [["Dimer", "HOF"], ["Needle Threader", "HOF"], ["Interceptor", "Gold"]],
+            stats: [["Pass Vision", 99], ["Pass Accuracy", 98], ["Ball Handle", 92], ["Steal", 91]]
+          }
         },
         {
           pos: "SG", text: "Kobe", note: "Mamba mentality",
           link: "https://en.wikipedia.org/wiki/Kobe_Bryant",
           image: "assets/five/kobe-lakers.jpg", alt: "Kobe Bryant driving to the basket for the Lakers",
-          card: { ovr: 98, tier: "Dark Matter", name: "Kobe Bryant", badges: [["Space Creator", "HOF"], ["Deadeye", "HOF"], ["Tireless Scorer", "HOF"]] }
+          card: {
+            ovr: 98, tier: "Dark Matter", name: "Kobe Bryant",
+            badges: [["Space Creator", "HOF"], ["Deadeye", "HOF"], ["Tireless Scorer", "HOF"]],
+            stats: [["Shot IQ", 99], ["Mid-Range Shot", 98], ["Close Shot", 96], ["Perimeter Defense", 93]]
+          }
         },
         {
           pos: "SF", text: "MJ", note: "six rings",
           link: "https://en.wikipedia.org/wiki/Michael_Jordan",
           image: "assets/five/mj-bulls.jpg", alt: "Michael Jordan rising for a jump shot for the Bulls",
           // the GOAT gets 2K26's top tier (was 99 Dark Matter)
-          card: { ovr: 100, tier: "Invincible", name: "Michael Jordan", badges: [["Clutch Shooter", "HOF"], ["Middy Magician", "HOF"], ["Clamps", "HOF"]] }
+          card: {
+            ovr: 100, tier: "Invincible", name: "Michael Jordan",
+            badges: [["Clutch Shooter", "HOF"], ["Middy Magician", "HOF"], ["Clamps", "HOF"]],
+            stats: [["Mid-Range Shot", 99], ["Driving Dunk", 99], ["Vertical", 98], ["Perimeter Defense", 97]]
+          }
         },
         {
           pos: "PF", text: "LeBron", note: "the King",
           link: "https://en.wikipedia.org/wiki/LeBron_James",
           image: "assets/five/lebron-heat.jpg", alt: "LeBron James cocking the ball back for a dunk with the Heat",
-          card: { ovr: 98, tier: "Dark Matter", name: "LeBron James", badges: [["Chase Down Artist", "HOF"], ["Posterizer", "HOF"], ["Floor General", "Gold"]] }
+          card: {
+            ovr: 98, tier: "Dark Matter", name: "LeBron James",
+            badges: [["Chase Down Artist", "HOF"], ["Posterizer", "HOF"], ["Floor General", "Gold"]],
+            stats: [["Driving Dunk", 98], ["Pass Vision", 96], ["Strength", 95], ["Speed with Ball", 93]]
+          }
         },
         {
           pos: "C", text: "Yao / Shaq", note: "co-starters",
           image: "assets/five/yao-shaq.jpg", alt: "Yao Ming and Shaquille O'Neal posting up",
-          card: { ovr: 96, tier: "Galaxy Opal", name: "Yao & Shaq", badges: [["Post Spin Technician", "HOF"], ["Backdown Punisher", "HOF"], ["Rim Protector", "Gold"]] },
+          card: {
+            ovr: 96, tier: "Galaxy Opal", name: "Yao & Shaq",
+            badges: [["Post Spin Technician", "HOF"], ["Backdown Punisher", "HOF"], ["Rim Protector", "Gold"]],
+            stats: [["Standing Dunk", 99], ["Strength", 99], ["Post Control", 98], ["Block", 92]]
+          },
           credit: [{ subject: "Yao Ming", by: "Keith Allison", license: "CC BY-SA 2.0", licenseUrl: "https://creativecommons.org/licenses/by-sa/2.0/", source: "https://commons.wikimedia.org/wiki/File:Yao_Ming_(2310548923).jpg" }, { subject: "Shaquille O'Neal", by: "Jeramey Jannene", license: "CC BY 2.0", licenseUrl: "https://creativecommons.org/licenses/by/2.0/", source: "https://commons.wikimedia.org/wiki/File:%22Give_Me_The_Damn_Ball%22_(73833605).jpg" }]
         }
       ],

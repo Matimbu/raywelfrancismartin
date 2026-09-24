@@ -90,6 +90,7 @@
       max-width: 640px;
       height: 220px;
       margin-top: 40px;
+      margin-bottom: 22px; /* room for the distance under the ball */
       border-bottom: 1px solid var(--line);
       cursor: pointer;
       user-select: none;
@@ -117,12 +118,48 @@
       pointer-events: none;
     }
     .rock svg { display: block; width: 100%; height: 100%; }
+    /* Grab the ball to move your spot along the floor: its distance from the
+       rim shows under it, and farther out the green window gets tighter */
+    .grab {
+      position: absolute;
+      left: 0;
+      top: 0;
+      z-index: 4;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      cursor: grab;
+      touch-action: none;
+    }
+    .grab:active, .court.dragging .grab { cursor: grabbing; }
+    .court.flying .grab { pointer-events: none; }
+    .spot {
+      position: absolute;
+      left: 0;
+      bottom: -22px;
+      translate: -50% 0;
+      color: var(--muted);
+      font-size: 10px;
+      white-space: nowrap;
+      pointer-events: none;
+      transition: color 0.2s ease;
+    }
+    .spot::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: -7px;
+      width: 1px;
+      height: 5px;
+      background: currentColor;
+    }
+    .court.dragging .spot { color: var(--fg); }
     /* the meter: NBA 2K26's "Curve" to the side of the shooter, with its
        green window showing near the top. It fills while you hold, and turns
        green, yellow or red on the release */
     .meter {
       position: absolute;
-      left: 18px;
+      left: 18px; /* moved with the ball (see main script) */
       bottom: 26px;
       width: 40px;
       height: 120px;
@@ -189,6 +226,7 @@
     .panel span { color: #e9e9e6; font-weight: 600; font-size: 12px; letter-spacing: 0.05em; }
     .panel b { color: var(--tone); font-weight: 800; font-size: 17px; letter-spacing: 0.02em; }
     .panels[data-grade="close"] .panel-timing { --tone: #f2c230; }
+    .panel-distance { --tone: #e9e9e6; }
     .panels[data-grade="off"] .panel-timing { --tone: #ff4d4d; }
     .tally-row {
       display: flex;
@@ -249,12 +287,14 @@
     <p class="eyebrow mono">404 — Page not found</p>
     <h1>Air<em>ball.</em><span class="ball" aria-hidden="true">🏀</span></h1>
     <p class="line">That shot missed the rim. The page you're after isn't here, but the rest of the site is.</p>
-    <div class="court" id="court" role="button" tabindex="0" aria-label="Shoot: hold, and let go at the top of the meter">
+    <div class="court" id="court" role="button" tabindex="0" aria-label="Shoot: hold, and let go at the top of the meter. Left and right arrows move your spot.">
       <svg class="hoop hoop-back" viewBox="0 0 90 220" aria-hidden="true">
         <path class="pole" d="M86 70 V220 M80 80 H86"/>
         <line class="glass" x1="78" y1="40" x2="78" y2="112"/>
         <path class="rim" d="M30 96 A23 4 0 0 1 76 96"/>
       </svg>
+      <span class="grab" aria-hidden="true"></span>
+      <span class="spot mono" aria-hidden="true"></span>
       <span class="rock" aria-hidden="true"><svg viewBox="0 0 26 26"><circle cx="13" cy="13" r="12.5" fill="#e0712b"/><path d="M0.5 13h25M13 0.5v25M4.2 4.2c4.2 3.9 4.2 13.7 0 17.6M21.8 4.2c-4.2 3.9-4.2 13.7 0 17.6" stroke="#3b1a08" stroke-width="1.1" fill="none"/></svg></span>
       <svg class="hoop hoop-front" viewBox="0 0 90 220" aria-hidden="true">
         <path class="rim" d="M30 96 A23 4 0 0 0 76 96 L78 96"/>
@@ -270,11 +310,12 @@
         <div class="panels">
           <p class="panel panel-timing"><span>Timing</span><b></b></p>
           <p class="panel"><span>Coverage</span><b>Wide open</b></p>
+          <p class="panel panel-distance"><span>Distance</span><b></b></p>
         </div>
       </div>
     </div>
     <div class="tally-row">
-      <p class="tally mono">Hold to shoot, let go at the top of the meter</p>
+      <p class="tally mono">Hold to shoot, let go at the top. Drag the ball to move.</p>
       <button class="sound mono" type="button" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="waves" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/><path class="cross" d="m17 9 5 6M22 9l-5 6"/></svg><span>Sound on</span></button>
     </div>
     <div class="row">
@@ -308,6 +349,10 @@
       const call = court.querySelector(".call");
       const panels = court.querySelector(".panels");
       const timing = court.querySelector(".panel-timing b");
+      const distance = court.querySelector(".panel-distance b");
+      const grab = court.querySelector(".grab");
+      const spot = court.querySelector(".spot");
+      const windowPath = court.querySelector(".meter-window");
       const tally = document.querySelector(".tally");
       const share = document.querySelector(".share");
       const soundSwitch = document.querySelector(".sound");
@@ -423,12 +468,68 @@
       })();
 
       const easeOut = (t) => 1 - (1 - t) ** 3;
-      const rest = () => ({ x: 70, y: court.clientHeight - R });
+      // Your spot on the floor, in feet from the rim (8 to 30; it starts at
+      // the three-point line, 23'9"). The closer you are, the wider the green
+      // window: 15% of the meter at 8 ft, 7% at 30 ft.
+      let feet = 23.75;
+      const NEAR = 8, FAR = 30;
+      const rimX = () => court.clientWidth - 37;
+      const range = () => ({ lo: 40, hi: rimX() - 130 }); // where the ball can stand, far to near
+      const xFor = (ft) => { const { lo, hi } = range(); return hi - ((ft - NEAR) / (FAR - NEAR)) * (hi - lo); };
+      const feetFor = (x) => { const { lo, hi } = range(); return NEAR + ((hi - Math.min(hi, Math.max(lo, x))) / (hi - lo)) * (FAR - NEAR); };
+      const far = () => (feet - NEAR) / (FAR - NEAR); // 0 near, 1 far
+      const greenWindow = () => {
+        const size = 0.15 - 0.08 * far();
+        return { lo: 0.915 - size / 2, hi: 0.915 + size / 2 };
+      };
+      const feetText = (ft) => {
+        let whole = Math.floor(ft);
+        let inches = Math.round((ft - whole) * 12);
+        if (inches === 12) { whole += 1; inches = 0; }
+        return `${whole}'${inches}"`;
+      };
+      const rest = () => ({ x: xFor(feet), y: court.clientHeight - R });
       // the ball rises to its set point as the meter fills
       const setPoint = (p) => ({ x: rest().x, y: rest().y - 46 * easeOut(Math.min(p, 1)) });
       const place = ({ x, y }) => (ball.style.transform = `translate(${x - R}px, ${y - R}px)`);
-      place(rest());
-      addEventListener("resize", () => state === "idle" && place(rest()));
+      // the ball, its grab handle, the meter beside it, the distance under it
+      // and the meter's green window all follow the spot
+      const settle = () => {
+        const { x, y } = rest();
+        place({ x, y });
+        grab.style.transform = `translate(${x - 24}px, ${y - 24}px)`;
+        meter.style.left = `${x - 52}px`;
+        spot.style.left = `${x}px`;
+        spot.textContent = feetText(feet);
+        const { lo, hi } = greenWindow();
+        windowPath.style.strokeDasharray = `${(hi - lo).toFixed(3)} 2`;
+        windowPath.style.strokeDashoffset = String(-lo.toFixed(3));
+      };
+      settle();
+      addEventListener("resize", () => state === "idle" && settle());
+
+      // dragging the ball moves the spot (it never shoots)
+      grab.addEventListener("pointerdown", (e) => {
+        if (state !== "idle" || e.button > 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        try { grab.setPointerCapture(e.pointerId); } catch (err) {}
+        court.classList.add("dragging");
+        const box = court.getBoundingClientRect();
+        const move = (ev) => {
+          feet = feetFor(ev.clientX - box.left);
+          settle();
+        };
+        const end = () => {
+          court.classList.remove("dragging");
+          grab.removeEventListener("pointermove", move);
+          grab.removeEventListener("pointerup", end);
+          grab.removeEventListener("pointercancel", end);
+        };
+        grab.addEventListener("pointermove", move);
+        grab.addEventListener("pointerup", end);
+        grab.addEventListener("pointercancel", end);
+      });
 
       // pieces of a flight: an arc (even speed across, gravity up and down),
       // a drop (speeding up) and a hop off the rim or the floor. `hit` is the
@@ -471,7 +572,9 @@
         const p = (performance.now() - pressedAt) / FILL;
         state = "flying";
         court.classList.remove("holding");
-        const grade = p < 0.72 ? "Very early" : p < 0.86 ? "Slightly early" : p <= 0.97 ? "Excellent" : p <= 1.08 ? "Slightly late" : "Very late";
+        court.classList.add("flying");
+        const { lo, hi } = greenWindow();
+        const grade = p < lo - 0.14 ? "Very early" : p < lo ? "Slightly early" : p <= hi ? "Excellent" : p <= hi + 0.11 ? "Slightly late" : "Very late";
         const green = grade === "Excellent";
         const close = grade.startsWith("Slightly");
         const mark = green ? "green" : close ? "close" : "off";
@@ -479,6 +582,7 @@
         fill.style.strokeDashoffset = String(1 - Math.min(p, 1));
         // 2K's feedback, the moment you let go
         timing.textContent = grade;
+        distance.textContent = feetText(feet);
         panels.dataset.grade = mark;
         panels.classList.add("on");
         if (green) sound.play("green");
@@ -487,7 +591,10 @@
 
       const shoot = (result, from) => {
         const floor = court.clientHeight - R;
-        const rim = { x: court.clientWidth - 37, y: 96 };
+        const rim = { x: rimX(), y: 96 };
+        // farther out: a higher arc and a longer flight
+        const lift = 72 + 48 * far();
+        const flight = Math.round(700 + 280 * far());
         const through = [
           drop({ x: rim.x, y: rim.y - 10 }, { x: rim.x, y: rim.y + 42 }, 170),
           drop({ x: rim.x, y: rim.y + 42 }, { x: rim.x - 6, y: floor }, 250, ["bounce", 1]),
@@ -497,29 +604,29 @@
         let path;
         let arrive; // when it gets to the rim, or lands short
         if (result === "swish") {
-          path = [arc(from, { x: rim.x, y: rim.y - 10 }, 110, 900, ["swish"]), ...through];
-          arrive = 900;
+          path = [arc(from, { x: rim.x, y: rim.y - 10 }, lift, flight, ["swish"]), ...through];
+          arrive = flight;
         } else if (result === "bucket") {
           // off the front of the rim, up, and down through
-          path = [arc(from, front, 110, 880, ["clank"]), arc(front, { x: rim.x, y: rim.y - 10 }, 9, 260, ["swish"]), ...through];
-          arrive = 880;
+          path = [arc(from, front, lift, flight, ["clank"]), arc(front, { x: rim.x, y: rim.y - 10 }, 9, 260, ["swish"]), ...through];
+          arrive = flight;
         } else if (result === "brick") {
           const out = { x: rim.x - 90, y: floor };
           path = [
-            arc(from, front, 110, 880, ["clank"]),
+            arc(from, front, lift, flight, ["clank"]),
             arc(front, out, 22, 640, ["bounce", 1]),
             arc(out, { x: out.x - 36, y: floor }, 10, 360, ["bounce", 0.5]),
             arc({ x: out.x - 36, y: floor }, { x: out.x - 52, y: floor }, 4, 220, ["bounce", 0.25])
           ];
-          arrive = 880;
+          arrive = flight;
         } else {
-          const land = { x: Math.max(from.x + 60, rim.x - 80 - Math.random() * 70), y: floor };
+          const land = { x: Math.max(from.x + 40, rim.x - 70 - Math.random() * Math.min(70, (rim.x - from.x) * 0.4)), y: floor };
           path = [
-            arc(from, land, 70, 820, ["bounce", 1]),
+            arc(from, land, lift * 0.65, Math.round(flight * 0.9), ["bounce", 1]),
             arc(land, { x: land.x + 30, y: floor }, 11, 360, ["bounce", 0.5]),
             arc({ x: land.x + 30, y: floor }, { x: land.x + 46, y: floor }, 4, 220, ["bounce", 0.25])
           ];
-          arrive = 820;
+          arrive = Math.round(flight * 0.9);
         }
         // the flight as keyframes, with backspin; each piece's sound is
         // scheduled for the moment the ball gets there
@@ -573,12 +680,13 @@
         fly.finished.then(() => new Promise((r) => setTimeout(r, reduce ? 900 : 500))).then(() => {
           const out = ball.animate([{ opacity: 1 }, { opacity: 0 }], { duration: reduce ? 1 : 180, fill: "forwards" });
           out.finished.then(() => {
-            place(rest());
+            settle();
             fly.cancel();
             out.cancel();
             if (!reduce) ball.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220 });
             meter.classList.remove("green", "close", "off");
             fill.style.strokeDashoffset = "1";
+            court.classList.remove("flying");
             state = "idle";
           });
         });
@@ -621,6 +729,13 @@
       addEventListener("pointercancel", lift);
       court.addEventListener("contextmenu", (e) => e.preventDefault());
       court.addEventListener("keydown", (e) => {
+        // the arrows move your spot a foot at a time
+        if ((e.key === "ArrowLeft" || e.key === "ArrowRight") && state === "idle") {
+          e.preventDefault();
+          feet = Math.min(FAR, Math.max(NEAR, feet + (e.key === "ArrowLeft" ? 1 : -1)));
+          settle();
+          return;
+        }
         if (e.key !== " " && e.key !== "Enter") return;
         e.preventDefault();
         if (!e.repeat) press();

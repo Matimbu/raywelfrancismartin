@@ -640,11 +640,73 @@ function twoKCard(w) {
   names.append(el("span", "tk-first", cut > 0 ? full.slice(0, cut) : ""), el("span", "tk-last", cut > 0 ? full.slice(cut + 1) : full));
   const plate = el("span", "tk-plate");
   plate.append(el("span", "tk-pos", w.pos || ""), names, el("span", "tk-gem"));
-  inner.append(photo, ovr, el("span", "tk-tier", c.tier), badges, plate, el("span", "tk-shine"), el("span", "tk-holo"));
+  // The second layer, like 2K26's card view: four attributes with bars. The
+  // tab in the corner switches between it and the badges.
+  const stats = el("span", "tk-stats");
+  (c.stats || []).slice(0, 4).forEach(([name, value]) => {
+    const row = el("span", "tk-stat");
+    row.style.setProperty("--v", (value / 100).toFixed(2));
+    row.append(el("span", "tk-stat-name", name), el("b", "tk-stat-value", String(value)), el("i", "tk-stat-bar"));
+    stats.appendChild(row);
+  });
+  const layers = c.stats && c.stats.length ? el("span", "tk-layer", "Attributes") : null;
+  inner.append(photo, ovr, el("span", "tk-tier", c.tier), badges, stats, plate, el("span", "tk-shine"), el("span", "tk-holo"));
+  if (layers) inner.appendChild(layers);
+  // The face-down side: the MT card, and the walkout's clues that come up on
+  // it before it turns (the position, a badge, then the best attribute in a
+  // ring, like 2K26's walkout)
   const pack = el("span", "tk-pack");
-  pack.appendChild(el("span", "tk-mt", "MT"));
+  const clues = el("span", "tk-clues");
+  const POSITIONS = { PG: "Point Guard", SG: "Shooting Guard", SF: "Small Forward", PF: "Power Forward", C: "Center" };
+  clues.append(el("span", "tk-clue", POSITIONS[w.pos] || w.pos || ""));
+  if (c.badges && c.badges[0]) clues.append(el("span", "tk-clue", c.badges[0][0]));
+  pack.append(el("span", "tk-mt", "MT"), clues);
+  const best = (c.stats || []).reduce((top, s) => (!top || s[1] > top[1] ? s : top), null);
+  if (best) {
+    const ring = el("span", "tk-ring");
+    ring.append(el("b", "", String(best[1])), el("span", "", best[0]));
+    pack.appendChild(ring);
+  }
   back.append(inner, pack);
   return back;
+}
+
+// The cover's main colour: the average of its livelier pixels (saturated, not
+// too dark or bright) in a 24 x 24 copy, lifted so it reads on the page. Null
+// for a grey cover, or one the page isn't allowed to read.
+function coverTint(img) {
+  try {
+    const size = 24;
+    const canvas = el("canvas");
+    canvas.width = canvas.height = size;
+    const g = canvas.getContext("2d", { willReadFrequently: true });
+    g.drawImage(img, 0, 0, size, size);
+    const d = g.getImageData(0, 0, size, size).data;
+    let r = 0, gr = 0, b = 0, sum = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      const hi = Math.max(d[i], d[i + 1], d[i + 2]);
+      const lo = Math.min(d[i], d[i + 1], d[i + 2]);
+      if (hi < 40) continue;
+      const sat = (hi - lo) / hi;
+      const weight = sat * sat * (1 - Math.abs(hi / 255 - 0.6));
+      r += d[i] * weight;
+      gr += d[i + 1] * weight;
+      b += d[i + 2] * weight;
+      sum += weight;
+    }
+    if (sum < 1) return null;
+    const [R, G, B] = [r / sum / 255, gr / sum / 255, b / sum / 255];
+    const hi = Math.max(R, G, B);
+    const lo = Math.min(R, G, B);
+    if (hi - lo < 0.06) return null;
+    const span = hi - lo;
+    let hue = hi === R ? ((G - B) / span) % 6 : hi === G ? (B - R) / span + 2 : (R - G) / span + 4;
+    hue = (hue * 60 + 360) % 360;
+    const sat = span / (1 - Math.abs(hi + lo - 1));
+    return `hsl(${hue.toFixed(0)} ${Math.round(Math.max(55, Math.min(85, sat * 100)))}% 62%)`;
+  } catch (e) {
+    return null;
+  }
 }
 
 // On the court's play board: a coach's board with the half court around the
@@ -893,12 +955,31 @@ function playBoard() {
     // (a real move, not the card sliding under a still cursor as you scroll)
     // and back when it leaves. Phones turn it on the first tap (one at a
     // time), and a tap on the turned card opens its link.
-    // Not while the pack is still being opened.
+    // Not while the pack is still being opened. The tab in the 2K side's
+    // corner switches it between the badges and the attributes (and never
+    // follows the link).
+    const layers = w.card && item.querySelector(".tk-layer");
+    const firstLayer = () => {
+      item.classList.remove("layer-stats");
+      if (layers) layers.textContent = "Attributes";
+    };
+    if (layers) {
+      layers.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const on = item.classList.toggle("layer-stats");
+        layers.textContent = on ? "Badges" : "Attributes";
+        packSound("tab");
+      });
+    }
     if (w.card && canHover) {
       onHover(item, () => {
         if (!words.classList.contains("packed")) item.classList.add("flipped");
       });
-      item.addEventListener("mouseleave", () => item.classList.remove("flipped", "tilting"));
+      item.addEventListener("mouseleave", () => {
+        item.classList.remove("flipped", "tilting");
+        firstLayer();
+      });
       // Holo: once it has turned, the card leans toward the cursor and the
       // shine on it follows, like tilting a card in 2K26's card view
       if (!reduceMotion) {
@@ -924,8 +1005,9 @@ function playBoard() {
         if (words.classList.contains("packed")) return e.preventDefault();
         if (turned && w.link) return;
         e.preventDefault();
-        words.querySelectorAll(".flipped").forEach((c) => c.classList.remove("flipped"));
+        words.querySelectorAll(".flipped").forEach((c) => c.classList.remove("flipped", "layer-stats"));
         item.classList.toggle("flipped", !turned);
+        firstLayer();
       });
     }
     if (w.desc) item.dataset.desc = w.desc;
@@ -977,8 +1059,18 @@ function playBoard() {
     packCards.forEach((c) => c.classList.add("face-down"));
     const turn = (c) => {
       if (!c.classList.contains("face-down")) return;
-      c.classList.remove("face-down");
+      c.classList.remove("face-down", "clued");
+      packSound("flip");
+      packSound("reveal", { tier: c.querySelector(".tk").dataset.tier, delay: 0.34 });
       if (!words.querySelector(".face-down")) setTimeout(() => words.classList.replace("packed", "opened"), 800);
+    };
+    // Each card's walkout: its clues come up on the MT side, a beat apart,
+    // then it turns over
+    const walkout = (c) => {
+      if (!c.classList.contains("face-down")) return;
+      c.classList.add("clued");
+      c.querySelectorAll(".tk-clue, .tk-ring").forEach((clue, i) => packSound("clue", { i, delay: i * 0.14 }));
+      setTimeout(() => turn(c), 700);
     };
     packCards.forEach((c) => c.addEventListener("click", (e) => {
       if (!c.classList.contains("face-down")) return;
@@ -989,7 +1081,8 @@ function playBoard() {
     const deal = new IntersectionObserver(([entry]) => {
       if (!entry.isIntersecting) return;
       deal.disconnect();
-      packCards.forEach((c, k) => setTimeout(() => turn(c), 650 + k * 450));
+      packSound("deal");
+      packCards.forEach((c, k) => setTimeout(() => walkout(c), 800 + k * 850));
     }, { threshold: 0.5 });
     deal.observe(words);
   }
@@ -1380,9 +1473,22 @@ function mountPick(slot, id, onPlaying) {
       slot.appendChild(spot);
       // Spotify swaps `spot` for its player
       api.createController(spot, { uri: `spotify:track:${id}`, width: "100%", height: 80, theme: "dark" }, (player) => {
+        // Spotify never says "paused" when the song (or its preview) runs out:
+        // the last update just has the position at the end, and then nothing
+        // more. So the pick counts as playing only while it isn't paused or
+        // buffering, isn't at the end, and its updates (about one a second)
+        // keep coming.
         let playing = false;
+        let quiet = 0;
+        const set = (on) => {
+          if (on !== playing) onPlaying((playing = on));
+        };
         player.addListener("playback_update", (e) => {
-          if (!e.data.isPaused !== playing) onPlaying((playing = !e.data.isPaused));
+          const { isPaused, isBuffering, position, duration } = e.data;
+          const ended = duration > 0 && position >= duration - 250;
+          set(!isPaused && !isBuffering && !ended);
+          clearTimeout(quiet);
+          if (playing) quiet = setTimeout(() => set(false), 2600);
         });
       });
       const frame = slot.querySelector("iframe");
@@ -1426,7 +1532,14 @@ function vinylDeck(id) {
         const cover = el("img");
         cover.alt = "";
         cover.decoding = "async";
-        cover.onload = () => label.classList.add("has-cover");
+        // Spotify's image server lets pages read its covers, so the record
+        // can take on the cover's main colour (its glow, the shine, the bars)
+        cover.crossOrigin = "anonymous";
+        cover.onload = () => {
+          label.classList.add("has-cover");
+          const tint = coverTint(cover);
+          if (tint) (deck.closest(".pick-label") || deck).style.setProperty("--tint", tint);
+        };
         cover.src = d.thumbnail_url;
         label.appendChild(cover);
       })
@@ -2720,6 +2833,115 @@ function uiSound(kind) {
     tone(110, 0.28, 0.5, "sine", 0.9, 45);
     tone(1320, 0.3, 0.6, "triangle", 0.18);
     tone(1980, 0.34, 0.5, "sine", 0.1);
+  }
+}
+
+// The pack's sounds, made in the browser like the UI ones and modelled on a
+// MyTEAM pack in 2K26: a riser while the face-down cards glow, a stinger for
+// each walkout clue (a punch, a synth stab, a tick; each one higher), a
+// whoosh that snaps as a card turns over, and a hit for what's revealed that
+// grows with the tier (a bell for Pink Diamond, a glittering run for Galaxy
+// Opal, a deep boom and a dark chord for Dark Matter, and for Invincible the
+// boom, an electric crackle and a bright chord). Off with the sound switch.
+function packSound(kind, opts = {}) {
+  const ctx = audio();
+  if (!ctx) return;
+  const t = ctx.currentTime + (opts.delay || 0);
+  const out = ctx.createGain();
+  out.gain.value = 0.42;
+  const glue = ctx.createDynamicsCompressor();
+  glue.threshold.value = -16;
+  glue.ratio.value = 4;
+  out.connect(glue).connect(ctx.destination);
+  const env = (at, peak, attack, release) => {
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.exponentialRampToValueAtTime(peak, at + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + attack + release);
+    g.connect(out);
+    return g;
+  };
+  const tone = (type, from, to, at, peak, attack, release, detune = 0) => {
+    const o = ctx.createOscillator();
+    o.type = type;
+    o.detune.value = detune;
+    o.frequency.setValueAtTime(from, at);
+    if (to !== from) o.frequency.exponentialRampToValueAtTime(to, at + attack + release);
+    o.connect(env(at, peak, attack, release));
+    o.start(at);
+    o.stop(at + attack + release + 0.05);
+  };
+  const noise = (at, dur, from, to, peak, q = 1, attack = 0.02) => {
+    const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const band = ctx.createBiquadFilter();
+    band.type = "bandpass";
+    band.Q.value = q;
+    band.frequency.setValueAtTime(from, at);
+    band.frequency.exponentialRampToValueAtTime(to, at + dur);
+    src.connect(band).connect(env(at, peak, attack, Math.max(0.02, dur - attack)));
+    src.start(at);
+    src.stop(at + dur + 0.05);
+  };
+  const chord = (notes, at, peak, release, type = "sawtooth", cutoff = 1400) => {
+    const lp = ctx.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.setValueAtTime(cutoff, at);
+    lp.frequency.exponentialRampToValueAtTime(cutoff * 0.35, at + release);
+    lp.connect(env(at, peak, 0.02, release));
+    notes.forEach((hz) => [-8, 8].forEach((cents) => {
+      const o = ctx.createOscillator();
+      o.type = type;
+      o.frequency.value = hz;
+      o.detune.value = cents;
+      o.connect(lp);
+      o.start(at);
+      o.stop(at + release + 0.1);
+    }));
+  };
+  if (kind === "deal") {
+    noise(t, 1.2, 280, 3600, 0.16, 0.8, 0.9);
+    tone("sine", 52, 78, t, 0.3, 0.8, 0.5);
+  } else if (kind === "clue") {
+    const pitch = [587, 784, 1047][Math.min(opts.i || 0, 2)];
+    tone("sine", 120, 48, t, 0.45, 0.004, 0.16);
+    tone("square", pitch, pitch, t, 0.05, 0.004, 0.12);
+    tone("triangle", pitch * 2, pitch * 2, t, 0.05, 0.004, 0.2);
+    noise(t, 0.05, 7000, 9000, 0.07, 0.7, 0.004);
+  } else if (kind === "tab") {
+    tone("triangle", 1320, 1320, t, 0.6, 0.003, 0.12);
+    tone("sine", 2640, 2640, t, 0.2, 0.003, 0.08);
+    noise(t, 0.04, 6000, 8000, 0.35, 0.7, 0.003);
+  } else if (kind === "flip") {
+    noise(t, 0.3, 2400, 650, 0.55, 0.9, 0.18);
+    noise(t + 0.28, 0.035, 3800, 5200, 0.5, 0.6, 0.003);
+  } else if (kind === "reveal") {
+    const tier = opts.tier;
+    tone("sine", 72, 40, t, 0.55, 0.005, 0.7);
+    if (tier === "dark-matter" || tier === "invincible") {
+      tone("sine", 58, 30, t, 0.75, 0.01, 1.4);
+      noise(t, 0.6, 900, 120, 0.2, 0.7, 0.01);
+      if (tier === "invincible") {
+        for (let k = 0; k < 7; k++) noise(t + 0.05 + k * 0.06 + Math.random() * 0.03, 0.04, 2600, 4200, 0.12, 2, 0.003);
+        chord([220, 277, 330, 440], t + 0.06, 0.07, 1.6, "sawtooth", 2400);
+      } else {
+        chord([110, 131, 165], t + 0.05, 0.08, 1.8, "sawtooth", 900);
+      }
+    } else if (tier === "galaxy-opal") {
+      [1568, 1976, 2349, 3136, 3951].forEach((hz, k) => tone("sine", hz, hz, t + 0.04 + k * 0.07, 0.07, 0.004, 0.9));
+      chord([392, 494, 587], t + 0.02, 0.05, 1.3, "triangle", 2200);
+    } else if (tier === "pink-diamond") {
+      [[1318, 0], [1976, 0.02], [2637, 0.05]].forEach(([hz, later]) => {
+        tone("sine", hz, hz, t + later, 0.09, 0.003, 1.3);
+        tone("sine", hz * 2.76, hz * 2.76, t + later, 0.025, 0.002, 0.5);
+      });
+    } else {
+      tone("sine", 1760, 1760, t, 0.08, 0.004, 0.8);
+      tone("sine", 2637, 2637, t + 0.06, 0.05, 0.004, 0.7);
+    }
   }
 }
 
