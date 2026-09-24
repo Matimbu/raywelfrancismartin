@@ -27,6 +27,12 @@ function linkify(node, url) {
 
 const pad2 = (n) => String(n).padStart(2, "0");
 
+// The motion curves, the same as the CSS tokens (--ease-out, --ease-in-out,
+// --ease-drawer): coming and going, moving across the screen, panels
+const EASE_OUT = "cubic-bezier(0.23, 1, 0.32, 1)";
+const EASE_IN_OUT = "cubic-bezier(0.77, 0, 0.175, 1)";
+const EASE_DRAWER = "cubic-bezier(0.32, 0.72, 0, 1)";
+
 // A hover has to be one the visitor actually made. "mouseenter" alone isn't
 // that: closing a panel or the photo viewer over something, or the page
 // shifting under a still cursor, hands it a hover nobody asked for. A real
@@ -35,10 +41,10 @@ function onHover(node, run) {
   let entered = false;
   node.addEventListener("mouseenter", () => (entered = true));
   node.addEventListener("mouseleave", () => (entered = false));
-  node.addEventListener("mousemove", () => {
+  node.addEventListener("mousemove", (e) => {
     if (!entered) return;
     entered = false; // once per visit, like mouseenter
-    run();
+    run(e);
   });
 }
 
@@ -399,7 +405,7 @@ toggle.addEventListener("click", () => {
   switching.ready.then(() => {
     root.animate(
       { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`] },
-      { duration: 750, easing: "cubic-bezier(0.22, 1, 0.36, 1)", pseudoElement: "::view-transition-new(root)" }
+      { duration: 750, easing: EASE_OUT, pseudoElement: "::view-transition-new(root)" }
     );
   });
   switching.finished.finally(() => root.classList.remove("theme-switching"));
@@ -697,7 +703,7 @@ try {
     const ability = reduceMotion ? null
       : w.ping ? reconPing : w.shock ? shockBolt : w.beam ? huntersFury : w.hud ? droneHud : null;
     if (ability && canHover) {
-      onHover(item, () => ability(block, item));
+      onHover(item, (e) => ability(block, item, e));
     } else if (ability) {
       // phones: a tap plays the ability instead of opening the clip, so a
       // tap never whisks you off the page. Tapping the word again while its
@@ -705,7 +711,7 @@ try {
       item.addEventListener("click", (e) => {
         if (w.link && item.classList.contains("casting")) return;
         e.preventDefault();
-        ability(block, item);
+        ability(block, item, e);
       });
     }
     if (ability && w.key) keyAbilities[w.key.toLowerCase()] = { block, item, ability };
@@ -1921,7 +1927,7 @@ function revealShot(dir, instant = false) {
         clipPath: dir > 0 ? "inset(0 0 0 24%)" : dir < 0 ? "inset(0 24% 0 0)" : "inset(24% 0 0 0)"
       },
       { opacity: 1, transform: "none", clipPath: "inset(0 0 0 0)" }
-    ], { duration: 400, easing: "cubic-bezier(0.23, 1, 0.32, 1)" });
+    ], { duration: 400, easing: EASE_OUT });
   };
   if (lbImg.complete) play();
   else lbImg.addEventListener("load", play, { once: true });
@@ -1933,11 +1939,28 @@ function openShot(i) {
   if (lenis) lenis.stop();
 }
 
+// Closing fades the viewer out in 0.18 s, quicker than the 0.45 s it takes
+// to come in: exits are faster than entrances
+function closeViewer() {
+  if (!lightbox.open || lightbox.classList.contains("closing")) return;
+  if (reduceMotion) return lightbox.close();
+  lightbox.classList.add("closing");
+  setTimeout(() => {
+    lightbox.classList.remove("closing");
+    lightbox.close();
+  }, 180);
+}
+lightbox.addEventListener("cancel", (e) => {
+  // Escape: the same fade
+  e.preventDefault();
+  closeViewer();
+});
+
 lightbox.addEventListener("close", () => {
   stopShotVideo();
   if (lenis) lenis.start();
 });
-$("lbClose").addEventListener("click", () => lightbox.close());
+$("lbClose").addEventListener("click", closeViewer);
 $("lbPrev").addEventListener("click", () => showShot(lbIndex - 1, -1));
 $("lbNext").addEventListener("click", () => showShot(lbIndex + 1, 1));
 lightbox.addEventListener("keydown", (e) => {
@@ -2003,7 +2026,7 @@ const endDrag = (e) => {
 lightbox.addEventListener("pointerup", endDrag);
 lightbox.addEventListener("pointercancel", endDrag);
 lightbox.addEventListener("click", (e) => {
-  if (!swiped && (e.target === lightbox || e.target.classList.contains("lb-figure"))) lightbox.close();
+  if (!swiped && (e.target === lightbox || e.target.classList.contains("lb-figure"))) closeViewer();
 });
 
 // ============================================================
@@ -2695,19 +2718,32 @@ function tink(fx, at, size = 60, duration = 380) {
 // shoots straight into the word and sticks, and 0.667 s later it pulses,
 // twice, 1.6 s apart. Each ring reveals the other words as it reaches them.
 let pinging = false;
-function reconPing(block, item) {
+function reconPing(block, item, at) {
   if (pinging || !claimAbility(4800, block, item)) return;
   pinging = true;
   earnUlt();
   const box = block.getBoundingClientRect();
   const src = item.querySelector(".ww-text").getBoundingClientRect();
-  const x = src.left + src.width / 2 - box.left;
-  const y = src.top + src.height / 2 - box.top;
-  const reach = Math.hypot(Math.max(x, box.width - x), Math.max(y, box.height - y));
+  // It flies where you point: the mouse (or your finger) on the wall, and it
+  // keeps following the mouse while the bow charges, like aiming. The E key
+  // aims at the middle of the word.
+  let aim = at && at.clientX != null
+    ? { cx: at.clientX, cy: at.clientY }
+    : { cx: src.left + src.width / 2, cy: src.top + src.height / 2 };
+  const follow = (e) => (aim = { cx: e.clientX, cy: e.clientY });
+  if (at && at.clientX != null) block.addEventListener("mousemove", follow);
+  const target = () => {
+    const b = block.getBoundingClientRect();
+    return {
+      x: Math.min(Math.max(aim.cx - b.left, 12), b.width - 12),
+      y: Math.min(Math.max(aim.cy - b.top, 12), b.height - 12)
+    };
+  };
+  let { x, y } = target();
+  let reach = 0;
   const fx = wallFx(block);
-  // straight at the word, fast
+  // straight at the target, fast
   const grip = bowSpot(block, y + 16);
-  const flight = { to: { x, y }, lift: 0, time: 0.16 };
   const bow = makeBow(fx, grip, (Math.atan2(y - grip.y, x - grip.x) * 180) / Math.PI, 56);
   const hideBars = chargeBars(fx, { x: grip.x, y: grip.y + 64 }, 420);
   let pulses = 0;
@@ -2726,13 +2762,17 @@ function reconPing(block, item) {
   };
   bow.draw(1, 420)
     .then(() => {
+      // fires at wherever the mouse is now
+      block.removeEventListener("mousemove", follow);
+      ({ x, y } = target());
+      reach = Math.hypot(Math.max(x, box.width - x), Math.max(y, box.height - y));
       const from = bow.release();
       tink(fx, from, 50); // fully charged: it flashes as it fires
       setTimeout(() => {
         bow.fade();
         hideBars();
       }, 450);
-      return flyBolt(fx, [{ ...flight, from }]);
+      return flyBolt(fx, [{ to: { x, y }, lift: 0, time: 0.16, from }]);
     })
     .then(() => {
       // stuck in the word, blinking while it winds up and scans
@@ -2911,7 +2951,7 @@ function fireDart(x, y) {
   dart.animate([
     { translate: `${x}px ${y + 130}px`, rotate: "-90deg", scale: "2.4" },
     { translate: `${x}px ${y}px`, rotate: "-90deg", scale: "0.7" }
-  ], { duration: 280, easing: "cubic-bezier(0.3, 0.6, 0.4, 1)", fill: "forwards" }).finished.then(() => {
+  ], { duration: 280, easing: EASE_OUT, fill: "forwards" }).finished.then(() => {
     dart.remove();
     const mark = el("span", "dart-mark");
     mark.style.left = `${x}px`;
@@ -3121,8 +3161,7 @@ const SPEAKER = '<svg viewBox="0 0 16 16"><path d="M2 6h3l4-3v10L5 10H2z"/></svg
 // much as the panel hangs past it (with the wall stacked on a phone, the
 // room opens right under the picture), then shrinks back, faster, on close.
 // Returns the function that gives the room back.
-const EASE_OUT = "cubic-bezier(0.23, 1, 0.32, 1)";
-const EASE_DRAWER = "cubic-bezier(0.32, 0.72, 0, 1)";
+
 function makeRoom(block, art, panel) {
   const stacked = getComputedStyle(block).gridTemplateColumns.trim().split(/\s+/).length < 2;
   const target = stacked ? art : block;
@@ -3277,7 +3316,7 @@ function agentSelect(block, item) {
     panel.appendChild(sweep);
     sweep.animate([{ translate: "-130% 0" }, { translate: "130% 0" }], {
       duration: 850,
-      easing: "cubic-bezier(0.35, 0, 0.2, 1)"
+      easing: EASE_IN_OUT
     }).finished.then(() => sweep.remove());
     // the lock-in again: the scan, the flash, the glow, "Locked in"
     art.classList.remove("locked");
