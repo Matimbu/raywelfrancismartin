@@ -118,6 +118,21 @@
       pointer-events: none;
     }
     .rock svg { display: block; width: 100%; height: 100%; }
+    /* On fire: three greens in a row and the ball burns, trailing flames
+       through the air (and the green window grows a little) until a shot
+       isn't a green */
+    .court.hot .rock { filter: drop-shadow(0 0 4px #ffb020) drop-shadow(0 0 10px #ff5a1f); }
+    .flame {
+      position: absolute;
+      left: 0;
+      top: 0;
+      z-index: 1;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #fff3b0 0 20%, #ffb020 45%, rgb(255 90 31 / 0.6) 70%, transparent 72%);
+      pointer-events: none;
+    }
     /* Grab the ball to move your spot along the floor: its distance from the
        rim shows under it, and farther out the green window gets tighter */
     .grab {
@@ -237,6 +252,7 @@
       margin-top: 12px;
     }
     .tally { color: var(--muted); font-size: 11px; }
+    .tally .fire { color: #ffb020; }
     .sound {
       flex: none;
       white-space: nowrap;
@@ -363,10 +379,11 @@
       let pressedAt = 0;
       let tapped = false;
       let raf = 0;
-      let shots = 0, made = 0, greens = 0, streak = 0, best = 0, greenRun = 0, bestGreens = 0;
+      let shots = 0, made = 0, greens = 0, streak = 0, best = 0, greenRun = 0, bestGreens = 0, farthest = 0;
       try {
         best = Number(localStorage.getItem("airballBest")) || 0;
         bestGreens = Number(localStorage.getItem("airballBestGreens")) || 0;
+        farthest = Number(localStorage.getItem("airballFarthest")) || 0;
       } catch (e) {}
 
       // Sounds, made right here with Web Audio (no files): the net's swish,
@@ -432,6 +449,70 @@
             o.start(at);
             o.stop(at + 0.2);
           },
+          crowd(c, at) {
+            // a deep green brings the crowd up: two broad rushes of noise
+            // (left and right) shaped by three vowel-like bands that drift,
+            // a few whistles, and scattered claps. It swells, holds, fades.
+            const whole = 2.6;
+            const bus = c.createGain();
+            bus.gain.setValueAtTime(0.0001, at);
+            bus.gain.exponentialRampToValueAtTime(0.5, at + 0.35);
+            bus.gain.setValueAtTime(0.5, at + 1.1);
+            bus.gain.exponentialRampToValueAtTime(0.0001, at + whole);
+            bus.connect(c.destination);
+            [-0.6, 0.6].forEach((pan) => {
+              const n = c.createBufferSource();
+              const buf = c.createBuffer(1, Math.ceil(c.sampleRate * whole), c.sampleRate);
+              const d = buf.getChannelData(0);
+              for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+              n.buffer = buf;
+              const side = c.createStereoPanner ? c.createStereoPanner() : c.createGain();
+              if (side.pan) side.pan.value = pan;
+              [[480, 1.2, 0.5], [1150, 1.4, 0.34], [2600, 2, 0.16]].forEach(([hz, q, level]) => {
+                const band = c.createBiquadFilter();
+                band.type = "bandpass";
+                band.Q.value = q;
+                band.frequency.setValueAtTime(hz, at);
+                band.frequency.linearRampToValueAtTime(hz * (1.1 + Math.random() * 0.15), at + 0.9);
+                band.frequency.linearRampToValueAtTime(hz * (0.92 + Math.random() * 0.1), at + whole);
+                const g = c.createGain();
+                g.gain.value = level;
+                n.connect(band).connect(g).connect(side);
+              });
+              side.connect(bus);
+              n.start(at);
+              n.stop(at + whole);
+            });
+            for (let k = 0; k < 3; k++) {
+              const w = c.createOscillator();
+              const g = c.createGain();
+              const start = at + 0.15 + Math.random() * 0.8;
+              const hz = 2100 + Math.random() * 900;
+              w.frequency.setValueAtTime(hz, start);
+              w.frequency.linearRampToValueAtTime(hz * 1.18, start + 0.18);
+              w.frequency.linearRampToValueAtTime(hz * 0.95, start + 0.42);
+              g.gain.setValueAtTime(0.0001, start);
+              g.gain.exponentialRampToValueAtTime(0.035, start + 0.05);
+              g.gain.exponentialRampToValueAtTime(0.0001, start + 0.45);
+              w.connect(g).connect(bus);
+              w.start(start);
+              w.stop(start + 0.5);
+            }
+            for (let k = 0; k < 16; k++) {
+              const clap = c.createBufferSource();
+              const buf = c.createBuffer(1, Math.ceil(c.sampleRate * 0.03), c.sampleRate);
+              const d = buf.getChannelData(0);
+              for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+              clap.buffer = buf;
+              const band = c.createBiquadFilter();
+              band.type = "bandpass";
+              band.frequency.value = 1300 + Math.random() * 900;
+              const g = c.createGain();
+              g.gain.value = 0.1 + Math.random() * 0.12;
+              clap.connect(band).connect(g).connect(bus);
+              clap.start(at + 0.2 + Math.random() * 1.6);
+            }
+          },
           green(c, at) {
             // the green: a bright two-note chime
             [[1568, 0], [2349, 0.07]].forEach(([hz, later]) => {
@@ -478,8 +559,9 @@
       const xFor = (ft) => { const { lo, hi } = range(); return hi - ((ft - NEAR) / (FAR - NEAR)) * (hi - lo); };
       const feetFor = (x) => { const { lo, hi } = range(); return NEAR + ((hi - Math.min(hi, Math.max(lo, x))) / (hi - lo)) * (FAR - NEAR); };
       const far = () => (feet - NEAR) / (FAR - NEAR); // 0 near, 1 far
+      const hot = () => greenRun >= 3; // on fire: three greens in a row
       const greenWindow = () => {
-        const size = 0.15 - 0.08 * far();
+        const size = 0.15 - 0.08 * far() + (hot() ? 0.03 : 0);
         return { lo: 0.915 - size / 2, hi: 0.915 + size / 2 };
       };
       const feetText = (ft) => {
@@ -644,6 +726,21 @@
           if (piece.hit && !reduce) sound.play(piece.hit[0], time, piece.hit[1]);
         });
         const fly = ball.animate(frames, { duration: reduce ? 1 : total, fill: "forwards" });
+        // on fire: flames trail the ball until it gets to the rim
+        if (hot() && !reduce) {
+          frames.forEach((f, i) => {
+            const ms = f.offset * total;
+            if (i % 2 || ms > arrive) return;
+            const [, x, y] = f.transform.match(/translate\(([-\d.]+)px, ([-\d.]+)px\)/) || [];
+            setTimeout(() => {
+              const flame = document.createElement("span");
+              flame.className = "flame";
+              flame.style.transform = `translate(${Number(x) + 5}px, ${Number(y) + 5}px)`;
+              court.appendChild(flame);
+              flame.animate([{ opacity: 0.95, scale: "1" }, { opacity: 0, scale: "0.3", translate: "0 -10px" }], { duration: 420, easing: "ease-out" }).finished.then(() => flame.remove());
+            }, ms);
+          });
+        }
 
         setTimeout(() => {
           call.textContent = CALLS[result];
@@ -664,15 +761,25 @@
             streak = 0;
           }
           greenRun = result === "swish" ? greenRun + 1 : 0;
-          if (result === "swish") greens += 1;
+          if (result === "swish") {
+            greens += 1;
+            // from way out (25 ft or more) the crowd goes up
+            if (feet >= 25 && !reduce) sound.play("crowd", 60);
+          }
+          const longest = result === "swish" && feet > farthest ? feet : farthest;
           try {
             if (streak > best) localStorage.setItem("airballBest", String((best = streak)));
             if (greenRun > bestGreens) localStorage.setItem("airballBestGreens", String((bestGreens = greenRun)));
+            if (longest > farthest) localStorage.setItem("airballFarthest", String((farthest = longest)));
           } catch (e) {
             best = Math.max(best, streak);
             bestGreens = Math.max(bestGreens, greenRun);
+            farthest = longest;
           }
+          court.classList.toggle("hot", hot());
           tally.textContent = `${made}/${shots} made · ${greens} green${greens === 1 ? "" : "s"} · best streak ${best}`;
+          if (hot()) tally.insertAdjacentHTML("beforeend", ' · <span class="fire">on fire</span>');
+          settle(); // the green window is bigger on fire
           share.hidden = !(best || bestGreens);
         }, reduce ? 0 : arrive);
 
@@ -702,22 +809,94 @@
           : `I made ${best} in a row on Raywel's Airball page. Beat that:`);
       const SHARE_URL = "https://matimbu.github.io/raywelfrancismartin/airball";
       share.hidden = !(best || bestGreens);
+      // The share card: a square picture of your numbers in 2K26's panels,
+      // drawn when you press Share (it goes along with the line and the link)
+      const shareCard = async () => {
+        await Promise.all(["700 90px Geist", "italic 400 90px 'Instrument Serif'", "800 40px 'Barlow Condensed'", "600 20px 'Barlow Condensed'", "400 20px 'Geist Mono'"]
+          .map((f) => document.fonts.load(f).catch(() => {})));
+        const S = 1080;
+        const c = document.createElement("canvas");
+        c.width = c.height = S;
+        const g = c.getContext("2d");
+        g.fillStyle = "#0a0a0a";
+        g.fillRect(0, 0, S, S);
+        const glow = g.createRadialGradient(S * 0.8, S * 0.2, 0, S * 0.8, S * 0.2, S * 0.7);
+        glow.addColorStop(0, "rgba(61, 220, 132, 0.18)");
+        glow.addColorStop(1, "rgba(61, 220, 132, 0)");
+        g.fillStyle = glow;
+        g.fillRect(0, 0, S, S);
+        g.fillStyle = "#8f8c86";
+        g.font = "400 22px 'Geist Mono', monospace";
+        g.fillText("RAYWEL MARTIN  ·  404", 80, 110);
+        g.fillStyle = "#f2f0eb";
+        g.font = "700 170px Geist, sans-serif";
+        g.fillText("Air", 72, 290);
+        const air = g.measureText("Air").width;
+        g.fillStyle = "#ff5a1f";
+        g.font = "italic 400 180px 'Instrument Serif', serif";
+        g.fillText("ball.", 72 + air + 8, 290);
+        // the curve meter, greened
+        g.lineCap = "round";
+        g.lineWidth = 22;
+        g.strokeStyle = "rgba(242, 240, 235, 0.14)";
+        g.beginPath(); g.moveTo(930, 700); g.quadraticCurveTo(840, 520, 930, 340); g.stroke();
+        g.strokeStyle = "#3ddc84";
+        g.shadowColor = "#3ddc84";
+        g.shadowBlur = 30;
+        g.beginPath(); g.moveTo(930, 700); g.quadraticCurveTo(840, 520, 930, 340); g.stroke();
+        g.shadowBlur = 0;
+        // the panels: label small, value big, a coloured line on top
+        const panel = (y, label, value, tone) => {
+          g.fillStyle = "#16181a";
+          g.fillRect(80, y, 620, 132);
+          g.fillStyle = tone;
+          g.fillRect(80, y, 620, 6);
+          g.fillStyle = "#e9e9e6";
+          g.font = "600 30px 'Barlow Condensed', sans-serif";
+          g.fillText(label.toUpperCase(), 110, y + 50);
+          g.fillStyle = tone;
+          g.font = "800 60px 'Barlow Condensed', sans-serif";
+          g.fillText(value.toUpperCase(), 110, y + 112);
+        };
+        panel(390, "Greens in a row", String(bestGreens), "#3ddc84");
+        panel(546, "Best streak", `${best} made`, "#f2f0eb");
+        panel(702, "Farthest green", farthest ? feetText(farthest) : "Not yet", "#f2c230");
+        g.fillStyle = "#8f8c86";
+        g.font = "400 24px 'Geist Mono', monospace";
+        g.fillText("BEAT IT  →  MATIMBU.GITHUB.IO/RAYWELFRANCISMARTIN/AIRBALL", 80, 980);
+        return new Promise((done) => c.toBlob(done, "image/png"));
+      };
       share.addEventListener("click", async () => {
         if (!best && !bestGreens) return;
         const label = share.querySelector("span");
+        const say = (text) => {
+          label.textContent = text;
+          setTimeout(() => (label.textContent = "Share my streak"), 1800);
+        };
+        const text = `${shareText()} ${SHARE_URL}`;
+        const blob = await shareCard().catch(() => null);
+        // phones: the share sheet, with the picture when it can take files
         if (navigator.share && matchMedia("(pointer: coarse)").matches) {
+          const file = blob && new File([blob], "airball.png", { type: "image/png" });
           try {
-            await navigator.share({ title: "Airball.", text: shareText(), url: SHARE_URL });
+            if (file && navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], text });
+            else await navigator.share({ title: "Airball.", text: shareText(), url: SHARE_URL });
           } catch (e) {}
           return;
         }
-        let ok = false;
+        // computers: the picture and the line on the clipboard together
+        // (paste into a chat and the picture goes; into text, the line)
         try {
-          await navigator.clipboard.writeText(`${shareText()} ${SHARE_URL}`);
-          ok = true;
+          if (!blob || !window.ClipboardItem) throw new Error("no picture");
+          await navigator.clipboard.write([new ClipboardItem({ "image/png": blob, "text/plain": new Blob([text], { type: "text/plain" }) })]);
+          return say("Copied, with a picture");
         } catch (e) {}
-        label.textContent = ok ? "Copied" : "Couldn't copy";
-        setTimeout(() => (label.textContent = "Share my streak"), 1600);
+        try {
+          await navigator.clipboard.writeText(text);
+          say("Copied");
+        } catch (e) {
+          say("Couldn't copy");
+        }
       });
 
       court.addEventListener("pointerdown", (e) => {

@@ -605,26 +605,83 @@ try {
   muted = localStorage.getItem("sovaMuted") === "1";
 } catch (e) {}
 
-// The back of a starting-five card: the player as an NBA 2K26 MyTEAM card.
-// Like the game's cards: the overall in a hexagon, the tier's colours around
-// a chamfered edge and washed over the photo, the tier top right, three badges
-// on slanted tags (like the walkout clues), and a dark name plate with the
-// position, the first name small over the last name, big. Before the pack is
-// opened, the MT side of the card covers it (see the wall renderer).
-function twoKCard(w) {
-  const c = w.card;
-  const back = el("span", "flip-face tk");
-  back.dataset.tier = c.tier.toLowerCase().replace(/\s+/g, "-");
-  back.setAttribute("aria-hidden", "true");
-  const inner = el("span", "tk-inner");
+// The 2K cards on the back of the starting five, in the style of 2K26's
+// G.O.A.T. card: "Dark Matter" -> "dark-matter", "G.O.A.T." -> "goat"
+const tierKey = (tier) => String(tier).toLowerCase().replace(/\./g, "").trim().replace(/\s+/g, "-");
+
+// Random numbers from a seed, so each card's glitter and lightning are its
+// own and come out the same on every visit
+function seeded(text) {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
+  return () => {
+    h = (h + 0x6d2b79f5) | 0;
+    let t = h;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Glitter and lightning over a card's photo, like the G.O.A.T. card's, kept
+// mostly to the edges, off the player. Each bolt is drawn twice: a wide soft
+// stroke in the tier's colour for the glow and a thin white core.
+function cardSparks(seed) {
+  const rnd = seeded(seed);
+  let dots = "";
+  for (let k = 0; k < 40; k++) {
+    const edge = rnd() < 0.72;
+    const x = edge ? (rnd() < 0.5 ? rnd() * 24 : 76 + rnd() * 24) : rnd() * 100;
+    const y = rnd() * 133;
+    dots += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(0.25 + rnd() * 1.1).toFixed(2)}" opacity="${(0.3 + rnd() * 0.7).toFixed(2)}"/>`;
+  }
+  // a jagged bolt with a fork or two off it
+  const bolt = (x, y, dir, steps) => {
+    let d = `M${x.toFixed(1)} ${y.toFixed(1)}`;
+    let forks = "";
+    for (let k = 0; k < steps; k++) {
+      x += dir * (0.5 + rnd() * 2.5) + (rnd() - 0.5) * 6;
+      y += 4 + rnd() * 7;
+      d += ` L${x.toFixed(1)} ${y.toFixed(1)}`;
+      if (k > 0 && k < steps - 1 && rnd() < 0.35) {
+        let fx = x;
+        let fy = y;
+        let fork = `M${fx.toFixed(1)} ${fy.toFixed(1)}`;
+        for (let j = 0; j < 3; j++) {
+          fx += dir * (1 + rnd() * 3) + (rnd() - 0.5) * 4;
+          fy += 2 + rnd() * 5;
+          fork += ` L${fx.toFixed(1)} ${fy.toFixed(1)}`;
+        }
+        forks += `<path d="${fork}" class="fork"/>`;
+      }
+    }
+    return `<path d="${d}"/>${forks}`;
+  };
+  const bolts = bolt(3 + rnd() * 8, 16 + rnd() * 20, 1, 8) + bolt(89 + rnd() * 8, 24 + rnd() * 24, -1, 8) +
+    bolt(8 + rnd() * 18, 70 + rnd() * 10, 1, 5) + bolt(74 + rnd() * 18, 62 + rnd() * 12, -1, 5);
+  return `<svg class="tk-sparks" viewBox="0 0 100 133" preserveAspectRatio="none" aria-hidden="true">` +
+    `<g class="tk-glitter">${dots}</g><g class="tk-bolt-glow">${bolts}</g><g class="tk-bolt">${bolts}</g></svg>`;
+}
+
+// One card: a glowing frame (notched at the top right) over the photo with
+// glitter and lightning, the overall in a big hexagon breaking out of the top
+// left, the tier painted top right, badges (or on the second layer,
+// attributes) on slanted tags, and a black banner across the bottom that runs
+// past the frame: the jersey number, the last name big in metal with the
+// first name sitting on top of the banner, and the position.
+function twoKCard(c, w, extra = "") {
+  const card = el("span", extra ? `tk ${extra}` : "tk");
+  card.dataset.tier = tierKey(c.tier);
+  const glow = el("span", "tk-glow");
+  const frame = el("span", "tk-frame");
+  const body = el("span", "tk-body");
   const photo = el("img", "tk-photo");
-  photo.src = w.image;
+  photo.src = c.image || w.image;
   photo.alt = "";
   photo.loading = "lazy";
   photo.decoding = "async";
-  const ovr = el("span", "tk-ovr");
-  ovr.appendChild(el("b", "", String(c.ovr)));
-  if (String(c.ovr).length > 2) ovr.classList.add("wide"); // a 100 needs a smaller number
+  body.appendChild(photo);
+  body.insertAdjacentHTML("beforeend", cardSparks(c.name || w.text));
   const badges = el("span", "tk-badges");
   (c.badges || []).slice(0, 3).forEach(([name, level]) => {
     const badge = el("span", "tk-badge");
@@ -634,14 +691,6 @@ function twoKCard(w) {
     badge.appendChild(label);
     badges.appendChild(badge);
   });
-  const full = (c.name || w.text).trim();
-  const cut = full.lastIndexOf(" ");
-  const names = el("span", "tk-names");
-  names.append(el("span", "tk-first", cut > 0 ? full.slice(0, cut) : ""), el("span", "tk-last", cut > 0 ? full.slice(cut + 1) : full));
-  const plate = el("span", "tk-plate");
-  plate.append(el("span", "tk-pos", w.pos || ""), names, el("span", "tk-gem"));
-  // The second layer, like 2K26's card view: four attributes with bars. The
-  // tab in the corner switches between it and the badges.
   const stats = el("span", "tk-stats");
   (c.stats || []).slice(0, 4).forEach(([name, value]) => {
     const row = el("span", "tk-stat");
@@ -649,12 +698,27 @@ function twoKCard(w) {
     row.append(el("span", "tk-stat-name", name), el("b", "tk-stat-value", String(value)), el("i", "tk-stat-bar"));
     stats.appendChild(row);
   });
-  const layers = c.stats && c.stats.length ? el("span", "tk-layer", "Attributes") : null;
-  inner.append(photo, ovr, el("span", "tk-tier", c.tier), badges, stats, plate, el("span", "tk-shine"), el("span", "tk-holo"));
-  if (layers) inner.appendChild(layers);
-  // The face-down side: the MT card, and the walkout's clues that come up on
-  // it before it turns (the position, a badge, then the best attribute in a
-  // ring, like 2K26's walkout)
+  body.append(badges, stats, el("span", "tk-shine"), el("span", "tk-holo"));
+  frame.appendChild(body);
+  glow.appendChild(frame);
+  const emblem = el("span", "tk-emblem");
+  emblem.append(el("i", "tk-hex"), el("b", "", String(c.ovr)));
+  if (String(c.ovr).length > 2) emblem.classList.add("wide"); // a 100 needs a smaller number
+  const full = (c.name || w.text).trim();
+  const cut = full.lastIndexOf(" ");
+  const last = cut > 0 ? full.slice(cut + 1) : full;
+  const lastName = el("span", "tk-last", last);
+  if (last.length > 6) lastName.classList.add("long");
+  const banner = el("span", "tk-banner");
+  banner.append(el("span", "tk-medal", c.num != null ? String(c.num) : ""), lastName, el("span", "tk-pos", w.pos || ""));
+  card.append(glow, emblem, el("span", "tk-label", c.tier), el("span", "tk-first", cut > 0 ? full.slice(0, cut) : ""), banner);
+  return card;
+}
+
+// The face-down side before the pack is opened: the MT card, and the
+// walkout's clues that come up on it before it turns (the position, a badge,
+// then the best attribute in a ring, like 2K26's walkout)
+function packFace(w, c) {
   const pack = el("span", "tk-pack");
   const clues = el("span", "tk-clues");
   const POSITIONS = { PG: "Point Guard", SG: "Shooting Guard", SF: "Small Forward", PF: "Power Forward", C: "Center" };
@@ -667,8 +731,22 @@ function twoKCard(w) {
     ring.append(el("b", "", String(best[1])), el("span", "", best[0]));
     pack.appendChild(ring);
   }
-  back.append(inner, pack);
-  return back;
+  return pack;
+}
+
+// The back of a starting-five photo: its card (or two, stacked, for
+// co-starters), the tab that switches the badges and the attributes, and the
+// pack's face-down side
+function twoKSide(w) {
+  const list = (w.cards || [w.card]).slice(0, 2);
+  const side = el("span", "flip-face tk-side");
+  side.setAttribute("aria-hidden", "true");
+  side.dataset.tier = tierKey(list[0].tier);
+  if (list.length > 1) side.classList.add("tk-stack");
+  list.forEach((c, i) => side.appendChild(twoKCard(c, w, i ? "tk-alt" : "")));
+  if (list.some((c) => c.stats && c.stats.length)) side.appendChild(el("span", "tk-layer", "Attributes"));
+  side.appendChild(packFace(w, list[0]));
+  return side;
 }
 
 // The cover's main colour: the average of its livelier pixels (saturated, not
@@ -863,12 +941,13 @@ function playBoard() {
       img.alt = w.alt || w.text;
       img.loading = "lazy";
       img.decoding = "async";
-      if (w.card) {
-        // `card`: the photo turns over into the player's 2K card
+      if (w.card || w.cards) {
+        // `card` (or a stack of `cards`): the photo turns over into the
+        // player's 2K card
         const flip = el("span", "flip");
         const front = el("span", "flip-face");
         front.appendChild(img);
-        flip.append(front, twoKCard(w));
+        flip.append(front, twoKSide(w));
         frame.appendChild(flip);
         item.classList.add("flips");
       } else {
@@ -889,7 +968,19 @@ function playBoard() {
       }
       item.appendChild(pos);
     }
-    item.appendChild(el("span", "ww-text", w.text));
+    if (w.cards && w.cards.length > 1) {
+      // co-starters: each name under the card picks which card is in front
+      const text = el("span", "ww-text");
+      w.cards.forEach((c, k) => {
+        if (k) text.appendChild(document.createTextNode(" / "));
+        const name = el("span", `ww-choose${k ? "" : " chosen"}`, c.short || c.name);
+        name.dataset.k = k;
+        text.appendChild(name);
+      });
+      item.appendChild(text);
+    } else {
+      item.appendChild(el("span", "ww-text", w.text));
+    }
     if (w.note || w.face) {
       const note = el("span", "ww-note mono");
       // the ability's own icon and its key, like the game's HUD
@@ -958,7 +1049,8 @@ function playBoard() {
     // Not while the pack is still being opened. The tab in the 2K side's
     // corner switches it between the badges and the attributes (and never
     // follows the link).
-    const layers = w.card && item.querySelector(".tk-layer");
+    const has2K = Boolean(w.card || w.cards);
+    const layers = has2K && item.querySelector(".tk-layer");
     const firstLayer = () => {
       item.classList.remove("layer-stats");
       if (layers) layers.textContent = "Attributes";
@@ -972,7 +1064,7 @@ function playBoard() {
         packSound("tab");
       });
     }
-    if (w.card && canHover) {
+    if (has2K && canHover) {
       onHover(item, () => {
         if (!words.classList.contains("packed")) item.classList.add("flipped");
       });
@@ -990,6 +1082,8 @@ function playBoard() {
         });
         item.addEventListener("mousemove", (e) => {
           if (!item.classList.contains("flipped")) return;
+          // hold still over the tab, so it doesn't move away from the cursor
+          if (e.target.closest(".tk-layer")) return;
           const r = item.querySelector(".ww-card-img").getBoundingClientRect();
           const x = clamp01((e.clientX - r.left) / r.width) - 0.5;
           const y = clamp01((e.clientY - r.top) / r.height) - 0.5;
@@ -999,7 +1093,7 @@ function playBoard() {
           item.style.setProperty("--my", `${((y + 0.5) * 100).toFixed(1)}%`);
         });
       }
-    } else if (w.card) {
+    } else if (has2K) {
       item.addEventListener("click", (e) => {
         const turned = item.classList.contains("flipped");
         if (words.classList.contains("packed")) return e.preventDefault();
@@ -1009,6 +1103,39 @@ function playBoard() {
         item.classList.toggle("flipped", !turned);
         firstLayer();
       });
+    }
+    // A stack: hovering a name under it (or tapping it) brings that card to
+    // the front, and so does clicking the card peeking out behind
+    if (w.cards && w.cards.length > 1) {
+      const side = item.querySelector(".tk-side");
+      const choose = (k) => {
+        const swap = k === 1;
+        item.querySelectorAll(".ww-choose").forEach((n) => n.classList.toggle("chosen", Number(n.dataset.k) === k));
+        if (side.classList.contains("swap") === swap) return;
+        side.classList.toggle("swap", swap);
+        packSound("tab");
+      };
+      item.querySelectorAll(".ww-choose").forEach((name) => {
+        const k = Number(name.dataset.k);
+        if (canHover) onHover(name, () => !words.classList.contains("packed") && choose(k));
+        name.addEventListener("click", (e) => {
+          if (words.classList.contains("packed")) return;
+          e.preventDefault();
+          e.stopPropagation();
+          choose(k);
+          if (!canHover && !item.classList.contains("flipped")) {
+            words.querySelectorAll(".flipped").forEach((c) => c.classList.remove("flipped", "layer-stats"));
+            item.classList.add("flipped");
+          }
+        });
+      });
+      side.querySelectorAll(".tk").forEach((card, k) => card.addEventListener("click", (e) => {
+        const behind = side.classList.contains("swap") ? k === 0 : k === 1;
+        if (!behind || !item.classList.contains("flipped")) return;
+        e.preventDefault();
+        e.stopPropagation();
+        choose(k);
+      }));
     }
     if (w.desc) item.dataset.desc = w.desc;
     if (w.stat) item.dataset.stat = w.stat;
@@ -1055,13 +1182,22 @@ function playBoard() {
   // (the game's Flip Card). Once they're all over, the 2K side shows on hover.
   const packCards = [...words.querySelectorAll(".ww-card.flips")];
   if (packCards.length && !reduceMotion) {
-    words.classList.add("packed");
-    packCards.forEach((c) => c.classList.add("face-down"));
+    // into the pack: every card face down (they turn back over if they were up)
+    const pack = () => {
+      words.classList.remove("opened");
+      words.classList.add("packed");
+      packCards.forEach((c) => {
+        c.classList.remove("flipped", "tilting", "layer-stats", "clued");
+        c.classList.add("face-down");
+        c.querySelectorAll(".tk-layer").forEach((tab) => (tab.textContent = "Attributes"));
+      });
+    };
+    pack();
     const turn = (c) => {
       if (!c.classList.contains("face-down")) return;
       c.classList.remove("face-down", "clued");
       packSound("flip");
-      packSound("reveal", { tier: c.querySelector(".tk").dataset.tier, delay: 0.34 });
+      packSound("reveal", { tier: c.querySelector(".tk-side").dataset.tier, delay: 0.34 });
       if (!words.querySelector(".face-down")) setTimeout(() => words.classList.replace("packed", "opened"), 800);
     };
     // Each card's walkout: its clues come up on the MT side, a beat apart,
@@ -1078,13 +1214,28 @@ function playBoard() {
       e.stopImmediatePropagation();
       turn(c);
     }, true));
+    let dealing = [];
+    const open = () => {
+      dealing.forEach(clearTimeout);
+      packSound("deal");
+      dealing = packCards.map((c, k) => setTimeout(() => walkout(c), 800 + k * 850));
+    };
     const deal = new IntersectionObserver(([entry]) => {
       if (!entry.isIntersecting) return;
       deal.disconnect();
-      packSound("deal");
-      packCards.forEach((c, k) => setTimeout(() => walkout(c), 800 + k * 850));
+      open();
     }, { threshold: 0.5 });
     deal.observe(words);
+    // Open it again: the five turn back face down and the pack plays again
+    const again = el("button", "pack-again mono");
+    again.type = "button";
+    again.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.2 8.6A5.3 5.3 0 1 1 11.6 4.4"/><path d="M12.4 1.6v3.3H9.1"/></svg><span>Open the pack again</span>';
+    again.addEventListener("click", () => {
+      if (words.classList.contains("packed")) return;
+      pack();
+      dealing = [setTimeout(open, 750)];
+    });
+    words.after(again);
   }
 
   // Card labels roll from their number to their name once the cards are on
@@ -2836,23 +2987,45 @@ function uiSound(kind) {
   }
 }
 
-// The pack's sounds, made in the browser like the UI ones and modelled on a
-// MyTEAM pack in 2K26: a riser while the face-down cards glow, a stinger for
-// each walkout clue (a punch, a synth stab, a tick; each one higher), a
-// whoosh that snaps as a card turns over, and a hit for what's revealed that
-// grows with the tier (a bell for Pink Diamond, a glittering run for Galaxy
-// Opal, a deep boom and a dark chord for Dark Matter, and for Invincible the
-// boom, an electric crackle and a bright chord). Off with the sound switch.
+// The pack's sounds, made in the browser (no files) and aimed at the feel of
+// a MyTEAM pack in 2K26: big and cinematic, no beeps. Everything plays in one
+// shared room (a reverb made from decaying noise) and through a gentle
+// compressor. A swell while the face-down cards glow; each walkout clue is a
+// trailer hit (a sub drop, a knock, a rush of air), each a little bigger; a
+// card turning is a whoosh, a snap and a thud; and what's revealed lands with
+// a boom and a brass "braam" chord that grows with the tier (bright for the
+// G.O.A.T., dark and low for Dark Matter, airy for Galaxy Opal and Pink
+// Diamond, and for Invincible an electric crackle on top). Off with the
+// sound switch.
 function packSound(kind, opts = {}) {
   const ctx = audio();
   if (!ctx) return;
   const t = ctx.currentTime + (opts.delay || 0);
+  if (!ctx.packRoom) {
+    const len = Math.floor(ctx.sampleRate * 2.4);
+    const ir = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = ir.getChannelData(ch);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+    }
+    const room = ctx.createConvolver();
+    room.buffer = ir;
+    const wet = ctx.createGain();
+    wet.gain.value = 0.3;
+    const glue = ctx.createDynamicsCompressor();
+    glue.threshold.value = -18;
+    glue.ratio.value = 4;
+    glue.attack.value = 0.004;
+    glue.release.value = 0.3;
+    room.connect(wet).connect(glue);
+    glue.connect(ctx.destination);
+    ctx.packRoom = { room, glue };
+  }
+  const { room, glue } = ctx.packRoom;
   const out = ctx.createGain();
   out.gain.value = 0.42;
-  const glue = ctx.createDynamicsCompressor();
-  glue.threshold.value = -16;
-  glue.ratio.value = 4;
-  out.connect(glue).connect(ctx.destination);
+  out.connect(glue);
+  out.connect(room);
   const env = (at, peak, attack, release) => {
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, at);
@@ -2861,40 +3034,47 @@ function packSound(kind, opts = {}) {
     g.connect(out);
     return g;
   };
-  const tone = (type, from, to, at, peak, attack, release, detune = 0) => {
+  const tone = (type, from, to, at, peak, attack, release) => {
     const o = ctx.createOscillator();
     o.type = type;
-    o.detune.value = detune;
     o.frequency.setValueAtTime(from, at);
     if (to !== from) o.frequency.exponentialRampToValueAtTime(to, at + attack + release);
     o.connect(env(at, peak, attack, release));
     o.start(at);
     o.stop(at + attack + release + 0.05);
   };
-  const noise = (at, dur, from, to, peak, q = 1, attack = 0.02) => {
+  const hiss = (dur) => {
     const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
     const d = buf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     const src = ctx.createBufferSource();
     src.buffer = buf;
-    const band = ctx.createBiquadFilter();
-    band.type = "bandpass";
-    band.Q.value = q;
-    band.frequency.setValueAtTime(from, at);
-    band.frequency.exponentialRampToValueAtTime(to, at + dur);
-    src.connect(band).connect(env(at, peak, attack, Math.max(0.02, dur - attack)));
+    return src;
+  };
+  // noise through a filter that sweeps from one frequency to another
+  const noise = (at, dur, from, to, peak, type = "bandpass", q = 1, attack = 0.02) => {
+    const src = hiss(dur);
+    const f = ctx.createBiquadFilter();
+    f.type = type;
+    f.Q.value = q;
+    f.frequency.setValueAtTime(from, at);
+    f.frequency.exponentialRampToValueAtTime(to, at + dur);
+    src.connect(f).connect(env(at, peak, attack, Math.max(0.02, dur - attack)));
     src.start(at);
     src.stop(at + dur + 0.05);
   };
-  const chord = (notes, at, peak, release, type = "sawtooth", cutoff = 1400) => {
+  // the "braam": a detuned brass-like chord whose filter opens, then closes
+  const braam = (notes, at, peak, open, release) => {
     const lp = ctx.createBiquadFilter();
     lp.type = "lowpass";
-    lp.frequency.setValueAtTime(cutoff, at);
-    lp.frequency.exponentialRampToValueAtTime(cutoff * 0.35, at + release);
-    lp.connect(env(at, peak, 0.02, release));
-    notes.forEach((hz) => [-8, 8].forEach((cents) => {
+    lp.Q.value = 2;
+    lp.frequency.setValueAtTime(160, at);
+    lp.frequency.exponentialRampToValueAtTime(open, at + 0.2);
+    lp.frequency.exponentialRampToValueAtTime(220, at + release);
+    lp.connect(env(at, peak, 0.05, release));
+    notes.forEach((hz) => [-12, 0, 12].forEach((cents) => {
       const o = ctx.createOscillator();
-      o.type = type;
+      o.type = "sawtooth";
       o.frequency.value = hz;
       o.detune.value = cents;
       o.connect(lp);
@@ -2903,44 +3083,38 @@ function packSound(kind, opts = {}) {
     }));
   };
   if (kind === "deal") {
-    noise(t, 1.2, 280, 3600, 0.16, 0.8, 0.9);
-    tone("sine", 52, 78, t, 0.3, 0.8, 0.5);
+    // a swell rising into the first walkout
+    noise(t, 1.3, 250, 3200, 0.2, "highpass", 0.7, 1.2);
+    tone("sine", 42, 60, t, 0.35, 1.0, 0.5);
   } else if (kind === "clue") {
-    const pitch = [587, 784, 1047][Math.min(opts.i || 0, 2)];
-    tone("sine", 120, 48, t, 0.45, 0.004, 0.16);
-    tone("square", pitch, pitch, t, 0.05, 0.004, 0.12);
-    tone("triangle", pitch * 2, pitch * 2, t, 0.05, 0.004, 0.2);
-    noise(t, 0.05, 7000, 9000, 0.07, 0.7, 0.004);
+    const more = 0.75 + 0.15 * Math.min(opts.i || 0, 2);
+    tone("sine", 96, 36, t, 0.8 * more, 0.004, 0.5);
+    noise(t, 0.08, 1100, 500, 0.5 * more, "lowpass", 0.8, 0.003);
+    noise(t, 0.16, 1500, 450, 0.18 * more, "bandpass", 1, 0.02);
   } else if (kind === "tab") {
-    tone("triangle", 1320, 1320, t, 0.6, 0.003, 0.12);
-    tone("sine", 2640, 2640, t, 0.2, 0.003, 0.08);
-    noise(t, 0.04, 6000, 8000, 0.35, 0.7, 0.003);
+    noise(t, 0.035, 3200, 2600, 0.35, "bandpass", 1.2, 0.002);
+    tone("sine", 170, 90, t, 0.35, 0.003, 0.07);
   } else if (kind === "flip") {
-    noise(t, 0.3, 2400, 650, 0.55, 0.9, 0.18);
-    noise(t + 0.28, 0.035, 3800, 5200, 0.5, 0.6, 0.003);
+    noise(t, 0.3, 2400, 650, 0.55, "bandpass", 0.9, 0.18);
+    noise(t + 0.28, 0.035, 3800, 5200, 0.45, "bandpass", 0.6, 0.003);
+    tone("sine", 120, 55, t + 0.28, 0.45, 0.004, 0.2);
   } else if (kind === "reveal") {
     const tier = opts.tier;
-    tone("sine", 72, 40, t, 0.55, 0.005, 0.7);
-    if (tier === "dark-matter" || tier === "invincible") {
-      tone("sine", 58, 30, t, 0.75, 0.01, 1.4);
-      noise(t, 0.6, 900, 120, 0.2, 0.7, 0.01);
-      if (tier === "invincible") {
-        for (let k = 0; k < 7; k++) noise(t + 0.05 + k * 0.06 + Math.random() * 0.03, 0.04, 2600, 4200, 0.12, 2, 0.003);
-        chord([220, 277, 330, 440], t + 0.06, 0.07, 1.6, "sawtooth", 2400);
-      } else {
-        chord([110, 131, 165], t + 0.05, 0.08, 1.8, "sawtooth", 900);
-      }
-    } else if (tier === "galaxy-opal") {
-      [1568, 1976, 2349, 3136, 3951].forEach((hz, k) => tone("sine", hz, hz, t + 0.04 + k * 0.07, 0.07, 0.004, 0.9));
-      chord([392, 494, 587], t + 0.02, 0.05, 1.3, "triangle", 2200);
-    } else if (tier === "pink-diamond") {
-      [[1318, 0], [1976, 0.02], [2637, 0.05]].forEach(([hz, later]) => {
-        tone("sine", hz, hz, t + later, 0.09, 0.003, 1.3);
-        tone("sine", hz * 2.76, hz * 2.76, t + later, 0.025, 0.002, 0.5);
-      });
-    } else {
-      tone("sine", 1760, 1760, t, 0.08, 0.004, 0.8);
-      tone("sine", 2637, 2637, t + 0.06, 0.05, 0.004, 0.7);
+    const big = tier === "goat" || tier === "invincible" || tier === "dark-matter";
+    // the impact
+    tone("sine", 74, 32, t, big ? 0.95 : 0.7, 0.006, big ? 1.4 : 1);
+    noise(t, 0.35, 700, 90, big ? 0.35 : 0.25, "lowpass", 0.7, 0.004);
+    // the braam, by tier
+    if (tier === "goat") braam([55, 82.4, 110, 138.6], t + 0.02, 0.14, 1900, 2);
+    else if (tier === "invincible") braam([55, 82.4, 110, 164.8], t + 0.02, 0.14, 1700, 2);
+    else if (tier === "dark-matter") braam([55, 82.4, 110, 130.8], t + 0.02, 0.15, 950, 2.1);
+    else if (tier === "galaxy-opal") braam([73.4, 110, 146.8, 185], t + 0.02, 0.1, 1600, 1.7);
+    else braam([82.4, 123.5, 164.8, 207.7], t + 0.02, 0.09, 1800, 1.6);
+    // air on top: a shimmer of noise, no notes
+    if (tier !== "dark-matter") noise(t + 0.05, 1.4, 6000, 9000, big ? 0.07 : 0.1, "highpass", 0.7, 0.35);
+    // Invincible crackles with electricity
+    if (tier === "invincible") {
+      for (let k = 0; k < 8; k++) noise(t + 0.05 + k * 0.07 + Math.random() * 0.03, 0.04, 2600, 4200, 0.16, "bandpass", 2, 0.003);
     }
   }
 }
@@ -4132,7 +4306,7 @@ if (reduceMotion) {
 // ease-out, 0.97 for controls, less for big surfaces)
 const PRESSABLE = ".lock-in-btn, .kit-slot, .agent-voice, .lb-btn, .lb-play, .header-link, .channel-visit, " +
   ".sound-switch, .story-photo, button.ww-spec, .theme-toggle, .ult-button, .video-row, .thumb, .shot, .shot-more, " +
-  ".peek-more, .peek-less, .peek-card, .craft-row, .link, .shot-meter, .play-replay";
+  ".peek-more, .peek-less, .peek-card, .craft-row, .link, .shot-meter, .play-replay, .pack-again";
 if (!reduceMotion) {
   document.addEventListener("pointerdown", (e) => {
     if (e.button > 0) return;
