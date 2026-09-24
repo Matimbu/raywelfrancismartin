@@ -2713,6 +2713,76 @@ function tink(fx, at, size = 60, duration = 380) {
     { duration, easing: "ease-out", fill: "forwards" }).finished.then(() => ring.remove());
 }
 
+// Recon Bolt's scan, as it looks in the game: the pulse itself is invisible;
+// as it sweeps out from the bolt, short violet ticks flicker along the edges
+// of everything it passes (here: the words, their notes, the spec pills, the
+// picture and the wall's top line), then fade. `sweep` is how long the pulse
+// takes to reach the far corner, the same as the words' reveal.
+function scanTicks(block, fx, x, y, reach, sweep) {
+  const box = block.getBoundingClientRect();
+  const ticks = [];
+  const along = (r, where, vertical) => {
+    // a few dashes along one edge of a box, at random spots
+    const len = vertical ? r.height : r.width;
+    const n = Math.max(1, Math.min(6, Math.round(len / 70)));
+    for (let k = 0; k < n; k++) {
+      const size = 7 + Math.random() * 15;
+      const at = (vertical ? r.top : r.left) + Math.random() * Math.max(1, len - size);
+      ticks.push(vertical
+        ? { x: where - box.left - 1, y: at - box.top, w: 2, h: size }
+        : { x: at - box.left, y: where - box.top - 1, w: size, h: 2 });
+    }
+  };
+  block.querySelectorAll(".ww-text, .ww-note, .ww-spec, .wordwall-art img").forEach((node) => {
+    const r = node.getBoundingClientRect();
+    if (!r.width) return;
+    along(r, r.bottom, false);
+    if (Math.random() < 0.6) along(r, r.top, false);
+    if (node.matches(".ww-spec, img")) {
+      along(r, r.left, true);
+      along(r, r.right, true);
+    }
+  });
+  const top = block.getBoundingClientRect();
+  along({ left: top.left, right: top.right, width: top.width, top: top.top, height: 0 }, top.top, false);
+  const bits = document.createDocumentFragment();
+  ticks.forEach((t) => {
+    const tick = el("span", "scan-tick");
+    tick.style.left = `${t.x}px`;
+    tick.style.top = `${t.y}px`;
+    tick.style.width = `${t.w}px`;
+    tick.style.height = `${t.h}px`;
+    bits.appendChild(tick);
+    const d = Math.hypot(t.x + t.w / 2 - x, t.y + t.h / 2 - y);
+    tick.animate([
+      { opacity: 0 },
+      { opacity: 1, offset: 0.08 },
+      { opacity: 0.35, offset: 0.22 },
+      { opacity: 1, offset: 0.34 },
+      { opacity: 0.8, offset: 0.6 },
+      { opacity: 0 }
+    ], { duration: 650, delay: (d / reach) * sweep, fill: "both" }).finished.then(() => tick.remove());
+  });
+  fx.appendChild(bits);
+}
+
+// A ring of short ticks around the bolt, like the dial on its reticle, that
+// flashes when it lands and on each pulse
+function tickCrown(fx, x, y, r = 16) {
+  for (let k = 0; k < 10; k++) {
+    const a = (k / 10) * Math.PI * 2;
+    const tick = el("span", "scan-tick");
+    tick.style.left = `${x + Math.cos(a) * r - 1}px`;
+    tick.style.top = `${y + Math.sin(a) * r - 3}px`;
+    tick.style.width = "2px";
+    tick.style.height = "6px";
+    tick.style.rotate = `${(a * 180) / Math.PI + 90}deg`;
+    fx.appendChild(tick);
+    tick.animate([{ opacity: 0, scale: "0.6" }, { opacity: 1, scale: "1", offset: 0.25 }, { opacity: 0, scale: "1.25" }],
+      { duration: 520, easing: "ease-out", fill: "both" }).finished.then(() => tick.remove());
+  }
+}
+
 // Recon Bolt on the real ability's timing (VALORANT wiki): Sova's bow comes
 // up and charges fully in a blink (both bars of the charge meter), the bolt
 // shoots straight into the word and sticks, and 0.667 s later it pulses,
@@ -2748,10 +2818,10 @@ function reconPing(block, item, at) {
   const hideBars = chargeBars(fx, { x: grip.x, y: grip.y + 64 }, 420);
   let pulses = 0;
   const pulse = () => {
-    // a few rings go out together, the way the bolt's sonar does
-    tink(fx, { x, y }, reach * 2, 1800);
-    setTimeout(() => tink(fx, { x, y }, reach * 1.4, 1300), 140);
-    setTimeout(() => tink(fx, { x, y }, reach, 1000), 280);
+    // like the game's scan: no ring, just ticks flickering along the edges
+    // of whatever the pulse sweeps over, and a crown of ticks at the bolt
+    scanTicks(block, fx, x, y, reach, 1800);
+    tickCrown(fx, x, y);
     const others = [...block.querySelectorAll(".ww-text")].filter((t) => !item.contains(t));
     if (!pulses++) killFeed(block, "recon", `${others.length} revealed`);
     others.forEach((t) => {
@@ -2780,7 +2850,7 @@ function reconPing(block, item, at) {
       stuck.style.left = `${x}px`;
       stuck.style.top = `${y}px`;
       fx.appendChild(stuck);
-      tink(fx, { x, y }, 40);
+      tickCrown(fx, x, y);
       setTimeout(pulse, 667);
       setTimeout(pulse, 667 + 1600);
       setTimeout(() => {

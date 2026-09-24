@@ -13,6 +13,10 @@
      from the glowing parts of his official art */
   --sova-core: #eafcff;
   --sova-cyan: #53ddf8;
+  /* Recon Bolt's scan ticks, sampled from the game */
+  --scan-tick: #9280e6;
+  --scan-core: #d9d2ff;
+  --scan-glow: #6e65ad;
   --sova-blue: #3794f0;
   /* the Shock Bolt's dome, sampled from the game */
   --shock-core: #d3e7fd;
@@ -884,6 +888,16 @@ button { font: inherit; color: inherit; }
 .wordwall.has-fx { position: relative; }
 .ww-fx { position: absolute; inset: 0; z-index: 2; overflow: hidden; pointer-events: none; }
 /* everything glows in Sova's blue: a bright core inside a wider bloom */
+/* Recon Bolt's scan: short violet ticks that flicker along edges as the
+   pulse sweeps past, sampled from the game */
+.scan-tick {
+  position: absolute;
+  border-radius: 1px;
+  background: linear-gradient(90deg, var(--scan-tick), var(--scan-core) 50%, var(--scan-tick));
+  box-shadow: 0 0 4px var(--scan-tick), 0 0 10px var(--scan-glow);
+  opacity: 0;
+  pointer-events: none;
+}
 .sova-ring {
   position: absolute;
   translate: -50% -50%;
