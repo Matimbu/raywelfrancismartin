@@ -1272,8 +1272,18 @@ function youtubeApi() {
   }
   return ytApi;
 }
-function watchForEnd(frame, tiktok, done) {
+// The play button on a cover: a drawn triangle (the ▶ character turns into
+// a blue emoji on iPhones) and the word, so it's clear which button starts it
+function playButton() {
+  const b = el("span", "play");
+  b.append(el("span", "play-mark"), el("span", "play-word", "Play"));
+  return b;
+}
+
+// report(state) hears "ready", "playing", "paused" and "ended"
+function watchPlayer(frame, tiktok, report) {
   let live = true;
+  const STATES = { 0: "ended", 1: "playing", 2: "paused" };
   if (tiktok) {
     const onMessage = (e) => {
       if (!live || e.source !== frame.contentWindow) return;
@@ -1285,7 +1295,9 @@ function watchForEnd(frame, tiktok, done) {
           return;
         }
       }
-      if (d && d["x-tiktok-player"] && d.type === "onStateChange" && d.value === 0) done();
+      if (!d || !d["x-tiktok-player"]) return;
+      if (d.type === "onPlayerReady") report("ready");
+      if (d.type === "onStateChange" && STATES[d.value]) report(STATES[d.value]);
     };
     addEventListener("message", onMessage);
     return () => {
@@ -1297,7 +1309,10 @@ function watchForEnd(frame, tiktok, done) {
     .then((YT) => {
       if (!live) return;
       frame.ytPlayer = new YT.Player(frame, {
-        events: { onStateChange: (e) => live && e.data === YT.PlayerState.ENDED && done() }
+        events: {
+          onReady: () => live && report("ready"),
+          onStateChange: (e) => live && STATES[e.data] && report(STATES[e.data])
+        }
       });
     })
     .catch(() => {});
@@ -1393,9 +1408,27 @@ SITE.youtube.forEach((ch, i) => {
     if (play) {
       const frame = tiktok ? tiktokFrame(v) : youtubeFrame(v);
       swapIn(frame, (reveal) => frame.addEventListener("load", reveal, { once: true }));
-      // when it's over, its cover comes back
-      stopWatching = watchForEnd(frame, tiktok, () => {
-        if (current === v && playing) show(v, false);
+      // The caption follows the player: if it's ready but hasn't started
+      // after a moment (iPhones block videos with sound from starting on
+      // their own), it asks for a tap on the video. When it's over, the
+      // cover comes back.
+      let started = false;
+      let nudge = null;
+      stopWatching = watchPlayer(frame, tiktok, (state) => {
+        if (current !== v || !playing) return;
+        if (state === "ready") {
+          clearTimeout(nudge);
+          nudge = setTimeout(() => {
+            if (!started && current === v && playing) captionState.textContent = "Tap the video";
+          }, 2500);
+        } else if (state === "playing") {
+          started = true;
+          captionState.textContent = "Now playing";
+        } else if (state === "paused") {
+          captionState.textContent = "Paused";
+        } else if (state === "ended") {
+          show(v, false);
+        }
       });
       return;
     }
@@ -1403,7 +1436,7 @@ SITE.youtube.forEach((ch, i) => {
     btn.type = "button";
     btn.setAttribute("aria-label", `Play ${v.title}`);
     const img = tiktok ? tiktokThumb(v) : youtubeThumb(v);
-    btn.append(img, el("span", "play", "▶"));
+    btn.append(img, playButton());
     btn.addEventListener("click", () => {
       // A page opened straight from disk has no address to send, so
       // YouTube would refuse to play it here; open YouTube instead.
@@ -1502,7 +1535,7 @@ SITE.youtube.forEach((ch, i) => {
     // No video to feature: the stage just links to the channel
     const link = el("a", "thumb");
     linkify(link, ch.url);
-    link.appendChild(el("span", "play", "▶"));
+    link.appendChild(playButton());
     stage.appendChild(link);
     caption.remove();
     fit();
@@ -1603,8 +1636,9 @@ addEventListener("resize", () => stageFits.forEach((fit) => fit()));
   // they've arrived (someone landing here from the share link would
   // otherwise see blank cards dealt), waiting 2.5 s at most
   const covers = [...fan.querySelectorAll("img")];
+  const shown = () => covers.filter((img) => img.offsetParent !== null); // phones hide the outer pair
   const coversIn = () => Promise.race([
-    Promise.all(covers.map((img) => img.complete ? null : new Promise((done) => {
+    Promise.all(shown().map((img) => img.complete ? null : new Promise((done) => {
       img.addEventListener("load", done, { once: true });
       img.addEventListener("error", done, { once: true });
     }))),
@@ -1616,7 +1650,7 @@ addEventListener("resize", () => stageFits.forEach((fit) => fit()));
     new IntersectionObserver(([entry]) => {
       if (entry.intersectionRatio >= 0.35 && !onScreen) {
         onScreen = true;
-        covers.forEach((img) => (img.loading = "eager"));
+        shown().forEach((img) => (img.loading = "eager"));
         coversIn().then(() => {
           if (!onScreen) return;
           peek.classList.add("dealt", "dealing");

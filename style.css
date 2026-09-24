@@ -1809,18 +1809,29 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
 .stage-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stage-open { color: var(--muted); transition: color 0.3s ease; }
 @media (hover: hover) and (pointer: fine) { .stage-open:hover { color: var(--fg); } }
+/* the play button on a cover: a pill that says Play */
 .play {
   position: relative;
-  width: 64px;
-  height: 64px;
-  display: grid;
-  place-items: center;
-  padding-left: 4px;
-  border-radius: 50%;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px 0 18px;
+  border-radius: 99px;
   background: var(--fg);
   color: var(--bg);
-  font-size: 18px;
-  transition: transform 0.6s var(--ease), background-color 0.3s ease;
+  font: 500 12px/1 var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  transition: transform 0.6s var(--ease), background-color 0.3s ease, color 0.3s ease;
+}
+.play-mark {
+  width: 0;
+  height: 0;
+  border-left: 10px solid currentColor;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
 }
 @media (hover: hover) and (pointer: fine) { .thumb:hover img { transform: scale(1.04); filter: none; } }
 @media (hover: hover) and (pointer: fine) { .thumb:hover .play { transform: scale(1.14); background: var(--accent); color: #fff; } }
@@ -2702,13 +2713,11 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   .peek-card[data-pos="front"] { --w: 150px; --h: 267px; }
   .peek-card[data-pos="left"] { --x: -92px; --y: 16px; --r: -7deg; }
   .peek-card[data-pos="right"] { --x: 92px; --y: 16px; --r: 7deg; }
-  .peek-fan.five .peek-card { --w: 118px; --h: 210px; }
-  .peek-fan.five .peek-card[data-pos="front"] { --w: 132px; --h: 235px; }
-  .peek-fan.five .peek-card[data-pos="left"] { --x: -64px; --y: 12px; --r: -6deg; }
-  .peek-fan.five .peek-card[data-pos="right"] { --x: 64px; --y: 12px; --r: 6deg; }
-  .peek-fan.five .peek-card[data-pos="far-left"], .peek-fan.five .peek-card[data-pos="far-right"] { --w: 100px; --h: 178px; }
-  .peek-fan.five .peek-card[data-pos="far-left"] { --x: -118px; --y: 36px; --r: -12deg; }
-  .peek-fan.five .peek-card[data-pos="far-right"] { --x: 118px; --y: 36px; --r: 12deg; }
+  /* phones keep the middle three, big enough to show the covers off */
+  .peek-fan.five { height: 300px; }
+  .peek-fan.five .peek-card[data-pos^="far"] { display: none; }
+  .peek-fan.five .peek-card[data-pos="left"] { --x: -92px; --y: 16px; --r: -7deg; }
+  .peek-fan.five .peek-card[data-pos="right"] { --x: 92px; --y: 16px; --r: 7deg; }
   /* the kill feed sits under the ult's name instead of across it */
   .kill-feed { top: 46px; }
   .header { grid-template-columns: 1fr auto; }
