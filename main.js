@@ -80,7 +80,9 @@ document.addEventListener("click", (e) => {
   if (target === null) return;
   e.preventDefault();
   if (lenis) {
-    lenis.scrollTo(target, { offset: target === 0 ? 0 : -60, duration: 1.6 });
+    // Lenis already keeps the header's 60 px clear (it reads the page's
+    // scroll-padding-top, like the browser does), so no extra offset here
+    lenis.scrollTo(target, { duration: 1.6 });
   } else if (target === 0) {
     scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
   } else {
@@ -147,7 +149,9 @@ function updateLightWalls() {
     const items = words.children;
     const lit = Math.round(clamp01((vh * 0.85 - r.top) / (vh * 0.45)) * items.length);
     [...items].forEach((item, i) => item.classList.toggle("lit", i < lit));
-    if (words.board) words.board.querySelectorAll(".play-step").forEach((step, i) => step.classList.toggle("on", i < lit));
+    if (words.board && !words.board.dataset.replaying) {
+      words.board.querySelectorAll(".play-step").forEach((step, i) => step.classList.toggle("on", i < lit));
+    }
   });
 }
 
@@ -194,15 +198,19 @@ function shuffleWord(node, text, duration = 900, delay = 0) {
     const r = abc[(Math.random() * 26) | 0];
     return c === c.toUpperCase() ? r.toUpperCase() : r;
   };
+  // The word keeps its exact size while it shuffles: a wider stand-in letter
+  // spills over for a moment instead of pushing a word onto a new row, which
+  // made the wall (and the whole page under it) jump up and down
   node.style.display = "inline-block";
-  node.style.minWidth = `${node.offsetWidth}px`;
+  node.style.width = `${node.offsetWidth}px`;
+  node.style.whiteSpace = "nowrap";
   setTimeout(() => {
     const start = performance.now();
     const step = (now) => {
       const p = Math.min(1, (now - start) / duration);
       node.textContent = chars.map((c, i) => (!/[a-z]/i.test(c) || p >= settleAt[i] ? c : any(c))).join("");
       if (p < 1) requestAnimationFrame(step);
-      else node.style.minWidth = "";
+      else node.style.width = node.style.whiteSpace = "";
     };
     requestAnimationFrame(step);
   }, delay);
@@ -597,29 +605,45 @@ try {
   muted = localStorage.getItem("sovaMuted") === "1";
 } catch (e) {}
 
-// The back of a starting-five card: the player as an NBA 2K MyTeam card, with
-// the overall and the position in the corner, the tier's colours around the
-// edge and over the photo, the name, and three badges coloured by level
+// The back of a starting-five card: the player as an NBA 2K26 MyTEAM card.
+// Like the game's cards: the overall in a hexagon, the tier's colours around
+// a chamfered edge and washed over the photo, the tier top right, three badges
+// on slanted tags (like the walkout clues), and a dark name plate with the
+// position, the first name small over the last name, big. Before the pack is
+// opened, the MT side of the card covers it (see the wall renderer).
 function twoKCard(w) {
   const c = w.card;
   const back = el("span", "flip-face tk");
   back.dataset.tier = c.tier.toLowerCase().replace(/\s+/g, "-");
   back.setAttribute("aria-hidden", "true");
+  const inner = el("span", "tk-inner");
   const photo = el("img", "tk-photo");
   photo.src = w.image;
   photo.alt = "";
   photo.loading = "lazy";
   photo.decoding = "async";
-  const corner = el("span", "tk-corner");
-  corner.append(el("span", "tk-ovr", String(c.ovr)), el("span", "tk-pos mono", w.pos || ""));
+  const ovr = el("span", "tk-ovr");
+  ovr.appendChild(el("b", "", String(c.ovr)));
+  if (String(c.ovr).length > 2) ovr.classList.add("wide"); // a 100 needs a smaller number
   const badges = el("span", "tk-badges");
   (c.badges || []).slice(0, 3).forEach(([name, level]) => {
     const badge = el("span", "tk-badge");
     badge.dataset.level = String(level).toLowerCase();
-    badge.append(el("i"), el("span", "tk-badge-name", name), el("span", "tk-level mono", level));
+    const label = el("span", "tk-badge-label");
+    label.append(el("i"), el("span", "tk-badge-name", name), el("span", "tk-level", level));
+    badge.appendChild(label);
     badges.appendChild(badge);
   });
-  back.append(photo, corner, el("span", "tk-tier mono", c.tier), el("span", "tk-name", c.name || w.text), badges);
+  const full = (c.name || w.text).trim();
+  const cut = full.lastIndexOf(" ");
+  const names = el("span", "tk-names");
+  names.append(el("span", "tk-first", cut > 0 ? full.slice(0, cut) : ""), el("span", "tk-last", cut > 0 ? full.slice(cut + 1) : full));
+  const plate = el("span", "tk-plate");
+  plate.append(el("span", "tk-pos", w.pos || ""), names, el("span", "tk-gem"));
+  inner.append(photo, ovr, el("span", "tk-tier", c.tier), badges, plate, el("span", "tk-shine"), el("span", "tk-holo"));
+  const pack = el("span", "tk-pack");
+  pack.appendChild(el("span", "tk-mt", "MT"));
+  back.append(inner, pack);
   return back;
 }
 
@@ -631,7 +655,6 @@ function twoKCard(w) {
 // to the rim for the and-one (Drop step spin)
 function playBoard() {
   const board = el("div", "play-board reveal");
-  board.setAttribute("aria-hidden", "true");
   const f = (n) => n.toFixed(1);
   const bez = ([p0, c1, c2, p3], t) => {
     const u = 1 - t;
@@ -711,6 +734,28 @@ function playBoard() {
       <text class="fade and-one" x="96" y="66" style="--at:0.8s">and 1!</text>
     </g>
   </svg>`;
+  board.querySelector("svg").setAttribute("aria-hidden", "true");
+  // Replay: the board wipes and draws the whole move again, a step at a time
+  // (tap the board, or its Replay button)
+  const replay = el("button", "play-replay mono");
+  replay.type = "button";
+  replay.setAttribute("aria-label", "Replay the play");
+  replay.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.2 8.6A5.3 5.3 0 1 1 11.6 4.4"/><path d="M12.4 1.6v3.3H9.1"/></svg><span>Replay</span>';
+  board.appendChild(replay);
+  let replaying = 0;
+  const again = () => {
+    const run = ++replaying;
+    const steps = [...board.querySelectorAll(".play-step")];
+    board.dataset.replaying = "1";
+    board.classList.add("resetting");
+    steps.forEach((step) => step.classList.remove("on"));
+    void board.offsetWidth; // the wipe is instant, then it draws again
+    board.classList.remove("resetting");
+    const at = [250, 950, 1650, 3200];
+    steps.forEach((step, i) => setTimeout(() => run === replaying && step.classList.add("on"), at[i] ?? 250 + i * 900));
+    setTimeout(() => run === replaying && delete board.dataset.replaying, 4600);
+  };
+  board.addEventListener("click", again);
   return board;
 }
 
@@ -848,12 +893,35 @@ function playBoard() {
     // (a real move, not the card sliding under a still cursor as you scroll)
     // and back when it leaves. Phones turn it on the first tap (one at a
     // time), and a tap on the turned card opens its link.
+    // Not while the pack is still being opened.
     if (w.card && canHover) {
-      onHover(item, () => item.classList.add("flipped"));
-      item.addEventListener("mouseleave", () => item.classList.remove("flipped"));
+      onHover(item, () => {
+        if (!words.classList.contains("packed")) item.classList.add("flipped");
+      });
+      item.addEventListener("mouseleave", () => item.classList.remove("flipped", "tilting"));
+      // Holo: once it has turned, the card leans toward the cursor and the
+      // shine on it follows, like tilting a card in 2K26's card view
+      if (!reduceMotion) {
+        item.addEventListener("transitionend", (e) => {
+          if (e.propertyName === "transform" && e.target.classList.contains("flip") && item.classList.contains("flipped")) {
+            item.classList.add("tilting");
+          }
+        });
+        item.addEventListener("mousemove", (e) => {
+          if (!item.classList.contains("flipped")) return;
+          const r = item.querySelector(".ww-card-img").getBoundingClientRect();
+          const x = clamp01((e.clientX - r.left) / r.width) - 0.5;
+          const y = clamp01((e.clientY - r.top) / r.height) - 0.5;
+          item.style.setProperty("--tilt-x", `${(y * 16).toFixed(2)}deg`);
+          item.style.setProperty("--tilt-y", `${(x * 18).toFixed(2)}deg`);
+          item.style.setProperty("--mx", `${((x + 0.5) * 100).toFixed(1)}%`);
+          item.style.setProperty("--my", `${((y + 0.5) * 100).toFixed(1)}%`);
+        });
+      }
     } else if (w.card) {
       item.addEventListener("click", (e) => {
         const turned = item.classList.contains("flipped");
+        if (words.classList.contains("packed")) return e.preventDefault();
         if (turned && w.link) return;
         e.preventDefault();
         words.querySelectorAll(".flipped").forEach((c) => c.classList.remove("flipped"));
@@ -897,6 +965,33 @@ function playBoard() {
     block.appendChild(board);
     words.board = board;
     if (!block.classList.contains("lighting")) board.querySelectorAll(".play-step").forEach((step) => step.classList.add("on"));
+  }
+
+  // 2K cards come in face down, like opening a MyTEAM pack in 2K26: each MT
+  // card glows in its tier's colour, and the first time the five are on
+  // screen they turn over one by one. Tapping one turns it straight away
+  // (the game's Flip Card). Once they're all over, the 2K side shows on hover.
+  const packCards = [...words.querySelectorAll(".ww-card.flips")];
+  if (packCards.length && !reduceMotion) {
+    words.classList.add("packed");
+    packCards.forEach((c) => c.classList.add("face-down"));
+    const turn = (c) => {
+      if (!c.classList.contains("face-down")) return;
+      c.classList.remove("face-down");
+      if (!words.querySelector(".face-down")) setTimeout(() => words.classList.replace("packed", "opened"), 800);
+    };
+    packCards.forEach((c) => c.addEventListener("click", (e) => {
+      if (!c.classList.contains("face-down")) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      turn(c);
+    }, true));
+    const deal = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      deal.disconnect();
+      packCards.forEach((c, k) => setTimeout(() => turn(c), 650 + k * 450));
+    }, { threshold: 0.5 });
+    deal.observe(words);
   }
 
   // Card labels roll from their number to their name once the cards are on
@@ -3815,7 +3910,7 @@ if (reduceMotion) {
 // ease-out, 0.97 for controls, less for big surfaces)
 const PRESSABLE = ".lock-in-btn, .kit-slot, .agent-voice, .lb-btn, .lb-play, .header-link, .channel-visit, " +
   ".sound-switch, .story-photo, button.ww-spec, .theme-toggle, .ult-button, .video-row, .thumb, .shot, .shot-more, " +
-  ".peek-more, .peek-less, .peek-card, .craft-row, .link, .shot-meter";
+  ".peek-more, .peek-less, .peek-card, .craft-row, .link, .shot-meter, .play-replay";
 if (!reduceMotion) {
   document.addEventListener("pointerdown", (e) => {
     if (e.button > 0) return;

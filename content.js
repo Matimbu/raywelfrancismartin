@@ -70,10 +70,12 @@ const SITE = {
   // `notice` adds a line under the wall (e.g. Riot's fan-content notice).
   // `layout: "cards"` shows each word as a photo card (`image`, `pos`, `alt`);
   // `credit` can also be a list when a card uses more than one photo.
-  // A card's `card` turns its photo over into an NBA 2K MyTeam card (hover on
-  // computers, tap on phones): `ovr`, `tier` ("Dark Matter", "Galaxy Opal",
-  // "Pink Diamond" or "Diamond"), the `name` on it and three `badges`, each
-  // [name, level] with the level "HOF", "Gold", "Silver" or "Bronze".
+  // A card's `card` turns its photo over into an NBA 2K26 MyTEAM card (hover
+  // on computers, tap on phones), and the cards open like a pack the first
+  // time they're on screen: `ovr`, `tier` ("Invincible", "Dark Matter",
+  // "Galaxy Opal", "Pink Diamond" or "Diamond"), the `name` on it and three
+  // `badges`, each [name, level] with the level "HOF", "Gold", "Silver" or
+  // "Bronze".
   // `board: true` draws the words on a coach's play board beside the wall, one
   // step for each word as it lights up (made for On the court with `lightUp`).
   // `specs` lists small settings under the words; `copy: true` adds a Copy button.
@@ -148,7 +150,8 @@ const SITE = {
           pos: "SF", text: "MJ", note: "six rings",
           link: "https://en.wikipedia.org/wiki/Michael_Jordan",
           image: "assets/five/mj-bulls.jpg", alt: "Michael Jordan rising for a jump shot for the Bulls",
-          card: { ovr: 99, tier: "Dark Matter", name: "Michael Jordan", badges: [["Clutch Shooter", "HOF"], ["Middy Magician", "HOF"], ["Clamps", "HOF"]] }
+          // the GOAT gets 2K26's top tier (was 99 Dark Matter)
+          card: { ovr: 100, tier: "Invincible", name: "Michael Jordan", badges: [["Clutch Shooter", "HOF"], ["Middy Magician", "HOF"], ["Clamps", "HOF"]] }
         },
         {
           pos: "PF", text: "LeBron", note: "the King",
@@ -320,7 +323,12 @@ const SITE = {
     note: "Travis Scott, Drake, Mustard, Offset and more",
     url: "https://open.spotify.com/playlist/4Y8w4bIWDu7ryf8ejl4O5V",
     // One song you're into right now (Share > Copy song link). null hides it.
-    pick: "https://open.spotify.com/track/6MWKRxEIBl14lEWFdCCVaa"
+    // It has to be playable on Spotify: re-uploads like "Sdp (Interlude) -
+    // Extended version" by deprived have no preview, so nothing plays.
+    // This is Travis Scott's own "sdp interlude" (Birds in the Trap Sing
+    // McKnight, the original explicit version; the clean one is
+    // 7wsRkLYcvCn4y18OKeMpvr).
+    pick: "https://open.spotify.com/track/4gh0ZnHzaTMT1sDga7Ek0N"
   },
 
   beliefs: [

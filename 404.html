@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="/raywelfrancismartin/assets/icons/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;700&family=Geist+Mono:wght@400;500&family=Barlow+Condensed:wght@600;800&display=swap" rel="stylesheet">
   <script>
     try { var t = localStorage.getItem("theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
   </script>
@@ -23,7 +23,7 @@
     [data-theme="light"] {
       --bg: #f2f0eb; --fg: #111110; --muted: #6d6a64; --line: #dcd8cf; --accent: #e2470b;
     }
-    :root { --green: #3ddc84; --ease-out: cubic-bezier(0.23, 1, 0.32, 1); }
+    :root { --green: #3ddc84; --ease-out: cubic-bezier(0.23, 1, 0.32, 1); --cond: "Barlow Condensed", "Arial Narrow", sans-serif; }
     * { margin: 0; box-sizing: border-box; }
     body {
       min-height: 100svh;
@@ -117,39 +117,27 @@
       pointer-events: none;
     }
     .rock svg { display: block; width: 100%; height: 100%; }
-    /* the meter, by the ball like in 2K: it fills while you hold */
+    /* the meter: NBA 2K26's "Curve" to the side of the shooter, with its
+       green window showing near the top. It fills while you hold, and turns
+       green, yellow or red on the release */
     .meter {
       position: absolute;
-      left: 30px;
-      bottom: 16px;
-      width: 8px;
-      height: 96px;
-      border-radius: 4px;
-      background: color-mix(in srgb, var(--fg) 12%, transparent);
+      left: 18px;
+      bottom: 26px;
+      width: 40px;
+      height: 120px;
+      overflow: visible;
       opacity: 0;
       transition: opacity 0.3s ease;
     }
     .court.holding .meter, .meter.green, .meter.close, .meter.off { opacity: 1; transition-duration: 0.12s; }
-    .meter-fill {
-      position: absolute;
-      inset: 0;
-      border-radius: 4px;
-      background: var(--fg);
-      transform-origin: 50% 100%;
-      transform: scaleY(0);
-    }
-    .meter-window {
-      position: absolute;
-      left: -3px;
-      right: -3px;
-      bottom: 86%;
-      height: 11%;
-      border: 1px solid var(--green);
-      border-radius: 2px;
-    }
-    .meter.green .meter-fill { background: var(--green); box-shadow: 0 0 14px var(--green); }
-    .meter.close .meter-fill { background: #f2c230; }
-    .meter.off .meter-fill { background: var(--accent); }
+    .meter path { fill: none; stroke-linecap: round; }
+    .meter-track { stroke: color-mix(in srgb, var(--fg) 16%, transparent); stroke-width: 8; }
+    .meter-window { stroke: var(--green); stroke-width: 12; stroke-dasharray: 0.11 2; stroke-dashoffset: -0.86; opacity: 0.45; }
+    .meter-fill { stroke: var(--fg); stroke-width: 8; stroke-dasharray: 1 2; stroke-dashoffset: 1; }
+    .meter.green .meter-fill { stroke: var(--green); filter: drop-shadow(0 0 5px var(--green)); }
+    .meter.close .meter-fill { stroke: #f2c230; }
+    .meter.off .meter-fill { stroke: #ff4d4d; }
     /* what happened, big, and how the release was timed, small */
     .result {
       position: absolute;
@@ -172,11 +160,86 @@
     .call[data-result="bucket"] { color: var(--fg); }
     .call[data-result="brick"] { color: var(--muted); }
     .call[data-result="airball"] { color: var(--accent); }
-    .timing { margin-top: 8px; color: var(--muted); font-size: 11px; min-height: 1.3em; }
-    .tally { margin-top: 12px; color: var(--muted); font-size: 11px; }
+    /* 2K's shot feedback: dark panels with the timing (green, yellow or
+       red) and the coverage. There's never a defender on a 404. */
+    .panels {
+      display: grid;
+      justify-items: end;
+      gap: 4px;
+      margin-top: 10px;
+      opacity: 0;
+      translate: 0 6px;
+      transition: opacity 0.15s ease, translate 0.15s ease;
+    }
+    .panels.on { opacity: 1; translate: 0 0; transition: opacity 0.25s var(--ease-out), translate 0.25s var(--ease-out); }
+    .panel {
+      --tone: var(--green);
+      display: grid;
+      min-width: 112px;
+      padding: 4px 10px 5px;
+      border: 1px solid rgb(255 255 255 / 0.07);
+      border-top: 2px solid var(--tone);
+      background: linear-gradient(180deg, #1d2023, #141618);
+      text-align: left;
+      font-family: var(--cond);
+      text-transform: uppercase;
+      line-height: 1.05;
+    }
+    .panel + .panel { margin-right: 22px; }
+    .panel span { color: #e9e9e6; font-weight: 600; font-size: 12px; letter-spacing: 0.05em; }
+    .panel b { color: var(--tone); font-weight: 800; font-size: 17px; letter-spacing: 0.02em; }
+    .panels[data-grade="close"] .panel-timing { --tone: #f2c230; }
+    .panels[data-grade="off"] .panel-timing { --tone: #ff4d4d; }
+    .tally-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      max-width: 640px;
+      margin-top: 12px;
+    }
+    .tally { color: var(--muted); font-size: 11px; }
+    .sound {
+      flex: none;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 12px 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: none;
+      color: var(--muted);
+      font-size: 10px;
+      cursor: pointer;
+      transition: color 0.2s ease, border-color 0.2s ease;
+    }
+    .sound svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+    .sound .waves { transition: opacity 0.2s ease; }
+    .sound.off .waves { opacity: 0; }
+    .sound .cross { opacity: 0; transition: opacity 0.2s ease; }
+    .sound.off .cross { opacity: 1; }
+    .row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+    .row .home { margin-top: 0; }
+    .share {
+      display: inline-flex;
+      align-items: center;
+      padding: 14px 20px;
+      border: 1px solid var(--accent);
+      border-radius: 999px;
+      background: none;
+      color: var(--fg);
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    .share[hidden] { display: none; }
+    @media (hover: hover) and (pointer: fine) {
+      .sound:hover { color: var(--fg); border-color: var(--muted); }
+      .share:hover { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+    }
     @media (prefers-reduced-motion: reduce) {
       .ball { animation: none; }
-      .call, .call.on { translate: none; }
+      .call, .call.on, .panels, .panels.on { translate: none; }
     }
   </style>
 </head>
@@ -197,11 +260,27 @@
         <path class="rim" d="M30 96 A23 4 0 0 0 76 96 L78 96"/>
         <path class="net" d="M31 97 L38 134 M40 99.5 L44 135 M53 100 L53 136 M66 99.5 L62 135 M75 97 L68 134 M33 108 Q53 115 73 108 M36 121 Q53 127 70 121 M38 134 Q53 138 68 134"/>
       </svg>
-      <span class="meter" aria-hidden="true"><i class="meter-fill"></i><i class="meter-window"></i></span>
-      <div class="result" aria-live="polite"><p class="call"></p><p class="timing mono"></p></div>
+      <svg class="meter" viewBox="0 0 40 120" aria-hidden="true">
+        <path class="meter-track" pathLength="1" d="M31 114 Q 1 60 31 6"/>
+        <path class="meter-window" pathLength="1" d="M31 114 Q 1 60 31 6"/>
+        <path class="meter-fill" pathLength="1" d="M31 114 Q 1 60 31 6"/>
+      </svg>
+      <div class="result" aria-live="polite">
+        <p class="call"></p>
+        <div class="panels">
+          <p class="panel panel-timing"><span>Timing</span><b></b></p>
+          <p class="panel"><span>Coverage</span><b>Wide open</b></p>
+        </div>
+      </div>
     </div>
-    <p class="tally mono">Hold to shoot, let go at the top of the meter</p>
-    <a class="home home-link mono" href="/raywelfrancismartin/">Back to the site ↩</a>
+    <div class="tally-row">
+      <p class="tally mono">Hold to shoot, let go at the top of the meter</p>
+      <button class="sound mono" type="button" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="waves" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/><path class="cross" d="m17 9 5 6M22 9l-5 6"/></svg><span>Sound on</span></button>
+    </div>
+    <div class="row">
+      <a class="home home-link mono" href="/raywelfrancismartin/">Back to the site ↩</a>
+      <button class="share mono" type="button" hidden data-goatcounter-click="airball-share" data-goatcounter-title="Shared an Airball streak"><span>Share my streak</span></button>
+    </div>
   </main>
   <footer class="mono"><span>Malolos, Bulacan</span><a class="home-link" href="/raywelfrancismartin/#connect">Say hi ↗</a></footer>
   <script>
@@ -212,11 +291,12 @@
       });
     }
 
-    // Take a shot, NBA 2K style: hold (mouse, finger, Space or Enter) and the
-    // meter fills in 0.9 s; let go inside the green window at the top and it's
-    // a green, nothing but net. A little early or late rattles in about half
-    // the time and bricks the rest; way off is an airball. A quick tap starts
-    // the meter and the next tap lets go, for thumbs.
+    // Take a shot, NBA 2K26 style: hold (mouse, finger, Space or Enter) and
+    // the curve meter by the ball fills in 0.9 s; let go inside its green
+    // window at the top and it's a green, nothing but net. A little early or
+    // late rattles in about half the time and bricks the rest; way off is an
+    // airball. The timing shows in 2K's panels. A quick tap starts the meter
+    // and the next tap lets go, for thumbs.
     (() => {
       const court = document.getElementById("court");
       const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -226,8 +306,11 @@
       const net = court.querySelector(".net");
       const rims = court.querySelectorAll(".rim");
       const call = court.querySelector(".call");
-      const timing = court.querySelector(".timing");
+      const panels = court.querySelector(".panels");
+      const timing = court.querySelector(".panel-timing b");
       const tally = document.querySelector(".tally");
+      const share = document.querySelector(".share");
+      const soundSwitch = document.querySelector(".sound");
       const FILL = 900;
       const R = 13; // the ball's radius
       const CALLS = { swish: "Green!", bucket: "Bucket.", brick: "Brick.", airball: "Airball." };
@@ -235,8 +318,109 @@
       let pressedAt = 0;
       let tapped = false;
       let raf = 0;
-      let shots = 0, made = 0, greens = 0, streak = 0, best = 0;
-      try { best = Number(localStorage.getItem("airballBest")) || 0; } catch (e) {}
+      let shots = 0, made = 0, greens = 0, streak = 0, best = 0, greenRun = 0, bestGreens = 0;
+      try {
+        best = Number(localStorage.getItem("airballBest")) || 0;
+        bestGreens = Number(localStorage.getItem("airballBestGreens")) || 0;
+      } catch (e) {}
+
+      // Sounds, made right here with Web Audio (no files): the net's swish,
+      // the rim's clank, the floor's thump and the chime of a green. They
+      // start with your first shot, and the switch mutes them (remembered).
+      const sound = (() => {
+        let ctx = null;
+        let muted = false;
+        try { muted = localStorage.getItem("airballMuted") === "1"; } catch (e) {}
+        const context = () => {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return null;
+          if (!ctx) ctx = new AC();
+          if (ctx.state === "suspended") ctx.resume();
+          return ctx;
+        };
+        const envelope = (c, peak, at, attack, decay) => {
+          const g = c.createGain();
+          g.gain.setValueAtTime(0.0001, at);
+          g.gain.exponentialRampToValueAtTime(peak, at + attack);
+          g.gain.exponentialRampToValueAtTime(0.0001, at + attack + decay);
+          g.connect(c.destination);
+          return g;
+        };
+        const noise = (c, secs) => {
+          const buf = c.createBuffer(1, Math.ceil(c.sampleRate * secs), c.sampleRate);
+          const d = buf.getChannelData(0);
+          for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+          const src = c.createBufferSource();
+          src.buffer = buf;
+          return src;
+        };
+        const kinds = {
+          swish(c, at) {
+            // the net: a soft, bright rush of air that falls away
+            const n = noise(c, 0.5);
+            const f = c.createBiquadFilter();
+            f.type = "bandpass";
+            f.Q.value = 0.9;
+            f.frequency.setValueAtTime(5200, at);
+            f.frequency.exponentialRampToValueAtTime(2400, at + 0.4);
+            n.connect(f).connect(envelope(c, 0.3, at, 0.03, 0.42));
+            n.start(at);
+            n.stop(at + 0.5);
+          },
+          clank(c, at) {
+            // the rim: a few metal partials that ring and die
+            [[587, 0.16, 0.5], [1374, 0.08, 0.35], [2211, 0.05, 0.25]].forEach(([hz, peak, decay]) => {
+              const o = c.createOscillator();
+              o.type = "triangle";
+              o.frequency.value = hz;
+              o.connect(envelope(c, peak, at, 0.004, decay));
+              o.start(at);
+              o.stop(at + decay + 0.05);
+            });
+          },
+          bounce(c, at, level = 1) {
+            // the floor: a low thump, softer each bounce
+            const o = c.createOscillator();
+            o.frequency.setValueAtTime(150, at);
+            o.frequency.exponentialRampToValueAtTime(55, at + 0.12);
+            o.connect(envelope(c, 0.45 * level, at, 0.005, 0.15));
+            o.start(at);
+            o.stop(at + 0.2);
+          },
+          green(c, at) {
+            // the green: a bright two-note chime
+            [[1568, 0], [2349, 0.07]].forEach(([hz, later]) => {
+              const o = c.createOscillator();
+              o.frequency.value = hz;
+              o.connect(envelope(c, 0.14, at + later, 0.01, 0.6));
+              o.start(at + later);
+              o.stop(at + later + 0.7);
+            });
+          }
+        };
+        const show = () => {
+          soundSwitch.setAttribute("aria-pressed", String(!muted));
+          soundSwitch.querySelector("span").textContent = muted ? "Sound off" : "Sound on";
+          soundSwitch.classList.toggle("off", muted);
+        };
+        soundSwitch.addEventListener("click", () => {
+          muted = !muted;
+          try { localStorage.setItem("airballMuted", muted ? "1" : "0"); } catch (e) {}
+          show();
+        });
+        show();
+        return {
+          // `ms` from now
+          play(kind, ms = 0, level) {
+            if (muted) return;
+            const c = context();
+            if (c) kinds[kind](c, c.currentTime + ms / 1000, level);
+          },
+          wake() {
+            if (!muted) context();
+          }
+        };
+      })();
 
       const easeOut = (t) => 1 - (1 - t) ** 3;
       const rest = () => ({ x: 70, y: court.clientHeight - R });
@@ -247,26 +431,28 @@
       addEventListener("resize", () => state === "idle" && place(rest()));
 
       // pieces of a flight: an arc (even speed across, gravity up and down),
-      // a drop (speeding up) and a hop off the rim or the floor
-      const arc = (a, b, lift, ms) => {
+      // a drop (speeding up) and a hop off the rim or the floor. `hit` is the
+      // sound when the ball gets to the end of the piece.
+      const arc = (a, b, lift, ms, hit) => {
         const c = { x: (a.x + b.x) / 2, y: Math.min(a.y, b.y) - lift * 2 };
-        return { ms, at: (t) => ({ x: (1 - t) ** 2 * a.x + 2 * (1 - t) * t * c.x + t * t * b.x, y: (1 - t) ** 2 * a.y + 2 * (1 - t) * t * c.y + t * t * b.y }) };
+        return { ms, hit, at: (t) => ({ x: (1 - t) ** 2 * a.x + 2 * (1 - t) * t * c.x + t * t * b.x, y: (1 - t) ** 2 * a.y + 2 * (1 - t) * t * c.y + t * t * b.y }) };
       };
-      const drop = (a, b, ms) => ({ ms, at: (t) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * (0.35 * t + 0.65 * t * t) }) });
+      const drop = (a, b, ms, hit) => ({ ms, hit, at: (t) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * (0.35 * t + 0.65 * t * t) }) });
 
       const press = () => {
         if (state === "holding" && tapped) return release();
         if (state !== "idle") return;
+        sound.wake();
         state = "holding";
         tapped = false;
         pressedAt = performance.now();
         court.classList.add("holding");
-        meter.className = "meter";
+        meter.classList.remove("green", "close", "off");
         call.classList.remove("on");
-        timing.textContent = "";
+        panels.classList.remove("on");
         const tick = (now) => {
           const p = (now - pressedAt) / FILL;
-          fill.style.transform = `scaleY(${Math.min(p, 1)})`;
+          fill.style.strokeDashoffset = String(1 - Math.min(p, 1));
           place(setPoint(p));
           if (p >= 1.25) return release(); // held too long: it goes up anyway, very late
           raf = requestAnimationFrame(tick);
@@ -285,39 +471,58 @@
         const p = (performance.now() - pressedAt) / FILL;
         state = "flying";
         court.classList.remove("holding");
-        const grade = p < 0.72 ? "Very early" : p < 0.86 ? "Slightly early" : p <= 0.97 ? "Excellent release" : p <= 1.08 ? "Slightly late" : "Very late";
-        const green = grade === "Excellent release";
+        const grade = p < 0.72 ? "Very early" : p < 0.86 ? "Slightly early" : p <= 0.97 ? "Excellent" : p <= 1.08 ? "Slightly late" : "Very late";
+        const green = grade === "Excellent";
         const close = grade.startsWith("Slightly");
-        meter.classList.add(green ? "green" : close ? "close" : "off");
-        fill.style.transform = `scaleY(${Math.min(p, 1)})`;
+        const mark = green ? "green" : close ? "close" : "off";
+        meter.classList.add(mark);
+        fill.style.strokeDashoffset = String(1 - Math.min(p, 1));
+        // 2K's feedback, the moment you let go
         timing.textContent = grade;
+        panels.dataset.grade = mark;
+        panels.classList.add("on");
+        if (green) sound.play("green");
         shoot(green ? "swish" : close ? (Math.random() < 0.55 ? "bucket" : "brick") : "airball", setPoint(p));
       };
 
       const shoot = (result, from) => {
         const floor = court.clientHeight - R;
         const rim = { x: court.clientWidth - 37, y: 96 };
-        const through = [drop({ x: rim.x, y: rim.y - 10 }, { x: rim.x, y: rim.y + 42 }, 170), drop({ x: rim.x, y: rim.y + 42 }, { x: rim.x - 6, y: floor }, 250), arc({ x: rim.x - 6, y: floor }, { x: rim.x - 44, y: floor }, 16, 420)];
+        const through = [
+          drop({ x: rim.x, y: rim.y - 10 }, { x: rim.x, y: rim.y + 42 }, 170),
+          drop({ x: rim.x, y: rim.y + 42 }, { x: rim.x - 6, y: floor }, 250, ["bounce", 1]),
+          arc({ x: rim.x - 6, y: floor }, { x: rim.x - 44, y: floor }, 16, 420, ["bounce", 0.45])
+        ];
         const front = { x: rim.x - 21, y: rim.y - 13 };
         let path;
         let arrive; // when it gets to the rim, or lands short
         if (result === "swish") {
-          path = [arc(from, { x: rim.x, y: rim.y - 10 }, 110, 900), ...through];
+          path = [arc(from, { x: rim.x, y: rim.y - 10 }, 110, 900, ["swish"]), ...through];
           arrive = 900;
         } else if (result === "bucket") {
           // off the front of the rim, up, and down through
-          path = [arc(from, front, 110, 880), arc(front, { x: rim.x, y: rim.y - 10 }, 9, 260), ...through];
+          path = [arc(from, front, 110, 880, ["clank"]), arc(front, { x: rim.x, y: rim.y - 10 }, 9, 260, ["swish"]), ...through];
           arrive = 880;
         } else if (result === "brick") {
           const out = { x: rim.x - 90, y: floor };
-          path = [arc(from, front, 110, 880), arc(front, out, 22, 640), arc(out, { x: out.x - 36, y: floor }, 10, 360), arc({ x: out.x - 36, y: floor }, { x: out.x - 52, y: floor }, 4, 220)];
+          path = [
+            arc(from, front, 110, 880, ["clank"]),
+            arc(front, out, 22, 640, ["bounce", 1]),
+            arc(out, { x: out.x - 36, y: floor }, 10, 360, ["bounce", 0.5]),
+            arc({ x: out.x - 36, y: floor }, { x: out.x - 52, y: floor }, 4, 220, ["bounce", 0.25])
+          ];
           arrive = 880;
         } else {
           const land = { x: Math.max(from.x + 60, rim.x - 80 - Math.random() * 70), y: floor };
-          path = [arc(from, land, 70, 820), arc(land, { x: land.x + 30, y: floor }, 11, 360), arc({ x: land.x + 30, y: floor }, { x: land.x + 46, y: floor }, 4, 220)];
+          path = [
+            arc(from, land, 70, 820, ["bounce", 1]),
+            arc(land, { x: land.x + 30, y: floor }, 11, 360, ["bounce", 0.5]),
+            arc({ x: land.x + 30, y: floor }, { x: land.x + 46, y: floor }, 4, 220, ["bounce", 0.25])
+          ];
           arrive = 820;
         }
-        // the flight as keyframes, with backspin
+        // the flight as keyframes, with backspin; each piece's sound is
+        // scheduled for the moment the ball gets there
         const total = path.reduce((sum, piece) => sum + piece.ms, 0);
         const frames = [];
         let time = 0;
@@ -329,6 +534,7 @@
             frames.push({ transform: `translate(${(x - R).toFixed(1)}px, ${(y - R).toFixed(1)}px) rotate(${(-ms * 0.6).toFixed(0)}deg)`, offset: ms / total });
           }
           time += piece.ms;
+          if (piece.hit && !reduce) sound.play(piece.hit[0], time, piece.hit[1]);
         });
         const fly = ball.animate(frames, { duration: reduce ? 1 : total, fill: "forwards" });
 
@@ -350,12 +556,17 @@
           } else {
             streak = 0;
           }
+          greenRun = result === "swish" ? greenRun + 1 : 0;
           if (result === "swish") greens += 1;
-          if (streak > best) {
-            best = streak;
-            try { localStorage.setItem("airballBest", String(best)); } catch (e) {}
+          try {
+            if (streak > best) localStorage.setItem("airballBest", String((best = streak)));
+            if (greenRun > bestGreens) localStorage.setItem("airballBestGreens", String((bestGreens = greenRun)));
+          } catch (e) {
+            best = Math.max(best, streak);
+            bestGreens = Math.max(bestGreens, greenRun);
           }
           tally.textContent = `${made}/${shots} made · ${greens} green${greens === 1 ? "" : "s"} · best streak ${best}`;
+          share.hidden = !(best || bestGreens);
         }, reduce ? 0 : arrive);
 
         // then the ball fades back to the start for the next one
@@ -366,12 +577,40 @@
             fly.cancel();
             out.cancel();
             if (!reduce) ball.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220 });
-            meter.className = "meter";
-            fill.style.transform = "scaleY(0)";
+            meter.classList.remove("green", "close", "off");
+            fill.style.strokeDashoffset = "1";
             state = "idle";
           });
         });
       };
+
+      // Share your best run: the share sheet on phones, and on computers the
+      // line is copied, ready to paste to a friend. The link is a page that
+      // doesn't exist, so it lands on this game.
+      const shareText = () => (bestGreens > 1
+        ? `I hit ${bestGreens} greens in a row on Raywel's Airball page. Beat that:`
+        : bestGreens === 1
+          ? "I hit a green on Raywel's Airball page. Beat that:"
+          : `I made ${best} in a row on Raywel's Airball page. Beat that:`);
+      const SHARE_URL = "https://matimbu.github.io/raywelfrancismartin/airball";
+      share.hidden = !(best || bestGreens);
+      share.addEventListener("click", async () => {
+        if (!best && !bestGreens) return;
+        const label = share.querySelector("span");
+        if (navigator.share && matchMedia("(pointer: coarse)").matches) {
+          try {
+            await navigator.share({ title: "Airball.", text: shareText(), url: SHARE_URL });
+          } catch (e) {}
+          return;
+        }
+        let ok = false;
+        try {
+          await navigator.clipboard.writeText(`${shareText()} ${SHARE_URL}`);
+          ok = true;
+        } catch (e) {}
+        label.textContent = ok ? "Copied" : "Couldn't copy";
+        setTimeout(() => (label.textContent = "Share my streak"), 1600);
+      });
 
       court.addEventListener("pointerdown", (e) => {
         if (e.button > 0) return;
