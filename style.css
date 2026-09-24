@@ -755,6 +755,41 @@ button { font: inherit; color: inherit; }
 .wordwall.lighting .ww.lit .ww-note { opacity: 1; }
 .wordwall.lighting .ww.lit .ww-text { color: var(--fg); }
 
+/* On the court's play board: a coach's board beside the words, where the
+   play is drawn in marker as they light up (see playBoard in main.js) */
+.play-board {
+  grid-column: 3;
+  grid-row: 1;
+  align-self: center;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+}
+.play-board svg { display: block; width: 100%; height: auto; overflow: visible; }
+.play-board path, .play-board circle, .play-board rect { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.play-board .court { stroke: var(--muted); stroke-width: 1; opacity: 0.45; }
+.play-board .court .dash { stroke-dasharray: 3 4; }
+.play-board .court .board-glass { stroke-width: 2.4; }
+.play-board .me { stroke: var(--fg); stroke-width: 1.8; }
+.play-board .move { stroke: var(--accent); stroke-width: 2; }
+/* marker lines draw themselves; arrowheads and notes fade in after them */
+/* (the gap is longer than the line, so no round cap dots the end while it's hidden) */
+.play-board .ink { stroke-dasharray: 1 2; stroke-dashoffset: 1; transition: stroke-dashoffset 0.25s ease; }
+.play-board .fade { opacity: 0; transition: opacity 0.2s ease; }
+.play-step.on .ink { stroke-dashoffset: 0; transition: stroke-dashoffset var(--t) var(--ease-in-out) var(--at); }
+.play-step.on .fade { opacity: 1; transition: opacity 0.3s ease var(--at); }
+.play-board text { stroke: none; font-family: var(--serif); font-style: italic; }
+.play-board .num { fill: var(--fg); font-family: var(--mono); font-style: normal; font-size: 12px; text-anchor: middle; }
+.play-board .note { fill: var(--muted); font-size: 14px; }
+.play-board .and-one { fill: var(--accent); font-size: 19px; }
+.play-board .made { stroke: var(--accent); stroke-width: 2.2; filter: drop-shadow(0 0 4px var(--accent)); }
+/* the drive's arrow goes once the spin carries on from it */
+.play-board svg:has(> .play-step:last-child.on) .drive-head { opacity: 0; transition-delay: 0s; }
+@media (prefers-reduced-motion: reduce) {
+  .play-board .ink, .play-board .fade { transition: none !important; }
+}
+
 /* a wall of photo cards (e.g. a starting five) */
 .wordwall.cards .wordwall-words {
   grid-column: 1 / -1;
@@ -785,7 +820,7 @@ button { font: inherit; color: inherit; }
   object-fit: cover;
   transition: transform 0.8s var(--ease);
 }
-@media (hover: hover) and (pointer: fine) { a.ww-card:hover .ww-card-img img { transform: scale(1.04); } }
+@media (hover: hover) and (pointer: fine) { a.ww-card:not(.flips):hover .ww-card-img img { transform: scale(1.04); } }
 .ww-pos { color: var(--muted); font-size: 11px; }
 /* card labels: the position's number (1-5) rolls over to its name */
 .ww-card .ww-pos { display: block; height: 1.3em; line-height: 1.3; overflow: hidden; }
@@ -796,8 +831,155 @@ button { font: inherit; color: inherit; }
 .ww-card .ww-text { font-size: clamp(26px, 2.6vw, 38px); }
 @media (hover: hover) and (pointer: fine) { a.ww-card:hover .ww-text { color: var(--fg); } }
 
+/* A starting-five card turns over into the player's NBA 2K MyTeam card (the
+   .flipped class, see main.js: when the mouse moves onto it on computers, on
+   the first tap on phones) or when it's tabbed to. The frame holds the turn
+   in 3D and each side hides its back. */
+.ww-card.flips .ww-card-img {
+  overflow: visible;
+  background: none;
+  perspective: 1000px;
+  container-type: inline-size;
+}
+.flip {
+  position: relative;
+  display: block;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.45s var(--ease-in-out);
+}
+.flip-face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--card);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.ww-card.flipped .flip,
+.ww-card.flips:focus-visible .flip { transform: rotateY(180deg); }
+/* the 2K side: the tier's colours around the edge (turning slowly while it
+   shows, like the holo on the real cards) and washed over the photo, the
+   overall and position in the corner, the name and three badges */
+@property --tk-turn { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+.tk {
+  --t1: #9d4dff;
+  --t2: #ff4fc3;
+  --t3: #38d9ff;
+  --base: #0c0714;
+  transform: rotateY(180deg);
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  padding: 7cqw 7cqw 7.5cqw;
+  border: 2px solid transparent;
+  color: #fff;
+  background:
+    radial-gradient(90% 60% at 18% 10%, color-mix(in srgb, var(--t1) 60%, transparent), transparent 70%) padding-box,
+    radial-gradient(80% 60% at 92% 72%, color-mix(in srgb, var(--t3) 45%, transparent), transparent 70%) padding-box,
+    linear-gradient(var(--base), var(--base)) padding-box,
+    conic-gradient(from var(--tk-turn), var(--t1), var(--t2), var(--t3), var(--t2), var(--t1)) border-box;
+  animation: tk-holo 5s linear infinite paused;
+}
+.tk[data-tier="galaxy-opal"] { --t1: #6f7bff; --t2: #45f0c8; --t3: #ff8fe0; --base: #0a0c1b; }
+.tk[data-tier="pink-diamond"] { --t1: #ff5fa8; --t2: #ffc4dd; --t3: #ff2d7e; --base: #190610; }
+.tk[data-tier="diamond"] { --t1: #52dbff; --t2: #e3fbff; --t3: #2a9fe0; --base: #06121a; }
+@keyframes tk-holo { to { --tk-turn: 360deg; } }
+.ww-card.flipped .tk, .ww-card.flips:focus-visible .tk { animation-play-state: running; }
+.tk .tk-photo {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  mix-blend-mode: luminosity;
+  opacity: 0.5;
+}
+/* darker at the top and the bottom, so the numbers and names read */
+.tk::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(to top, var(--base) 6%, color-mix(in srgb, var(--base) 75%, transparent) 36%, transparent 62%),
+    linear-gradient(to bottom, color-mix(in srgb, var(--base) 70%, transparent), transparent 34%);
+}
+/* a shine crosses the card as it comes round, like opening a pack */
+.tk::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: linear-gradient(105deg, transparent 36%, rgb(255 255 255 / 0.3) 50%, transparent 64%);
+  translate: -120% 0;
+  pointer-events: none;
+}
+.ww-card.flipped .tk::after,
+.ww-card.flips:focus-visible .tk::after { translate: 120% 0; transition: translate 0.9s var(--ease-out) 0.3s; }
+.tk-corner, .tk-name, .tk-badges { position: relative; z-index: 2; }
+.tk-corner { display: grid; justify-items: start; align-content: start; line-height: 0.82; }
+.tk-ovr {
+  font-weight: 700;
+  font-size: 20cqw;
+  letter-spacing: -0.05em;
+  text-shadow: 0 2px 14px color-mix(in srgb, var(--t1) 60%, transparent);
+}
+.tk-pos { margin-top: 2.4cqw; font-size: max(8px, 5cqw); letter-spacing: 0.16em; }
+.tk-tier {
+  position: absolute;
+  z-index: 2;
+  top: 8cqw;
+  right: 7cqw;
+  font-size: max(7px, 3.8cqw);
+  letter-spacing: 0.14em;
+  color: var(--t2);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--t2) 50%, transparent);
+}
+.tk-name {
+  grid-row: 3;
+  margin-bottom: 3.4cqw;
+  font-weight: 700;
+  font-size: max(11px, 8cqw);
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+.tk-badges { grid-row: 4; display: grid; gap: 2.2cqw; }
+.tk-badge {
+  display: flex;
+  align-items: center;
+  gap: 2.4cqw;
+  min-width: 0;
+  font-size: max(8.5px, 4.7cqw);
+  line-height: 1.15;
+}
+/* badge levels, in 2K's colours: Hall of Fame purple, gold, silver, bronze */
+.tk-badge i {
+  flex: none;
+  width: max(8px, 5cqw);
+  aspect-ratio: 1 / 1.12;
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  background: linear-gradient(160deg, var(--lv-hi), var(--lv-lo));
+}
+.tk-badge[data-level="hof"] { --lv-hi: #d6b6ff; --lv-lo: #7a3de0; }
+.tk-badge[data-level="gold"] { --lv-hi: #ffe7a3; --lv-lo: #c8921a; }
+.tk-badge[data-level="silver"] { --lv-hi: #f1f4f6; --lv-lo: #8d98a1; }
+.tk-badge[data-level="bronze"] { --lv-hi: #f0b889; --lv-lo: #93502a; }
+.tk-badge-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tk-level { flex: none; font-size: max(7px, 3.4cqw); letter-spacing: 0.1em; color: var(--lv-hi); }
+@container (max-width: 190px) { .tk-level { display: none; } }
+/* reduced motion: the 2K side fades in over the photo instead of turning */
+@media (prefers-reduced-motion: reduce) {
+  .flip { transition: none; }
+  .ww-card.flipped .flip, .ww-card.flips:focus-visible .flip { transform: none; }
+  .tk { transform: none; opacity: 0; transition: opacity 0.2s ease; animation: none; }
+  .ww-card.flipped .tk, .ww-card.flips:focus-visible .tk { opacity: 1; }
+  .tk::after { display: none; }
+}
+
 /* a wall with art gets a third column for the picture */
 .wordwall.has-art { grid-template-columns: 1fr 2fr 0.9fr; }
+/* the play board gets a wider column than a picture */
+.wordwall.has-board { grid-template-columns: 1fr 1.8fr 1.2fr; }
 .wordwall-art {
   position: relative;
   grid-column: 3;
@@ -1519,6 +1701,85 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
 /* the current pick's player (Spotify puts its iframe in the slot) */
 .pick-slot { min-height: 80px; border-radius: 12px; background: var(--card); }
 .playlist .pick-slot iframe { display: block; height: 80px; }
+/* the current pick's record: it turns while the song plays (see vinylDeck) */
+.pick-label { display: flex; align-items: center; gap: 30px; }
+.deck { position: relative; flex: none; width: 72px; height: 72px; }
+.record {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle closest-side, transparent 60%, rgb(255 255 255 / 0.07) 61%, transparent 62%),
+    repeating-radial-gradient(circle, #111110 0 1.3px, #1d1d1c 1.7px 2.5px);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.45), inset 0 0 0 1px rgb(255 255 255 / 0.06);
+}
+/* the label: the song's cover, orange until it loads */
+.record-label {
+  position: absolute;
+  inset: 31%;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.record-label img { display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.4s ease; }
+.record-label.has-cover img { opacity: 1; }
+.record-label::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 50%;
+  background: var(--bg);
+}
+/* the light on the grooves, which stays put while the record turns */
+.record-shine {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background: conic-gradient(from 25deg, transparent, rgb(255 255 255 / 0.12) 30deg, transparent 60deg 180deg, rgb(255 255 255 / 0.08) 210deg, transparent 240deg);
+  -webkit-mask: radial-gradient(circle closest-side, transparent 38%, #000 39%);
+  mask: radial-gradient(circle closest-side, transparent 38%, #000 39%);
+}
+/* the tone arm swings onto the record while the song plays */
+.tonearm {
+  position: absolute;
+  left: calc(100% + 8px);
+  top: -4px;
+  width: 2px;
+  height: 50px;
+  border-radius: 1px;
+  background: var(--muted);
+  transform-origin: 50% 4px;
+  rotate: 6deg;
+  transition: rotate 0.5s var(--ease-in-out);
+}
+.tonearm::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 9px;
+  height: 9px;
+  margin-left: -4.5px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.tonearm::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -3px;
+  width: 5px;
+  height: 9px;
+  margin-left: -2.5px;
+  border-radius: 1px;
+  background: var(--fg);
+}
+.deck.playing .tonearm { rotate: 28deg; }
 
 /* ============================================================
    Beliefs
@@ -2740,6 +3001,10 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   .ww-credits, .ww-specs { grid-column: 1; }
   .story-item { grid-template-columns: 72px 1fr; gap: 6px 18px; }
   .wordwall-art { grid-column: 1; grid-row: auto; justify-self: center; width: min(260px, 70%); }
+  /* the play board sits between the intro and the words, so it's on screen
+     the whole time they light up */
+  .wordwall.has-board .play-board { grid-column: 1; grid-row: auto; order: 1; justify-self: center; width: min(320px, 100%); }
+  .wordwall.has-board .wordwall-words { order: 2; }
   /* cards scroll sideways on small screens, like a hand of trading cards */
   .wordwall.cards .wordwall-words {
     grid-template-columns: none;

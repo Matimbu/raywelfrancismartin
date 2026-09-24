@@ -136,7 +136,8 @@ function playOnView(node, cls, ratio) {
 }
 
 // Walls with `lightUp`: their words light one after another as the wall
-// moves through the middle of the screen
+// moves through the middle of the screen, and a wall's play board (see
+// playBoard) draws one step of the play for each word that's lit
 const lightWalls = [];
 function updateLightWalls() {
   const vh = innerHeight;
@@ -146,6 +147,7 @@ function updateLightWalls() {
     const items = words.children;
     const lit = Math.round(clamp01((vh * 0.85 - r.top) / (vh * 0.45)) * items.length);
     [...items].forEach((item, i) => item.classList.toggle("lit", i < lit));
+    if (words.board) words.board.querySelectorAll(".play-step").forEach((step, i) => step.classList.toggle("on", i < lit));
   });
 }
 
@@ -595,6 +597,123 @@ try {
   muted = localStorage.getItem("sovaMuted") === "1";
 } catch (e) {}
 
+// The back of a starting-five card: the player as an NBA 2K MyTeam card, with
+// the overall and the position in the corner, the tier's colours around the
+// edge and over the photo, the name, and three badges coloured by level
+function twoKCard(w) {
+  const c = w.card;
+  const back = el("span", "flip-face tk");
+  back.dataset.tier = c.tier.toLowerCase().replace(/\s+/g, "-");
+  back.setAttribute("aria-hidden", "true");
+  const photo = el("img", "tk-photo");
+  photo.src = w.image;
+  photo.alt = "";
+  photo.loading = "lazy";
+  photo.decoding = "async";
+  const corner = el("span", "tk-corner");
+  corner.append(el("span", "tk-ovr", String(c.ovr)), el("span", "tk-pos mono", w.pos || ""));
+  const badges = el("span", "tk-badges");
+  (c.badges || []).slice(0, 3).forEach(([name, level]) => {
+    const badge = el("span", "tk-badge");
+    badge.dataset.level = String(level).toLowerCase();
+    badge.append(el("i"), el("span", "tk-badge-name", name), el("span", "tk-level mono", level));
+    badges.appendChild(badge);
+  });
+  back.append(photo, corner, el("span", "tk-tier mono", c.tier), el("span", "tk-name", c.name || w.text), badges);
+  return back;
+}
+
+// On the court's play board: a coach's board with the half court around the
+// arc (the basket at the top) where the words are drawn as a play in marker, one step for each
+// word as it lights up: the 5 on the wing (Center), his defender (6 ft), the
+// jab right, then the drive left that comes back to the right side (Triple
+// threat; a dribble is a zigzag on a coach's board), then the drop step spin
+// to the rim for the and-one (Drop step spin)
+function playBoard() {
+  const board = el("div", "play-board reveal");
+  board.setAttribute("aria-hidden", "true");
+  const f = (n) => n.toFixed(1);
+  const bez = ([p0, c1, c2, p3], t) => {
+    const u = 1 - t;
+    return [0, 1].map((k) => u * u * u * p0[k] + 3 * u * u * t * c1[k] + 3 * u * t * t * c2[k] + t * t * t * p3[k]);
+  };
+  // a dribble: a zigzag along the curves, straight at the end for the arrow
+  const dribble = (curves, amp = 3, step = 5.5, tail = 9) => {
+    const pts = [];
+    curves.forEach((c) => {
+      for (let k = pts.length ? 1 : 0; k <= 40; k++) pts.push(bez(c, k / 40));
+    });
+    const len = [0];
+    for (let k = 1; k < pts.length; k++) len.push(len[k - 1] + Math.hypot(pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1]));
+    const total = len[len.length - 1];
+    const at = (d) => {
+      let k = 1;
+      while (k < len.length - 1 && len[k] < d) k++;
+      const [ax, ay] = pts[k - 1];
+      const [bx, by] = pts[k];
+      const t = (d - len[k - 1]) / (len[k] - len[k - 1] || 1);
+      const n = Math.hypot(bx - ax, by - ay) || 1;
+      return { x: ax + (bx - ax) * t, y: ay + (by - ay) * t, tx: (bx - ax) / n, ty: (by - ay) / n };
+    };
+    let d = `M${f(pts[0][0])} ${f(pts[0][1])}`;
+    for (let s = step, side = 1; s < total - tail; s += step, side = -side) {
+      const p = at(s);
+      d += ` L${f(p.x - p.ty * amp * side)} ${f(p.y + p.tx * amp * side)}`;
+    }
+    const bend = at(total - tail);
+    const [ex, ey] = pts[pts.length - 1];
+    d += ` L${f(bend.x)} ${f(bend.y)} L${f(ex)} ${f(ey)}`;
+    return { d, x: ex, y: ey, angle: Math.atan2(ey - bend.y, ex - bend.x) };
+  };
+  const head = (x, y, angle, size = 7) => {
+    const side = (turn) => `${f(x + Math.cos(angle + Math.PI + turn) * size)} ${f(y + Math.sin(angle + Math.PI + turn) * size)}`;
+    return `M${side(-0.5)} L${f(x)} ${f(y)} L${side(0.5)}`;
+  };
+  // each mark draws (or fades in) `at` seconds into its step, taking `t`
+  const ink = (cls, d, at = 0, t = 0.4) => `<path class="ink ${cls}" pathLength="1" d="${d}" style="--at:${at}s;--t:${t}s"/>`;
+  const later = (cls, d, at) => `<path class="fade ${cls}" d="${d}" style="--at:${at}s"/>`;
+  const jab = { x: 251, y: 146 };
+  const drive = dribble([
+    [[211, 134], [190, 139], [166, 131], [163, 110]],
+    [[163, 110], [160, 90], [178, 82], [191, 70]]
+  ]);
+  const spin = "M191 70 C199 61 202 49 193 45 C184 41 176 50 182 57 C187 63 175 55 157 38";
+  board.innerHTML = `<svg viewBox="-12 -12 324 214">
+    <g class="court">
+      <path d="M0 202 V0 H300 V202"/>
+      <path d="M102 0 V114 H198 V0"/>
+      <path d="M114 114 A36 36 0 0 0 186 114"/>
+      <path class="dash" d="M114 114 A36 36 0 0 1 186 114"/>
+      <path d="M126 31.5 A24 24 0 0 0 174 31.5"/>
+      <path d="M18 0 V84 A142.5 142.5 0 0 0 282 84 V0"/>
+      <path d="M96 42 h6 M198 42 h6 M98 66 h4 M198 66 h4 M98 78 h4 M198 78 h4 M98 90 h4 M198 90 h4"/>
+      <path class="board-glass" d="M132 24 H168"/>
+      <circle class="rim" cx="150" cy="31.5" r="4.5"/>
+    </g>
+    <g class="play-step">
+      <circle class="ink me" pathLength="1" cx="222" cy="140" r="10" style="--at:0s;--t:0.5s"/>
+      <text class="fade num" x="222" y="144.5" style="--at:0.3s">5</text>
+    </g>
+    <g class="play-step">
+      ${ink("me", "M201 113 L213 125", 0, 0.18)}
+      ${ink("me", "M213 113 L201 125", 0.2, 0.18)}
+    </g>
+    <g class="play-step">
+      ${ink("move", `M233 142 L${jab.x} ${jab.y}`, 0, 0.2)}
+      ${later("move", head(jab.x, jab.y, Math.atan2(jab.y - 142, jab.x - 233), 6), 0.2)}
+      <text class="fade note" x="244" y="163" style="--at:0.2s">jab</text>
+      ${ink("move", drive.d, 0.35, 0.9)}
+      ${later("move drive-head", head(drive.x, drive.y, drive.angle), 1.25)}
+    </g>
+    <g class="play-step">
+      ${ink("move", spin, 0, 0.7)}
+      <circle class="fade made" cx="150" cy="31.5" r="4.5" style="--at:0.7s"/>
+      <text class="fade and-one" x="96" y="66" style="--at:0.8s">and 1!</text>
+    </g>
+  </svg>`;
+  return board;
+}
+
 // Word walls (nicknames and the like): big words with small notes
 (SITE.walls || []).forEach((wall) => {
   if (!wall.words || !wall.words.length) return;
@@ -637,7 +756,17 @@ try {
       img.alt = w.alt || w.text;
       img.loading = "lazy";
       img.decoding = "async";
-      frame.appendChild(img);
+      if (w.card) {
+        // `card`: the photo turns over into the player's 2K card
+        const flip = el("span", "flip");
+        const front = el("span", "flip-face");
+        front.appendChild(img);
+        flip.append(front, twoKCard(w));
+        frame.appendChild(flip);
+        item.classList.add("flips");
+      } else {
+        frame.appendChild(img);
+      }
       item.appendChild(frame);
     }
     if (w.pos) {
@@ -715,6 +844,22 @@ try {
       });
     }
     if (ability && w.key) keyAbilities[w.key.toLowerCase()] = { block, item, ability };
+    // 2K cards: computers turn the card over when the mouse comes onto it
+    // (a real move, not the card sliding under a still cursor as you scroll)
+    // and back when it leaves. Phones turn it on the first tap (one at a
+    // time), and a tap on the turned card opens its link.
+    if (w.card && canHover) {
+      onHover(item, () => item.classList.add("flipped"));
+      item.addEventListener("mouseleave", () => item.classList.remove("flipped"));
+    } else if (w.card) {
+      item.addEventListener("click", (e) => {
+        const turned = item.classList.contains("flipped");
+        if (turned && w.link) return;
+        e.preventDefault();
+        words.querySelectorAll(".flipped").forEach((c) => c.classList.remove("flipped"));
+        item.classList.toggle("flipped", !turned);
+      });
+    }
     if (w.desc) item.dataset.desc = w.desc;
     if (w.stat) item.dataset.stat = w.stat;
     if (w.icon) item.dataset.icon = w.icon;
@@ -742,6 +887,16 @@ try {
   if (wall.lightUp && !reduceMotion) {
     block.classList.add("lighting");
     lightWalls.push(words);
+  }
+
+  // `board`: the words drawn as a play on a coach's board, a step for each
+  // word as it lights up (all of it at once without lightUp)
+  if (wall.board) {
+    const board = playBoard();
+    block.classList.add("has-art", "has-board");
+    block.appendChild(board);
+    words.board = board;
+    if (!block.classList.contains("lighting")) board.querySelectorAll(".play-step").forEach((step) => step.classList.add("on"));
   }
 
   // Card labels roll from their number to their name once the cards are on
@@ -1090,12 +1245,16 @@ if (spotify) {
     if (!reduceMotion) {
       new IntersectionObserver(([entry]) => eq.classList.toggle("on", entry.isIntersecting)).observe(eq);
     }
-    pickLabel.appendChild(kicker);
+    // a record that turns while the song plays (see vinylDeck)
+    const deck = vinylDeck(pick[1]);
+    pickLabel.classList.add("pick-label");
+    pickLabel.append(deck.node, kicker);
     const slot = el("div", "pick-slot");
     block.append(pickLabel, slot);
     // While it plays, the bars dance and the label turns into "Now playing"
     mountPick(slot, pick[1], (playing) => {
       eq.classList.toggle("playing", playing);
+      deck.play(playing);
       scramble(pickText, playing ? "Now playing" : "Current pick", 500);
     });
   }
@@ -1146,6 +1305,67 @@ function mountPick(slot, id, onPlaying) {
     watch.disconnect();
     load();
   }, { rootMargin: "800px 0px" }).observe(slot);
+}
+
+// The current pick's record: the song's cover is its label (Spotify's
+// oEmbed, which any page can read, gives the cover), and it turns at 33 1/3
+// like a real one only while the song plays: it comes up to speed in 0.7 s
+// when the song starts and coasts to a stop over 1.4 s when it's paused,
+// staying where it stopped. The tone arm swings on and off, and the light on
+// the record stays put while it turns.
+function vinylDeck(id) {
+  const deck = el("span", "deck");
+  deck.setAttribute("aria-hidden", "true");
+  const record = el("span", "record");
+  const label = el("span", "record-label");
+  record.appendChild(label);
+  deck.append(record, el("span", "record-shine"), el("span", "tonearm"));
+  // the cover loads once the music section is near, like the player
+  new IntersectionObserver(([entry], watch) => {
+    if (!entry.isIntersecting) return;
+    watch.disconnect();
+    fetch(`https://open.spotify.com/oembed?url=https://open.spotify.com/track/${id}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!d || !d.thumbnail_url) return;
+        const cover = el("img");
+        cover.alt = "";
+        cover.decoding = "async";
+        cover.onload = () => label.classList.add("has-cover");
+        cover.src = d.thumbnail_url;
+        label.appendChild(cover);
+      })
+      .catch(() => {});
+  }, { rootMargin: "800px 0px" }).observe(deck);
+  if (reduceMotion) return { node: deck, play: (on) => deck.classList.toggle("playing", on) };
+  const spin = record.animate([{ transform: "rotate(0deg)" }, { transform: "rotate(360deg)" }], {
+    duration: 1800, // 33 1/3 turns a minute
+    iterations: Infinity
+  });
+  spin.pause();
+  let rate = 0;
+  let run = 0;
+  const play = (on) => {
+    deck.classList.toggle("playing", on);
+    const from = rate;
+    const time = on ? 700 : 1400;
+    const start = performance.now();
+    const mine = ++run;
+    if (on) {
+      spin.playbackRate = Math.max(from, 0.001);
+      spin.play();
+    }
+    const frame = (now) => {
+      if (mine !== run) return;
+      const p = Math.min(1, (now - start) / time);
+      rate = from + ((on ? 1 : 0) - from) * (1 - (1 - p) ** 3);
+      if (p < 1 || on) spin.playbackRate = Math.max(rate, 0.001);
+      if (p < 1) requestAnimationFrame(frame);
+      else if (!on) spin.pause();
+    };
+    requestAnimationFrame(frame);
+  };
+  return { node: deck, play };
 }
 
 // ============================================================

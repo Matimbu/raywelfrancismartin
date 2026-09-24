@@ -23,6 +23,7 @@
     [data-theme="light"] {
       --bg: #f2f0eb; --fg: #111110; --muted: #6d6a64; --line: #dcd8cf; --accent: #e2470b;
     }
+    :root { --green: #3ddc84; --ease-out: cubic-bezier(0.23, 1, 0.32, 1); }
     * { margin: 0; box-sizing: border-box; }
     body {
       min-height: 100svh;
@@ -55,13 +56,13 @@
     .line { max-width: 34ch; color: var(--muted); font-size: clamp(17px, 2vw, 20px); line-height: 1.5; }
     .home {
       display: inline-flex;
-      margin-top: 32px;
+      margin-top: 28px;
       padding: 14px 20px;
       border: 1px solid var(--line);
       border-radius: 999px;
-      transition: border-color 0.3s ease, background 0.3s ease;
+      transition: border-color 0.2s ease;
     }
-    .home:hover { border-color: var(--fg); }
+    @media (hover: hover) and (pointer: fine) { .home:hover { border-color: var(--fg); } }
     footer { display: flex; justify-content: space-between; gap: 16px; color: var(--muted); }
 
     /* the ball drops in from above and bounces to a stop */
@@ -81,8 +82,101 @@
       92%  { transform: translateY(0) rotate(310deg); }
       100% { transform: translateY(0) rotate(318deg); }
     }
+
+    /* The court: a shot at the hoop on NBA 2K's shot meter. Hold, and let go
+       while the meter is in its green window at the top */
+    .court {
+      position: relative;
+      max-width: 640px;
+      height: 220px;
+      margin-top: 40px;
+      border-bottom: 1px solid var(--line);
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: manipulation;
+      outline: none;
+    }
+    .court:focus-visible { box-shadow: 0 1px 0 var(--muted); }
+    .hoop { position: absolute; top: 0; right: 0; width: 90px; height: 220px; overflow: visible; pointer-events: none; }
+    .hoop-back { z-index: 1; }
+    .hoop-front { z-index: 3; }
+    .hoop path, .hoop line, .hoop ellipse { fill: none; stroke-linecap: round; }
+    .pole { stroke: color-mix(in srgb, var(--muted) 40%, transparent); stroke-width: 4; }
+    .glass { stroke: var(--muted); stroke-width: 4; }
+    .rim { stroke: var(--accent); stroke-width: 3; }
+    .net { stroke: var(--muted); stroke-width: 1.2; opacity: 0.8; transform-box: fill-box; transform-origin: 50% 0; }
+    .rock {
+      position: absolute;
+      left: 0;
+      top: 0;
+      z-index: 2;
+      width: 26px;
+      height: 26px;
+      pointer-events: none;
+    }
+    .rock svg { display: block; width: 100%; height: 100%; }
+    /* the meter, by the ball like in 2K: it fills while you hold */
+    .meter {
+      position: absolute;
+      left: 30px;
+      bottom: 16px;
+      width: 8px;
+      height: 96px;
+      border-radius: 4px;
+      background: color-mix(in srgb, var(--fg) 12%, transparent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .court.holding .meter, .meter.green, .meter.close, .meter.off { opacity: 1; transition-duration: 0.12s; }
+    .meter-fill {
+      position: absolute;
+      inset: 0;
+      border-radius: 4px;
+      background: var(--fg);
+      transform-origin: 50% 100%;
+      transform: scaleY(0);
+    }
+    .meter-window {
+      position: absolute;
+      left: -3px;
+      right: -3px;
+      bottom: 86%;
+      height: 11%;
+      border: 1px solid var(--green);
+      border-radius: 2px;
+    }
+    .meter.green .meter-fill { background: var(--green); box-shadow: 0 0 14px var(--green); }
+    .meter.close .meter-fill { background: #f2c230; }
+    .meter.off .meter-fill { background: var(--accent); }
+    /* what happened, big, and how the release was timed, small */
+    .result {
+      position: absolute;
+      top: 0;
+      right: 104px;
+      text-align: right;
+      pointer-events: none;
+    }
+    .call {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-style: italic;
+      font-size: clamp(38px, 6vw, 56px);
+      line-height: 1;
+      opacity: 0;
+      translate: 0 8px;
+      transition: opacity 0.2s ease, translate 0.2s ease;
+    }
+    .call.on { opacity: 1; translate: 0 0; transition: opacity 0.3s var(--ease-out), translate 0.3s var(--ease-out); }
+    .call[data-result="swish"] { color: var(--green); text-shadow: 0 0 22px color-mix(in srgb, var(--green) 45%, transparent); }
+    .call[data-result="bucket"] { color: var(--fg); }
+    .call[data-result="brick"] { color: var(--muted); }
+    .call[data-result="airball"] { color: var(--accent); }
+    .timing { margin-top: 8px; color: var(--muted); font-size: 11px; min-height: 1.3em; }
+    .tally { margin-top: 12px; color: var(--muted); font-size: 11px; }
     @media (prefers-reduced-motion: reduce) {
       .ball { animation: none; }
+      .call, .call.on { translate: none; }
     }
   </style>
 </head>
@@ -92,7 +186,22 @@
     <p class="eyebrow mono">404 — Page not found</p>
     <h1>Air<em>ball.</em><span class="ball" aria-hidden="true">🏀</span></h1>
     <p class="line">That shot missed the rim. The page you're after isn't here, but the rest of the site is.</p>
-    <a class="home home-link mono" href="/raywelfrancismartin/">Back to the homepage ↩</a>
+    <div class="court" id="court" role="button" tabindex="0" aria-label="Shoot: hold, and let go at the top of the meter">
+      <svg class="hoop hoop-back" viewBox="0 0 90 220" aria-hidden="true">
+        <path class="pole" d="M86 70 V220 M80 80 H86"/>
+        <line class="glass" x1="78" y1="40" x2="78" y2="112"/>
+        <path class="rim" d="M30 96 A23 4 0 0 1 76 96"/>
+      </svg>
+      <span class="rock" aria-hidden="true"><svg viewBox="0 0 26 26"><circle cx="13" cy="13" r="12.5" fill="#e0712b"/><path d="M0.5 13h25M13 0.5v25M4.2 4.2c4.2 3.9 4.2 13.7 0 17.6M21.8 4.2c-4.2 3.9-4.2 13.7 0 17.6" stroke="#3b1a08" stroke-width="1.1" fill="none"/></svg></span>
+      <svg class="hoop hoop-front" viewBox="0 0 90 220" aria-hidden="true">
+        <path class="rim" d="M30 96 A23 4 0 0 0 76 96 L78 96"/>
+        <path class="net" d="M31 97 L38 134 M40 99.5 L44 135 M53 100 L53 136 M66 99.5 L62 135 M75 97 L68 134 M33 108 Q53 115 73 108 M36 121 Q53 127 70 121 M38 134 Q53 138 68 134"/>
+      </svg>
+      <span class="meter" aria-hidden="true"><i class="meter-fill"></i><i class="meter-window"></i></span>
+      <div class="result" aria-live="polite"><p class="call"></p><p class="timing mono"></p></div>
+    </div>
+    <p class="tally mono">Hold to shoot, let go at the top of the meter</p>
+    <a class="home home-link mono" href="/raywelfrancismartin/">Back to the site ↩</a>
   </main>
   <footer class="mono"><span>Malolos, Bulacan</span><a class="home-link" href="/raywelfrancismartin/#connect">Say hi ↗</a></footer>
   <script>
@@ -102,6 +211,185 @@
         a.setAttribute("href", a.getAttribute("href").replace("/raywelfrancismartin/", "/"));
       });
     }
+
+    // Take a shot, NBA 2K style: hold (mouse, finger, Space or Enter) and the
+    // meter fills in 0.9 s; let go inside the green window at the top and it's
+    // a green, nothing but net. A little early or late rattles in about half
+    // the time and bricks the rest; way off is an airball. A quick tap starts
+    // the meter and the next tap lets go, for thumbs.
+    (() => {
+      const court = document.getElementById("court");
+      const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const ball = court.querySelector(".rock");
+      const meter = court.querySelector(".meter");
+      const fill = court.querySelector(".meter-fill");
+      const net = court.querySelector(".net");
+      const rims = court.querySelectorAll(".rim");
+      const call = court.querySelector(".call");
+      const timing = court.querySelector(".timing");
+      const tally = document.querySelector(".tally");
+      const FILL = 900;
+      const R = 13; // the ball's radius
+      const CALLS = { swish: "Green!", bucket: "Bucket.", brick: "Brick.", airball: "Airball." };
+      let state = "idle";
+      let pressedAt = 0;
+      let tapped = false;
+      let raf = 0;
+      let shots = 0, made = 0, greens = 0, streak = 0, best = 0;
+      try { best = Number(localStorage.getItem("airballBest")) || 0; } catch (e) {}
+
+      const easeOut = (t) => 1 - (1 - t) ** 3;
+      const rest = () => ({ x: 70, y: court.clientHeight - R });
+      // the ball rises to its set point as the meter fills
+      const setPoint = (p) => ({ x: rest().x, y: rest().y - 46 * easeOut(Math.min(p, 1)) });
+      const place = ({ x, y }) => (ball.style.transform = `translate(${x - R}px, ${y - R}px)`);
+      place(rest());
+      addEventListener("resize", () => state === "idle" && place(rest()));
+
+      // pieces of a flight: an arc (even speed across, gravity up and down),
+      // a drop (speeding up) and a hop off the rim or the floor
+      const arc = (a, b, lift, ms) => {
+        const c = { x: (a.x + b.x) / 2, y: Math.min(a.y, b.y) - lift * 2 };
+        return { ms, at: (t) => ({ x: (1 - t) ** 2 * a.x + 2 * (1 - t) * t * c.x + t * t * b.x, y: (1 - t) ** 2 * a.y + 2 * (1 - t) * t * c.y + t * t * b.y }) };
+      };
+      const drop = (a, b, ms) => ({ ms, at: (t) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * (0.35 * t + 0.65 * t * t) }) });
+
+      const press = () => {
+        if (state === "holding" && tapped) return release();
+        if (state !== "idle") return;
+        state = "holding";
+        tapped = false;
+        pressedAt = performance.now();
+        court.classList.add("holding");
+        meter.className = "meter";
+        call.classList.remove("on");
+        timing.textContent = "";
+        const tick = (now) => {
+          const p = (now - pressedAt) / FILL;
+          fill.style.transform = `scaleY(${Math.min(p, 1)})`;
+          place(setPoint(p));
+          if (p >= 1.25) return release(); // held too long: it goes up anyway, very late
+          raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+      };
+      const lift = () => {
+        if (state !== "holding" || tapped) return;
+        // a quick tap: the meter keeps going and the next tap lets go
+        if (performance.now() - pressedAt < 150) return (tapped = true);
+        release();
+      };
+
+      const release = () => {
+        cancelAnimationFrame(raf);
+        const p = (performance.now() - pressedAt) / FILL;
+        state = "flying";
+        court.classList.remove("holding");
+        const grade = p < 0.72 ? "Very early" : p < 0.86 ? "Slightly early" : p <= 0.97 ? "Excellent release" : p <= 1.08 ? "Slightly late" : "Very late";
+        const green = grade === "Excellent release";
+        const close = grade.startsWith("Slightly");
+        meter.classList.add(green ? "green" : close ? "close" : "off");
+        fill.style.transform = `scaleY(${Math.min(p, 1)})`;
+        timing.textContent = grade;
+        shoot(green ? "swish" : close ? (Math.random() < 0.55 ? "bucket" : "brick") : "airball", setPoint(p));
+      };
+
+      const shoot = (result, from) => {
+        const floor = court.clientHeight - R;
+        const rim = { x: court.clientWidth - 37, y: 96 };
+        const through = [drop({ x: rim.x, y: rim.y - 10 }, { x: rim.x, y: rim.y + 42 }, 170), drop({ x: rim.x, y: rim.y + 42 }, { x: rim.x - 6, y: floor }, 250), arc({ x: rim.x - 6, y: floor }, { x: rim.x - 44, y: floor }, 16, 420)];
+        const front = { x: rim.x - 21, y: rim.y - 13 };
+        let path;
+        let arrive; // when it gets to the rim, or lands short
+        if (result === "swish") {
+          path = [arc(from, { x: rim.x, y: rim.y - 10 }, 110, 900), ...through];
+          arrive = 900;
+        } else if (result === "bucket") {
+          // off the front of the rim, up, and down through
+          path = [arc(from, front, 110, 880), arc(front, { x: rim.x, y: rim.y - 10 }, 9, 260), ...through];
+          arrive = 880;
+        } else if (result === "brick") {
+          const out = { x: rim.x - 90, y: floor };
+          path = [arc(from, front, 110, 880), arc(front, out, 22, 640), arc(out, { x: out.x - 36, y: floor }, 10, 360), arc({ x: out.x - 36, y: floor }, { x: out.x - 52, y: floor }, 4, 220)];
+          arrive = 880;
+        } else {
+          const land = { x: Math.max(from.x + 60, rim.x - 80 - Math.random() * 70), y: floor };
+          path = [arc(from, land, 70, 820), arc(land, { x: land.x + 30, y: floor }, 11, 360), arc({ x: land.x + 30, y: floor }, { x: land.x + 46, y: floor }, 4, 220)];
+          arrive = 820;
+        }
+        // the flight as keyframes, with backspin
+        const total = path.reduce((sum, piece) => sum + piece.ms, 0);
+        const frames = [];
+        let time = 0;
+        path.forEach((piece, i) => {
+          for (let k = i ? 1 : 0; k <= 14; k++) {
+            const t = k / 14;
+            const { x, y } = piece.at(t);
+            const ms = time + piece.ms * t;
+            frames.push({ transform: `translate(${(x - R).toFixed(1)}px, ${(y - R).toFixed(1)}px) rotate(${(-ms * 0.6).toFixed(0)}deg)`, offset: ms / total });
+          }
+          time += piece.ms;
+        });
+        const fly = ball.animate(frames, { duration: reduce ? 1 : total, fill: "forwards" });
+
+        setTimeout(() => {
+          call.textContent = CALLS[result];
+          call.dataset.result = result;
+          call.classList.add("on");
+          if (!reduce && result !== "airball") {
+            // the rim shakes when it's hit; the net kicks when the ball goes through
+            if (result !== "swish") rims.forEach((r) => r.animate([{ transform: "translateY(2px)" }, { transform: "translateY(-1px)" }, { transform: "none" }], { duration: 240 }));
+            if (result !== "brick") {
+              setTimeout(() => net.animate([{ transform: "none" }, { transform: "scaleY(1.25) skewX(-4deg)" }, { transform: "scaleY(0.92)" }, { transform: "none" }], { duration: 520, easing: "ease-out" }), result === "swish" ? 60 : 300);
+            }
+          }
+          shots += 1;
+          if (result === "swish" || result === "bucket") {
+            made += 1;
+            streak += 1;
+          } else {
+            streak = 0;
+          }
+          if (result === "swish") greens += 1;
+          if (streak > best) {
+            best = streak;
+            try { localStorage.setItem("airballBest", String(best)); } catch (e) {}
+          }
+          tally.textContent = `${made}/${shots} made · ${greens} green${greens === 1 ? "" : "s"} · best streak ${best}`;
+        }, reduce ? 0 : arrive);
+
+        // then the ball fades back to the start for the next one
+        fly.finished.then(() => new Promise((r) => setTimeout(r, reduce ? 900 : 500))).then(() => {
+          const out = ball.animate([{ opacity: 1 }, { opacity: 0 }], { duration: reduce ? 1 : 180, fill: "forwards" });
+          out.finished.then(() => {
+            place(rest());
+            fly.cancel();
+            out.cancel();
+            if (!reduce) ball.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220 });
+            meter.className = "meter";
+            fill.style.transform = "scaleY(0)";
+            state = "idle";
+          });
+        });
+      };
+
+      court.addEventListener("pointerdown", (e) => {
+        if (e.button > 0) return;
+        e.preventDefault();
+        press();
+      });
+      addEventListener("pointerup", lift);
+      addEventListener("pointercancel", lift);
+      court.addEventListener("contextmenu", (e) => e.preventDefault());
+      court.addEventListener("keydown", (e) => {
+        if (e.key !== " " && e.key !== "Enter") return;
+        e.preventDefault();
+        if (!e.repeat) press();
+      });
+      court.addEventListener("keyup", (e) => {
+        if (e.key === " " || e.key === "Enter") lift();
+      });
+    })();
   </script>
   <!-- Visitor stats (GoatCounter, same as index.html): missing pages show up
        in the dashboard under the address people tried -->

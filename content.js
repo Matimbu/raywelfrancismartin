@@ -70,6 +70,12 @@ const SITE = {
   // `notice` adds a line under the wall (e.g. Riot's fan-content notice).
   // `layout: "cards"` shows each word as a photo card (`image`, `pos`, `alt`);
   // `credit` can also be a list when a card uses more than one photo.
+  // A card's `card` turns its photo over into an NBA 2K MyTeam card (hover on
+  // computers, tap on phones): `ovr`, `tier` ("Dark Matter", "Galaxy Opal",
+  // "Pink Diamond" or "Diamond"), the `name` on it and three `badges`, each
+  // [name, level] with the level "HOF", "Gold", "Silver" or "Bronze".
+  // `board: true` draws the words on a coach's play board beside the wall, one
+  // step for each word as it lights up (made for On the court with `lightUp`).
   // `specs` lists small settings under the words; `copy: true` adds a Copy button.
   // `lightUp: true` lights the words one by one as you scroll through the wall.
   // Add more walls to the list and they show up in the same style.
@@ -111,6 +117,7 @@ const SITE = {
       label: "On the court",
       section: "hobbies",
       lightUp: true, // the words light up one after another as you read, like a play being called
+      board: true, // and a coach's board draws the move, one step per word
       intro: "Where I play and what I go to.",
       words: [
         { text: "Center", note: "or the 3, on the wing", top: true },
@@ -128,26 +135,31 @@ const SITE = {
         {
           pos: "PG", text: "Rondo", note: "the passer",
           link: "https://en.wikipedia.org/wiki/Rajon_Rondo",
-          image: "assets/five/rondo-celtics.jpg", alt: "Rajon Rondo calling a play as he brings the ball up for the Celtics"
+          image: "assets/five/rondo-celtics.jpg", alt: "Rajon Rondo calling a play as he brings the ball up for the Celtics",
+          card: { ovr: 92, tier: "Pink Diamond", name: "Rajon Rondo", badges: [["Dimer", "HOF"], ["Needle Threader", "HOF"], ["Interceptor", "Gold"]] }
         },
         {
           pos: "SG", text: "Kobe", note: "Mamba mentality",
           link: "https://en.wikipedia.org/wiki/Kobe_Bryant",
-          image: "assets/five/kobe-lakers.jpg", alt: "Kobe Bryant driving to the basket for the Lakers"
+          image: "assets/five/kobe-lakers.jpg", alt: "Kobe Bryant driving to the basket for the Lakers",
+          card: { ovr: 98, tier: "Dark Matter", name: "Kobe Bryant", badges: [["Space Creator", "HOF"], ["Deadeye", "HOF"], ["Tireless Scorer", "HOF"]] }
         },
         {
           pos: "SF", text: "MJ", note: "six rings",
           link: "https://en.wikipedia.org/wiki/Michael_Jordan",
-          image: "assets/five/mj-bulls.jpg", alt: "Michael Jordan rising for a jump shot for the Bulls"
+          image: "assets/five/mj-bulls.jpg", alt: "Michael Jordan rising for a jump shot for the Bulls",
+          card: { ovr: 99, tier: "Dark Matter", name: "Michael Jordan", badges: [["Clutch Shooter", "HOF"], ["Middy Magician", "HOF"], ["Clamps", "HOF"]] }
         },
         {
           pos: "PF", text: "LeBron", note: "the King",
           link: "https://en.wikipedia.org/wiki/LeBron_James",
-          image: "assets/five/lebron-heat.jpg", alt: "LeBron James cocking the ball back for a dunk with the Heat"
+          image: "assets/five/lebron-heat.jpg", alt: "LeBron James cocking the ball back for a dunk with the Heat",
+          card: { ovr: 98, tier: "Dark Matter", name: "LeBron James", badges: [["Chase Down Artist", "HOF"], ["Posterizer", "HOF"], ["Floor General", "Gold"]] }
         },
         {
           pos: "C", text: "Yao / Shaq", note: "co-starters",
           image: "assets/five/yao-shaq.jpg", alt: "Yao Ming and Shaquille O'Neal posting up",
+          card: { ovr: 96, tier: "Galaxy Opal", name: "Yao & Shaq", badges: [["Post Spin Technician", "HOF"], ["Backdown Punisher", "HOF"], ["Rim Protector", "Gold"]] },
           credit: [{ subject: "Yao Ming", by: "Keith Allison", license: "CC BY-SA 2.0", licenseUrl: "https://creativecommons.org/licenses/by-sa/2.0/", source: "https://commons.wikimedia.org/wiki/File:Yao_Ming_(2310548923).jpg" }, { subject: "Shaquille O'Neal", by: "Jeramey Jannene", license: "CC BY 2.0", licenseUrl: "https://creativecommons.org/licenses/by/2.0/", source: "https://commons.wikimedia.org/wiki/File:%22Give_Me_The_Damn_Ball%22_(73833605).jpg" }]
         }
       ],
