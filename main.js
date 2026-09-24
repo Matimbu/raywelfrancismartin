@@ -27,6 +27,21 @@ function linkify(node, url) {
 
 const pad2 = (n) => String(n).padStart(2, "0");
 
+// A hover has to be one the visitor actually made. "mouseenter" alone isn't
+// that: closing a panel or the photo viewer over something, or the page
+// shifting under a still cursor, hands it a hover nobody asked for. A real
+// hover always carries a mousemove inside in the same breath, so wait for it.
+function onHover(node, run) {
+  let entered = false;
+  node.addEventListener("mouseenter", () => (entered = true));
+  node.addEventListener("mouseleave", () => (entered = false));
+  node.addEventListener("mousemove", () => {
+    if (!entered) return;
+    entered = false; // once per visit, like mouseenter
+    run();
+  });
+}
+
 // Placeholders (anything containing "TODO") only show while previewing on
 // your own computer, so the live site never shows unfinished bits.
 const isPreview = ["localhost", "127.0.0.1", ""].includes(location.hostname);
@@ -648,7 +663,10 @@ try {
         face.loading = "lazy";
         note.appendChild(face);
       }
-      note.appendChild(document.createTextNode(`${w.note || ""}${w.link ? " ↗" : ""}`));
+      // a link to a clip gets a small play mark, any other link the arrow
+      const clip = /tiktok\.com\/.+\/video\/|youtube\.com\/(watch|shorts)|youtu\.be\//.test(w.link || "");
+      note.appendChild(document.createTextNode(`${w.note || ""}${w.link && !clip ? " ↗" : ""}`));
+      if (clip) note.appendChild(el("span", "ww-clip"));
       // Hunter's Fury: its ult points (it needs all of them), and its three
       // charges, lit while the ult is up
       if (w.beam && !reduceMotion) {
@@ -676,17 +694,17 @@ try {
     // Hover on computers, tap on phones.
     const ability = reduceMotion ? null
       : w.ping ? reconPing : w.shock ? shockBolt : w.beam ? huntersFury : w.hud ? droneHud : null;
-    if (ability === droneHud && !canHover) {
-      // phones: the first tap opens the drone's view instead of the clip;
-      // with it up, tapping the word again opens the clip as usual
-      item.addEventListener("click", (e) => {
-        if (hud) return;
-        e.preventDefault();
-        droneHud(block, item);
-      });
+    if (ability && canHover) {
+      onHover(item, () => ability(block, item));
     } else if (ability) {
-      if (canHover) hoverAbility(item, () => ability(block, item));
-      else item.addEventListener("click", () => ability(block, item));
+      // phones: a tap plays the ability instead of opening the clip, so a
+      // tap never whisks you off the page. Tapping the word again while its
+      // ability plays opens the clip as usual.
+      item.addEventListener("click", (e) => {
+        if (w.link && item.classList.contains("casting")) return;
+        e.preventDefault();
+        ability(block, item);
+      });
     }
     if (ability && w.key) keyAbilities[w.key.toLowerCase()] = { block, item, ability };
     if (w.desc) item.dataset.desc = w.desc;
@@ -695,7 +713,7 @@ try {
     if (w.key) item.dataset.key = w.key;
     // Reuse the crafts preview card: the photo follows the cursor
     if (w.image && canHover && !cards) {
-      item.addEventListener("mouseenter", () => showPreview({ image: w.image, emoji: "" }));
+      onHover(item, () => showPreview({ image: w.image, emoji: "" }));
       item.addEventListener("mouseleave", hidePreview);
     }
     words.appendChild(item);
@@ -1013,7 +1031,7 @@ SITE.crafts.forEach((craft, i) => {
     el("span", "craft-arrow", craft.link ? "↗" : "")
   );
   if (canHover) {
-    row.addEventListener("mouseenter", () => showPreview(craft));
+    onHover(row, () => showPreview(craft));
     row.addEventListener("mouseleave", hidePreview);
   }
   li.appendChild(row);
@@ -1382,7 +1400,7 @@ SITE.youtube.forEach((ch, i) => {
         show(v, playing);
       });
       if (canHover) {
-        row.addEventListener("mouseenter", () => peek(v));
+        onHover(row, () => peek(v));
         row.addEventListener("mouseleave", unpeek);
       }
       rows.push(row);
@@ -1476,7 +1494,7 @@ gallery.forEach((p, i) => {
   // tile has finished revealing on phones (where captions always show)
   if (!reduceMotion) {
     if (canHover) {
-      tile.addEventListener("mouseenter", () => typeCaption(caption, p.caption));
+      onHover(tile, () => typeCaption(caption, p.caption));
     } else {
       caption.textContent = "";
       captionWatch.observe(tile);
@@ -1920,22 +1938,6 @@ function revealWord(node, delay, ms) {
   }, delay);
 }
 
-// A hover has to be one the visitor actually made. "mouseenter" alone isn't
-// that: closing a panel over a word, or the page shifting under a still
-// cursor, hands the word a hover nobody asked for — and an ability would go
-// off by itself. A real hover always carries a mousemove inside the word in
-// the same breath, so wait for that.
-function hoverAbility(node, run) {
-  let entered = false;
-  node.addEventListener("mouseenter", () => (entered = true));
-  node.addEventListener("mouseleave", () => (entered = false));
-  node.addEventListener("mousemove", () => {
-    if (!entered) return;
-    entered = false; // once per visit, like mouseenter was
-    run();
-  });
-}
-
 // Ult points, like the game's: Hunter's Fury needs all 8. Each of Sova's
 // other abilities earns 2; once they're all in, the word glows, ready.
 // Kept per browser, so a visitor keeps their progress.
@@ -1960,6 +1962,23 @@ function setUltPoints(n) {
   }
 }
 const earnUlt = () => setUltPoints(ultPoints + 2);
+// Casting spends them all: the points drain out one after another, last one
+// first, the way the game's ult meter empties when you use it
+function spendUlt(item, over) {
+  const pips = [...(item.querySelector(".ult-points")?.children || [])];
+  const had = ultPoints;
+  ultPoints = 0;
+  try {
+    localStorage.setItem("sovaUlt", "0");
+  } catch (e) {}
+  item.classList.remove("ult-ready");
+  pips.slice(0, had).reverse().forEach((pip, k) => {
+    setTimeout(() => {
+      pip.classList.remove("lit");
+      pip.animate([{ scale: "2.2", filter: "brightness(2)" }, { scale: "1", filter: "none" }], { duration: 320, easing: "ease-out" });
+    }, (k * over) / Math.max(1, had));
+  });
+}
 // Not ready yet: the points shake and show how many are in
 function ultNotReady(item) {
   const row = item.querySelector(".ult-points");
@@ -2451,7 +2470,7 @@ function huntersFury(block, item) {
   if (ultPoints < ULT_MAX) return ultNotReady(item);
   if (!claimAbility(7200, block, item)) return;
   firing = true;
-  setUltPoints(0);
+  spendUlt(item, 800); // gone by the time the bow is up
   item.classList.add("ulting");
   const EQUIP = 800;
   const WINDUP = 1000;
@@ -2770,6 +2789,17 @@ const AGENT_BADGE =
   '<path class="badge-body" d="M12 4h40l7 8-7 8H12l-7-8z"/>' +
   '<path class="badge-icon" d="M26.4 10A6 6 0 0 1 37.2 9M37.6 14A6 6 0 0 1 26.8 15M37.6 6.2 37.2 9l-2.8-.4M26.4 17.8l.4-2.8 2.8.4"/></svg>';
 const SPEAKER = '<svg viewBox="0 0 16 16"><path d="M2 6h3l4-3v10L5 10H2z"/></svg>';
+// Scroll just enough to show a node that opened partly off screen
+function bringIntoView(node, pad = 20) {
+  const r = node.getBoundingClientRect();
+  const below = r.bottom + pad - innerHeight;
+  const above = r.top - pad - 64; // clear of the header
+  const by = below > 0 ? Math.min(below, above) : above < 0 ? above : 0;
+  if (!by) return;
+  if (lenis) lenis.scrollTo(scrollY + by, { duration: 0.9 });
+  else window.scrollTo({ top: scrollY + by, behavior: reduceMotion ? "auto" : "smooth" });
+}
+
 let picking = null;
 function agentSelect(block, item) {
   if (reduceMotion) return;
@@ -2794,9 +2824,12 @@ function agentSelect(block, item) {
   primeSound(SOUND_HOVER);
   primeSound(SOUND_LOCK);
   panel.querySelectorAll("button").forEach((button) => {
-    button.addEventListener("mouseenter", () => button.disabled || playSound(SOUND_HOVER, 0.5));
+    onHover(button, () => button.disabled || playSound(SOUND_HOVER, 0.5));
   });
-  requestAnimationFrame(() => requestAnimationFrame(() => panel.classList.add("on")));
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    panel.classList.add("on");
+    bringIntoView(panel);
+  }));
   const lockBtn = panel.querySelector(".lock-in-btn");
   const status = panel.querySelector(".agent-status");
   // the pick timer counts down the 12 s, like the agent select's
@@ -2852,7 +2885,7 @@ function agentSelect(block, item) {
       info.querySelector(".kit-stat").textContent = word.dataset.stat || "";
       info.classList.add("on");
     };
-    slot.addEventListener("mouseenter", show);
+    onHover(slot, show);
     slot.addEventListener("focus", show);
     slot.addEventListener("click", show);
     slot.addEventListener("mouseleave", () => info.classList.remove("on"));
