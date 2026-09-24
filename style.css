@@ -1589,6 +1589,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
 .peek-more[aria-expanded="true"] .peek-arrow { rotate: 180deg; }
 
 .peek-fan { position: relative; height: 470px; }
+.peek-fan.five { height: 490px; }
 .peek-card {
   --w: 204px;
   --h: 363px;
@@ -1609,6 +1610,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   background: #0a0a0a;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
   cursor: pointer;
+  z-index: 1;
   translate: var(--x) calc(var(--y) + var(--lift));
   rotate: var(--r);
   filter: brightness(0.72);
@@ -1618,13 +1620,54 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
 .peek-card img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .peek-card[data-pos="left"] { --x: -122px; --y: 22px; --r: -8deg; --order: 1; }
 .peek-card[data-pos="right"] { --x: 122px; --y: 22px; --r: 8deg; --order: 2; }
-.peek-card[data-pos="front"] { --w: 228px; --h: 405px; --order: 0; z-index: 2; filter: none; }
+.peek-card[data-pos="front"] { --w: 228px; --h: 405px; --order: 0; z-index: 3; filter: none; }
+/* five cards: the inner pair moves in, an outer pair sits further out and lower */
+.peek-fan.five .peek-card[data-pos="left"] { --x: -108px; --y: 20px; --r: -7deg; }
+.peek-fan.five .peek-card[data-pos="right"] { --x: 108px; --y: 20px; --r: 7deg; }
+.peek-card[data-pos="far-left"], .peek-card[data-pos="far-right"] { --w: 186px; --h: 331px; z-index: 0; filter: brightness(0.55); }
+.peek-card[data-pos="far-left"] { --x: -200px; --y: 56px; --r: -14deg; --order: 3; }
+.peek-card[data-pos="far-right"] { --x: 200px; --y: 56px; --r: 14deg; --order: 4; }
+/* the play mark: on the front card on touch screens, on the card you point
+   at on computers */
+.peek-play {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  width: 46px;
+  height: 46px;
+  translate: -50% -50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  background: rgba(12, 12, 12, 0.55);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  scale: 0.9;
+  pointer-events: none;
+  transition: opacity 0.2s ease, scale 0.25s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.peek-play::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -40% -50%;
+  border-left: 13px solid #fff;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+}
+@media (hover: none) { .peek-card[data-pos="front"] .peek-play { opacity: 1; scale: 1; } }
 .peek-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; filter: none; }
 @media (hover: hover) and (pointer: fine) {
   /* the fan opens a little under the cursor, and the card you're on lifts */
   .peek-fan:hover .peek-card[data-pos="left"] { --x: -146px; --r: -11deg; }
   .peek-fan:hover .peek-card[data-pos="right"] { --x: 146px; --r: 11deg; }
-  .peek-card:hover { --lift: -12px; filter: none; z-index: 3; }
+  .peek-fan.five:hover .peek-card[data-pos="left"] { --x: -124px; --r: -9deg; }
+  .peek-fan.five:hover .peek-card[data-pos="right"] { --x: 124px; --r: 9deg; }
+  .peek-fan:hover .peek-card[data-pos="far-left"] { --x: -226px; --r: -17deg; }
+  .peek-fan:hover .peek-card[data-pos="far-right"] { --x: 226px; --r: 17deg; }
+  .peek-card:hover { --lift: -12px; filter: none; z-index: 4; }
+  .peek-card:hover .peek-play { opacity: 1; scale: 1; }
 }
 /* dealt out of a pile when the peek comes on screen, front card first */
 .js .watch-peek:not(.dealt) .peek-card { translate: 0 36px; rotate: 0deg; scale: 0.95; opacity: 0; }
@@ -1636,6 +1679,20 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
 }
 
 .channel.peeked .channel-tagline, .channel.peeked .channel-about { display: none; }
+.peek-less {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: clamp(48px, 7vw, 80px) auto 0;
+  padding: 12px 20px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: none;
+  color: var(--fg);
+  cursor: pointer;
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+@media (hover: hover) and (pointer: fine) { .peek-less:hover { background: var(--fg); color: var(--bg); border-color: var(--fg); } }
 
 /* the full players slide down from under the peek */
 .watch-more {
@@ -2645,6 +2702,13 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   .peek-card[data-pos="front"] { --w: 150px; --h: 267px; }
   .peek-card[data-pos="left"] { --x: -92px; --y: 16px; --r: -7deg; }
   .peek-card[data-pos="right"] { --x: 92px; --y: 16px; --r: 7deg; }
+  .peek-fan.five .peek-card { --w: 118px; --h: 210px; }
+  .peek-fan.five .peek-card[data-pos="front"] { --w: 132px; --h: 235px; }
+  .peek-fan.five .peek-card[data-pos="left"] { --x: -64px; --y: 12px; --r: -6deg; }
+  .peek-fan.five .peek-card[data-pos="right"] { --x: 64px; --y: 12px; --r: 6deg; }
+  .peek-fan.five .peek-card[data-pos="far-left"], .peek-fan.five .peek-card[data-pos="far-right"] { --w: 100px; --h: 178px; }
+  .peek-fan.five .peek-card[data-pos="far-left"] { --x: -118px; --y: 36px; --r: -12deg; }
+  .peek-fan.five .peek-card[data-pos="far-right"] { --x: 118px; --y: 36px; --r: 12deg; }
   /* the kill feed sits under the ult's name instead of across it */
   .kill-feed { top: 46px; }
   .header { grid-template-columns: 1fr auto; }

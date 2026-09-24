@@ -330,10 +330,10 @@ const SITE = {
       tagline: "People change, memories don't.",
       about: "Memory videos with friends, plus Valorant clips.",
       featuredVideo: "wZsDlJYYQDI",
-      // Watch Me opens on a sneak peek of these Shorts, fanned out like the
-      // share card (left, front, right; each needs a `cover`). "Watch more"
-      // brings the full players down.
-      peek: ["lXQqb-qdOAg", "WWy2S5vndPk", "1QQ4ncdYBoA"],
+      // Watch Me opens on a sneak peek of these, fanned out like the share
+      // card: 3 or 5 ids from any channel here, left to right, the middle one
+      // in front; each needs a `cover`. "Watch more" brings the players down.
+      peek: ["7121951680408669442", "lXQqb-qdOAg", "WWy2S5vndPk", "1QQ4ncdYBoA", "7032101516244782337"],
       videos: [
         { title: "BNF BTG PNM", note: "15:54", id: "IrMJpBgpFjY" },
         { title: "batugans 22 - 23", note: "4:06", id: "wZsDlJYYQDI" },
@@ -353,8 +353,8 @@ const SITE = {
       about: "Valorant clips, mostly Sova.",
       featuredVideo: "7121951680408669442",
       videos: [
-        { title: "Owl Drone", note: "Clip", id: "7121951680408669442" },
-        { title: "Hunter's Fury", note: "Clip", id: "7032101516244782337" }
+        { title: "Owl Drone", note: "Clip", id: "7121951680408669442", cover: "assets/tiktok/owl-drone.jpg" },
+        { title: "Hunter's Fury", note: "Clip", id: "7032101516244782337", cover: "assets/tiktok/hunters-fury.jpg" }
       ]
     }
   ],

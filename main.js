@@ -1225,11 +1225,10 @@ function youtubeThumb(v) {
 function youtubeFrame(v) {
   const frame = el("iframe");
   const params = new URLSearchParams({ autoplay: 1, rel: 0, playsinline: 1, iv_load_policy: 3 });
-  // Shorts loop the way they do on YouTube, so the end screen never covers them
-  if (v.short) {
-    params.set("loop", 1);
-    params.set("playlist", v.id);
-  }
+  // lets the player say when the video ends, so its cover can come back
+  // before YouTube's end screen does
+  params.set("enablejsapi", 1);
+  params.set("origin", location.origin);
   frame.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(v.id)}?${params}`;
   // YouTube only plays embeds when the page sends its address (the HTTP
   // Referer); without it viewers get "error 153"
@@ -1245,13 +1244,71 @@ function tiktokThumb(v) {
   const img = el("img");
   img.alt = "";
   img.loading = "lazy";
-  img.src = `assets/tiktok/${v.id}.jpg`;
+  img.src = v.cover || `assets/tiktok/${v.id}.jpg`;
   return img;
+}
+
+// Covers first and last: a video's cover shows until you press play, and
+// comes back when the video ends. The players say when they're done:
+// TikTok's by message, YouTube's through its iframe API (loaded once, the
+// first time a YouTube video plays). Returns the function that stops
+// listening.
+let ytApi = null;
+function youtubeApi() {
+  if (!ytApi) {
+    ytApi = new Promise((resolve, reject) => {
+      if (window.YT && window.YT.Player) return resolve(window.YT);
+      const before = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => {
+        if (before) before();
+        resolve(window.YT);
+      };
+      const script = el("script");
+      script.src = "https://www.youtube.com/iframe_api";
+      script.async = true;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
+  return ytApi;
+}
+function watchForEnd(frame, tiktok, done) {
+  let live = true;
+  if (tiktok) {
+    const onMessage = (e) => {
+      if (!live || e.source !== frame.contentWindow) return;
+      let d = e.data;
+      if (typeof d === "string") {
+        try {
+          d = JSON.parse(d);
+        } catch (err) {
+          return;
+        }
+      }
+      if (d && d["x-tiktok-player"] && d.type === "onStateChange" && d.value === 0) done();
+    };
+    addEventListener("message", onMessage);
+    return () => {
+      live = false;
+      removeEventListener("message", onMessage);
+    };
+  }
+  youtubeApi()
+    .then((YT) => {
+      if (!live) return;
+      frame.ytPlayer = new YT.Player(frame, {
+        events: { onStateChange: (e) => live && e.data === YT.PlayerState.ENDED && done() }
+      });
+    })
+    .catch(() => {});
+  return () => {
+    live = false;
+  };
 }
 
 function tiktokFrame(v) {
   const frame = el("iframe");
-  const params = new URLSearchParams({ autoplay: 1, loop: 1, rel: 0, description: 0, music_info: 0 });
+  const params = new URLSearchParams({ autoplay: 1, loop: 0, rel: 0, description: 0, music_info: 0 });
   frame.src = `https://www.tiktok.com/player/v1/${encodeURIComponent(v.id)}?${params}`;
   frame.title = v.title;
   frame.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
@@ -1272,6 +1329,7 @@ SITE.youtube.forEach((ch, i) => {
   let current = videos.find((v) => v.id === ch.featuredVideo)
     || (ch.featuredVideo ? { id: ch.featuredVideo, title: `${ch.name} video` } : null);
   let playing = false;
+  let stopWatching = null; // listens for the playing video's end
   const rows = [];
 
   const media = el("div", "channel-media");
@@ -1330,9 +1388,15 @@ SITE.youtube.forEach((ch, i) => {
     captionTitle.textContent = v.title;
     linkify(openLink, watchUrl(v, ch));
 
+    if (stopWatching) stopWatching();
+    stopWatching = null;
     if (play) {
       const frame = tiktok ? tiktokFrame(v) : youtubeFrame(v);
       swapIn(frame, (reveal) => frame.addEventListener("load", reveal, { once: true }));
+      // when it's over, its cover comes back
+      stopWatching = watchForEnd(frame, tiktok, () => {
+        if (current === v && playing) show(v, false);
+      });
       return;
     }
     const btn = el("button", "thumb");
@@ -1395,11 +1459,11 @@ SITE.youtube.forEach((ch, i) => {
         list.dataset.rolls = "1";
       }
       row.append(el("span", "video-title", v.title), note);
-      // Once something is playing, picking another video plays it right away
+      // Covers first: picking a video shows its cover; press play to watch
       row.addEventListener("click", () => {
         if (current && current.id === v.id) return;
         unpeek();
-        show(v, playing);
+        show(v, false);
       });
       if (canHover) {
         onHover(row, () => peek(v));
@@ -1420,13 +1484,13 @@ SITE.youtube.forEach((ch, i) => {
 
   card.append(media, info);
   $("channelList").appendChild(card);
-  // for the sneak peek above: play one of this channel's videos, or stop
+  // for the sneak peek above: bring up one of this channel's videos (its
+  // cover), or stop whatever is playing
   card.dataset.channel = ch.name;
-  card.play = (id) => {
+  card.select = (id) => {
     const v = videos.find((x) => x.id === id);
-    if (!v) return;
-    if (!location.protocol.startsWith("http")) return window.open(watchUrl(v, ch), "_blank", "noopener");
-    show(v, true);
+    if (!v || (current === v && !playing)) return;
+    show(v, false);
   };
   card.stop = () => {
     if (playing && current) show(current, false);
@@ -1454,9 +1518,21 @@ addEventListener("resize", () => stageFits.forEach((fit) => fit()));
   const host = SITE.youtube.find((ch) => (ch.peek || []).length);
   const list = $("channelList");
   if (!host || !list) return;
-  const card = [...list.children].find((c) => c.dataset.channel === host.name);
-  const picks = host.peek.map((id) => host.videos.find((v) => v.id === id)).filter((v) => v && v.cover);
-  if (!card || picks.length !== 3) return;
+  const cards = [...list.children];
+  const cardOf = (name) => cards.find((c) => c.dataset.channel === name);
+  const hostCard = cardOf(host.name);
+  // the Shorts and clips to fan out, from any of the channels, each with its cover
+  const picks = host.peek
+    .map((id) => {
+      for (const ch of SITE.youtube) {
+        const v = (ch.videos || []).find((x) => x.id === id);
+        if (v && v.cover) return { v, card: cardOf(ch.name) };
+      }
+      return null;
+    })
+    .filter((p) => p && p.card);
+  const POS = { 3: ["left", "front", "right"], 5: ["far-left", "left", "front", "right", "far-right"] }[picks.length];
+  if (!hostCard || !POS) return;
 
   // the players go in a drawer that starts closed
   const drawer = el("div", "watch-more");
@@ -1467,14 +1543,14 @@ addEventListener("resize", () => stageFits.forEach((fit) => fit()));
   drawer.appendChild(inner);
   drawer.inert = true;
 
-  // the peek carries this channel's line now, so its card doesn't repeat it
-  card.classList.add("peeked");
+  // the peek carries the host channel's line now, so its card doesn't repeat it
+  hostCard.classList.add("peeked");
 
   const peek = el("div", "watch-peek");
   const text = el("div", "peek-text");
   text.append(
     el("p", "peek-handle mono", host.handle),
-    el("p", "peek-tagline", "\u201C" + host.tagline + "\u201D"),
+    el("p", "peek-tagline", "“" + host.tagline + "”"),
     el("p", "peek-about mono", host.about)
   );
   const more = el("button", "peek-more mono");
@@ -1482,40 +1558,73 @@ addEventListener("resize", () => stageFits.forEach((fit) => fit()));
   more.setAttribute("aria-controls", "watchMore");
   more.setAttribute("aria-expanded", "false");
   const label = el("span", "", "Watch more");
-  more.append(label, el("span", "peek-arrow", "\u2193"));
+  more.append(label, el("span", "peek-arrow", "↓"));
   text.appendChild(more);
 
-  const fan = el("div", "peek-fan");
-  ["left", "front", "right"].forEach((pos, k) => {
-    const v = picks[k];
+  const fan = el("div", "peek-fan" + (POS.length === 5 ? " five" : ""));
+  POS.forEach((pos, k) => {
+    const { v, card } = picks[k];
     const c = el("button", "peek-card");
     c.type = "button";
     c.dataset.pos = pos;
-    c.setAttribute("aria-label", "Play " + v.title);
+    c.setAttribute("aria-label", "Watch " + v.title);
     const img = el("img");
-    img.src = v.cover;
+    // the fan shows covers small, so it gets their light 480px copies
+    img.src = v.cover.replace(/\.jpg$/, "-480.jpg");
     img.alt = "";
     img.loading = "lazy";
     img.decoding = "async";
-    c.appendChild(img);
+    // a small play mark says the covers lead to the videos
+    c.append(img, el("span", "peek-play"));
+    // covers first: tapping one opens the players on that video's cover
     c.addEventListener("click", () => {
-      setOpen(true, true);
-      card.play(v.id);
+      card.select(v.id);
+      setOpen(true, card);
     });
     fan.appendChild(c);
   });
   peek.append(text, fan);
   drawer.before(peek);
 
-  // the covers deal out of a pile each time the peek comes on screen
+  // and a Show less at the end of the players, which glides back up to the covers
+  const less = el("button", "peek-less mono");
+  less.type = "button";
+  less.setAttribute("aria-controls", "watchMore");
+  less.append(el("span", "", "Show less"), el("span", "peek-arrow", "↑"));
+  list.after(less);
+  less.addEventListener("click", () => {
+    const y = scrollY + peek.getBoundingClientRect().top - 90;
+    if (lenis) lenis.scrollTo(y, { duration: 1.1, easing: easeInOut });
+    else window.scrollTo({ top: y, behavior: reduceMotion ? "auto" : "smooth" });
+    setOpen(false);
+  });
+
+  // the covers deal out of a pile each time the peek comes on screen, once
+  // they've arrived (someone landing here from the share link would
+  // otherwise see blank cards dealt), waiting 2.5 s at most
+  const covers = [...fan.querySelectorAll("img")];
+  const coversIn = () => Promise.race([
+    Promise.all(covers.map((img) => img.complete ? null : new Promise((done) => {
+      img.addEventListener("load", done, { once: true });
+      img.addEventListener("error", done, { once: true });
+    }))),
+    new Promise((done) => setTimeout(done, 2500))
+  ]);
   if (!reduceMotion) {
     let dealing = null;
+    let onScreen = false;
     new IntersectionObserver(([entry]) => {
-      if (entry.intersectionRatio >= 0.35 && !peek.classList.contains("dealt")) {
-        peek.classList.add("dealt", "dealing");
-        clearTimeout(dealing);
-        dealing = setTimeout(() => peek.classList.remove("dealing"), 1100);
+      if (entry.intersectionRatio >= 0.35 && !onScreen) {
+        onScreen = true;
+        covers.forEach((img) => (img.loading = "eager"));
+        coversIn().then(() => {
+          if (!onScreen) return;
+          peek.classList.add("dealt", "dealing");
+          clearTimeout(dealing);
+          dealing = setTimeout(() => peek.classList.remove("dealing"), 1200);
+        });
       } else if (!entry.isIntersecting) {
+        onScreen = false;
         peek.classList.remove("dealt", "dealing");
       }
     }, { threshold: [0, 0.35] }).observe(peek);
@@ -1525,7 +1634,7 @@ addEventListener("resize", () => stageFits.forEach((fit) => fit()));
 
   let open = false;
   let settle = null;
-  function setOpen(on, toPlayer) {
+  function setOpen(on, toCard) {
     if (on !== open) {
       open = on;
       clearTimeout(settle);
@@ -1535,20 +1644,20 @@ addEventListener("resize", () => stageFits.forEach((fit) => fit()));
       more.setAttribute("aria-expanded", String(on));
       label.textContent = on ? "Show less" : "Watch more";
       if (on) settle = setTimeout(() => drawer.classList.add("settled"), 700); // nothing clipped once it's down
-      else document.querySelectorAll("#channelList .channel").forEach((c) => c.stop && c.stop());
+      else cards.forEach((c) => c.stop && c.stop());
     }
     if (!on) return;
     // bring the players up into view if they'd open below the fold
     requestAnimationFrame(() => {
-      const target = toPlayer ? card.querySelector(".channel-media") : drawer;
+      const target = toCard ? toCard.querySelector(".channel-media") : drawer;
       const top = target.getBoundingClientRect().top;
-      if (!toPlayer && top < innerHeight * 0.6) return;
-      const y = scrollY + top - (toPlayer ? 90 : innerHeight * 0.32);
+      if (!toCard && top < innerHeight * 0.6) return;
+      const y = scrollY + top - (toCard ? 90 : innerHeight * 0.32);
       if (lenis) lenis.scrollTo(y, { duration: 1, easing: easeInOut });
       else window.scrollTo({ top: y, behavior: reduceMotion ? "auto" : "smooth" });
     });
   }
-  more.addEventListener("click", () => setOpen(!open, false));
+  more.addEventListener("click", () => setOpen(!open));
 })();
 
 // ============================================================
@@ -3288,7 +3397,7 @@ if (reduceMotion) {
 // ease-out, 0.97 for controls, less for big surfaces)
 const PRESSABLE = ".lock-in-btn, .kit-slot, .agent-voice, .lb-btn, .lb-play, .header-link, .channel-visit, " +
   ".sound-switch, .story-photo, button.ww-spec, .theme-toggle, .ult-button, .video-row, .thumb, .shot, .shot-more, " +
-  ".peek-more, .peek-card";
+  ".peek-more, .peek-less, .peek-card";
 if (!reduceMotion) {
   document.addEventListener("pointerdown", (e) => {
     if (e.button > 0) return;
