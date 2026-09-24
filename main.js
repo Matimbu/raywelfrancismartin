@@ -572,6 +572,8 @@ function flashCopied(label, ok) {
 // Hunter's Fury's ult points (see earnUlt), kept per browser
 const ULT_MAX = 8;
 let ultPoints = 0;
+let ultButton = null; // phones: the ult's own button (see setupUltButton)
+let furyOnScreen = false;
 try {
   ultPoints = Math.min(ULT_MAX, Number(localStorage.getItem("sovaUlt")) || 0);
 } catch (e) {}
@@ -1682,19 +1684,63 @@ lightbox.addEventListener("keydown", (e) => {
   if (e.key === "ArrowRight") showShot(lbIndex + 1, 1);
 });
 
-// Swipe on touch screens; a plain tap on the dark area closes the viewer
-let swipeX = null;
+// Swipe: the photo follows your finger (or a dragged mouse), and letting go
+// far enough, or flicking fast (past 0.11 px/ms, Emil Kowalski's number),
+// moves to the next one; otherwise it settles back. A plain tap on the dark
+// area still closes the viewer.
+let drag = null;
 let swiped = false;
-lightbox.addEventListener("pointerdown", (e) => { swipeX = e.clientX; swiped = false; });
-lightbox.addEventListener("pointerup", (e) => {
-  if (swipeX === null) return;
-  const dx = e.clientX - swipeX;
-  swipeX = null;
-  if (Math.abs(dx) > 50) {
-    swiped = true;
-    showShot(lbIndex + (dx < 0 ? 1 : -1), dx < 0 ? 1 : -1);
-  }
+lbImg.draggable = false;
+const slide = (dx) => "translateX(" + dx + "px)";
+lightbox.addEventListener("pointerdown", (e) => {
+  if (!e.isPrimary || e.button > 0) return; // one finger only
+  drag = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId, dx: 0, axis: null };
+  swiped = false;
 });
+lightbox.addEventListener("pointermove", (e) => {
+  if (!drag || e.pointerId !== drag.id) return;
+  const dx = e.clientX - drag.x;
+  const dy = e.clientY - drag.y;
+  if (!drag.axis) {
+    if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+    drag.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+    if (drag.axis === "x") lightbox.setPointerCapture(e.pointerId); // keeps following off the photo
+  }
+  if (drag.axis !== "x") return;
+  drag.dx = dx;
+  if (reduceMotion) return;
+  lbStage.style.transform = slide(dx);
+  lbStage.style.opacity = String(1 - Math.min(0.5, Math.abs(dx) / innerWidth));
+});
+const endDrag = (e) => {
+  if (!drag || e.pointerId !== drag.id) return;
+  const { dx, t, axis } = drag;
+  drag = null;
+  if (axis !== "x") return;
+  swiped = true;
+  const fast = Math.abs(dx) / Math.max(1, performance.now() - t) > 0.11;
+  const faded = lbStage.style.opacity || "1";
+  if (Math.abs(dx) > 60 || (fast && Math.abs(dx) > 20)) {
+    const dir = dx < 0 ? 1 : -1;
+    const next = () => {
+      lbStage.style.transform = "";
+      lbStage.style.opacity = "0";
+      showShot(lbIndex + dir, dir); // the next photo comes in from the side, as with the arrows
+      const back = () => (lbStage.style.opacity = "");
+      if (lbImg.complete) requestAnimationFrame(back);
+      else lbImg.addEventListener("load", back, { once: true });
+    };
+    if (reduceMotion) return next();
+    lbStage.animate([{ transform: slide(dx), opacity: faded }, { transform: slide(-dir * innerWidth * 0.3), opacity: 0 }],
+      { duration: 160, easing: EASE_OUT }).finished.then(next);
+  } else {
+    lbStage.style.transform = "";
+    lbStage.style.opacity = "";
+    if (!reduceMotion) lbStage.animate([{ transform: slide(dx), opacity: faded }, { transform: "none", opacity: 1 }], { duration: 220, easing: EASE_OUT });
+  }
+};
+lightbox.addEventListener("pointerup", endDrag);
+lightbox.addEventListener("pointercancel", endDrag);
 lightbox.addEventListener("click", (e) => {
   if (!swiped && (e.target === lightbox || e.target.classList.contains("lb-figure"))) lightbox.close();
 });
@@ -1949,6 +1995,7 @@ function renderUltPoints(fresh = 0) {
     if (i >= ultPoints - fresh && i < ultPoints) pip.animate([{ scale: "2" }, { scale: "1" }], { duration: 450, easing: "ease-out" });
   });
   row.closest(".ww").classList.toggle("ult-ready", ultPoints >= ULT_MAX);
+  updateUltButton();
 }
 function setUltPoints(n) {
   const before = ultPoints;
@@ -1972,6 +2019,7 @@ function spendUlt(item, over) {
     localStorage.setItem("sovaUlt", "0");
   } catch (e) {}
   item.classList.remove("ult-ready");
+  updateUltButton();
   pips.slice(0, had).reverse().forEach((pip, k) => {
     setTimeout(() => {
       pip.classList.remove("lit");
@@ -2465,6 +2513,40 @@ function reconPing(block, item) {
 // across the wall, pulsing and fading and lighting the word up for a second.
 // The three charge pips go out one by one. It needs all 8 ult points first.
 let firing = false;
+
+// Phones: when Hunter's Fury has all its points and its word is on screen,
+// a button like the game's ult icon comes up at the bottom of the screen,
+// so a friend doesn't have to hunt for the word to fire it
+function setupUltButton() {
+  if (canHover || reduceMotion) return;
+  const item = document.querySelector('.ww[data-key="X"]');
+  if (!item) return;
+  const block = item.closest(".wordwall");
+  ultButton = el("button", "ult-button");
+  ultButton.type = "button";
+  ultButton.setAttribute("aria-label", "Fire Hunter's Fury");
+  const ring = el("span", "ult-button-ring");
+  ring.setAttribute("aria-hidden", "true");
+  for (let k = 0; k < ULT_MAX; k++) {
+    const pip = el("i");
+    pip.style.setProperty("--k", k);
+    ring.appendChild(pip);
+  }
+  const icon = el("img");
+  icon.src = item.dataset.icon || "";
+  icon.alt = "";
+  ultButton.append(ring, icon);
+  ultButton.addEventListener("click", () => huntersFury(block, item));
+  document.body.appendChild(ultButton);
+  new IntersectionObserver(([entry]) => {
+    furyOnScreen = entry.isIntersecting;
+    updateUltButton();
+  }, { threshold: 0.6 }).observe(item);
+}
+function updateUltButton() {
+  if (!ultButton) return;
+  ultButton.classList.toggle("on", furyOnScreen && ultPoints >= ULT_MAX && !firing);
+}
 function huntersFury(block, item) {
   if (firing) return;
   if (ultPoints < ULT_MAX) return ultNotReady(item);
@@ -2523,6 +2605,7 @@ function huntersFury(block, item) {
     pipBox?.classList.remove("armed");
     item.classList.remove("ulting");
     firing = false;
+    updateUltButton();
   }, EQUIP + WINDUP + 2 * EVERY + 900);
 }
 
@@ -2789,14 +2872,52 @@ const AGENT_BADGE =
   '<path class="badge-body" d="M12 4h40l7 8-7 8H12l-7-8z"/>' +
   '<path class="badge-icon" d="M26.4 10A6 6 0 0 1 37.2 9M37.6 14A6 6 0 0 1 26.8 15M37.6 6.2 37.2 9l-2.8-.4M26.4 17.8l.4-2.8 2.8.4"/></svg>';
 const SPEAKER = '<svg viewBox="0 0 16 16"><path d="M2 6h3l4-3v10L5 10H2z"/></svg>';
-// Scroll just enough to show a node that opened partly off screen
-function bringIntoView(node, pad = 20) {
-  const r = node.getBoundingClientRect();
-  const below = r.bottom + pad - innerHeight;
-  const above = r.top - pad - 64; // clear of the header
-  const by = below > 0 ? Math.min(below, above) : above < 0 ? above : 0;
-  if (!by) return;
-  if (lenis) lenis.scrollTo(scrollY + by, { duration: 0.9 });
+// The agent select hangs under Sova's picture. So it never sits on top of
+// what follows, the wall makes room for it while it's open: it grows by as
+// much as the panel hangs past it (with the wall stacked on a phone, the
+// room opens right under the picture), then shrinks back, faster, on close.
+// Returns the function that gives the room back.
+const EASE_OUT = "cubic-bezier(0.23, 1, 0.32, 1)";
+const EASE_DRAWER = "cubic-bezier(0.32, 0.72, 0, 1)";
+function makeRoom(block, art, panel) {
+  const stacked = getComputedStyle(block).gridTemplateColumns.trim().split(/\s+/).length < 2;
+  const target = stacked ? art : block;
+  const prop = stacked ? "marginBottom" : "paddingBottom";
+  const css = stacked ? "margin-bottom" : "padding-bottom";
+  const measure = () => {
+    if (stacked) return panel.offsetHeight + 8 + 28;
+    const panelBottom = art.getBoundingClientRect().bottom + 8 + panel.offsetHeight;
+    // the wall's own bottom, without whatever room it has grown so far
+    const wallBottom = block.getBoundingClientRect().bottom - parseFloat(getComputedStyle(block).paddingBottom);
+    return Math.max(0, panelBottom - wallBottom + 28);
+  };
+  target.style.transition = css + " 0.45s " + EASE_DRAWER;
+  const set = () => (target.style[prop] = measure() + "px");
+  set();
+  const watch = new ResizeObserver(set); // the panel can grow (an ability's description)
+  watch.observe(panel);
+  return () => {
+    watch.disconnect();
+    target.style.transition = css + " 0.3s " + EASE_OUT;
+    target.style[prop] = "";
+    setTimeout(() => (target.style.transition = ""), 320);
+  };
+}
+
+// Clicking "Sova" brings the whole wall into view with the agent select
+// under it, centred, in one smooth move. If it can't all fit (a phone), the
+// agent select itself comes into view.
+function framePick(block, art, panel) {
+  const header = 64;
+  const top = block.getBoundingClientRect().top;
+  const bottom = art.getBoundingClientRect().bottom + 8 + panel.offsetHeight;
+  const room = innerHeight - header;
+  const by = bottom - top + 48 <= room
+    ? top - header - (room - (bottom - top)) / 2
+    : bottom + 24 - innerHeight;
+  if (Math.abs(by) < 4) return;
+  const inOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+  if (lenis) lenis.scrollTo(scrollY + by, { duration: 1, easing: inOut });
   else window.scrollTo({ top: scrollY + by, behavior: reduceMotion ? "auto" : "smooth" });
 }
 
@@ -2826,9 +2947,11 @@ function agentSelect(block, item) {
   panel.querySelectorAll("button").forEach((button) => {
     onHover(button, () => button.disabled || playSound(SOUND_HOVER, 0.5));
   });
+  let giveRoomBack = null;
   requestAnimationFrame(() => requestAnimationFrame(() => {
     panel.classList.add("on");
-    bringIntoView(panel);
+    giveRoomBack = makeRoom(block, art, panel);
+    framePick(block, art, panel);
   }));
   const lockBtn = panel.querySelector(".lock-in-btn");
   const status = panel.querySelector(".agent-status");
@@ -2850,6 +2973,7 @@ function agentSelect(block, item) {
     document.removeEventListener("keydown", onKey);
     panel.classList.remove("on");
     art.classList.remove("picking");
+    giveRoomBack?.();
     picking = null;
     setTimeout(() => panel.remove(), 450);
   };
@@ -3059,3 +3183,29 @@ if (reduceMotion) {
 } else {
   requestAnimationFrame(frame);
 }
+
+// Pressing should feel like pressing: buttons, pills and tiles dip a little
+// while held and come back when let go (Emil Kowalski's press rule: a quick
+// ease-out, 0.97 for controls, less for big surfaces)
+const PRESSABLE = ".lock-in-btn, .kit-slot, .agent-voice, .lb-btn, .lb-play, .header-link, .channel-visit, " +
+  ".sound-switch, .story-photo, button.ww-spec, .theme-toggle, .ult-button, .video-row, .thumb, .shot, .shot-more";
+if (!reduceMotion) {
+  document.addEventListener("pointerdown", (e) => {
+    if (e.button > 0) return;
+    const node = e.target.closest(PRESSABLE);
+    if (!node || node.disabled) return;
+    const to = node.matches(".thumb, .shot, .shot-more, .video-row") ? "0.985" : "0.97";
+    const press = node.animate([{ scale: "1" }, { scale: to }], { duration: 160, easing: EASE_OUT, fill: "forwards" });
+    const release = () => {
+      removeEventListener("pointerup", release);
+      removeEventListener("pointercancel", release);
+      const now = getComputedStyle(node).scale; // wherever the press got to
+      press.cancel();
+      node.animate([{ scale: now === "none" ? "1" : now }, { scale: "1" }], { duration: 200, easing: EASE_OUT });
+    };
+    addEventListener("pointerup", release);
+    addEventListener("pointercancel", release);
+  });
+}
+
+setupUltButton();

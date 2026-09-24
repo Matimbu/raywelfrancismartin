@@ -155,7 +155,7 @@ button { font: inherit; color: inherit; }
   transition: transform 0.4s var(--ease);
 }
 .nav a.active { color: var(--fg); }
-@media (hover: hover) { .nav a:hover { color: var(--fg); } }
+@media (hover: hover) and (pointer: fine) { .nav a:hover { color: var(--fg); } }
 .nav a.active::before { transform: scale(1); }
 /* a thin line under the active link fills as you read its section */
 .nav a::after {
@@ -198,7 +198,7 @@ button { font: inherit; color: inherit; }
   white-space: nowrap;
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
-@media (hover: hover) { .header-link:hover { background: var(--fg); color: var(--bg); border-color: var(--fg); } }
+@media (hover: hover) and (pointer: fine) { .header-link:hover { background: var(--fg); color: var(--bg); border-color: var(--fg); } }
 
 .theme-toggle {
   width: 18px;
@@ -222,7 +222,7 @@ button { font: inherit; color: inherit; }
   .header-link::after, .sound-switch::after { content: ""; position: absolute; inset: -8px -6px; }
   .stage-open::after, .playlist-open::after { content: ""; position: absolute; inset: -12px -8px; }
 }
-@media (hover: hover) { .theme-toggle:hover { transform: rotate(180deg); } }
+@media (hover: hover) and (pointer: fine) { .theme-toggle:hover { transform: rotate(180deg); } }
 
 /* ============================================================
    Hero
@@ -347,9 +347,9 @@ button { font: inherit; color: inherit; }
 .floater { pointer-events: auto; }
 .settled .floater-in, .settled .floater-badge { transition-delay: 0s; }
 .settled .floater-in { transition-duration: 0.6s; }
-@media (hover: hover) { .settled .floater:hover .floater-in { transform: rotate(0deg) scale(1.04); } }
+@media (hover: hover) and (pointer: fine) { .settled .floater:hover .floater-in { transform: rotate(0deg) scale(1.04); } }
 .ready .floater-badge.wiggle { animation: wiggle 0.7s var(--ease); }
-@media (hover: hover) { .ready .floater:hover .floater-badge { animation: wiggle 0.7s var(--ease); } }
+@media (hover: hover) and (pointer: fine) { .ready .floater:hover .floater-badge { animation: wiggle 0.7s var(--ease); } }
 @keyframes wiggle {
   0%, 100% { transform: rotate(14deg); }
   25% { transform: rotate(-12deg) scale(1.12); }
@@ -398,7 +398,7 @@ button { font: inherit; color: inherit; }
   transition: opacity 1s var(--ease) 1.4s, transform 1s var(--ease) 1.4s, color 0.3s ease;
 }
 .ready .place, .ready .scroll-hint { opacity: 1; transform: none; }
-@media (hover: hover) { .scroll-hint:hover { color: var(--fg); } }
+@media (hover: hover) and (pointer: fine) { .scroll-hint:hover { color: var(--fg); } }
 
 /* ============================================================
    Marquee
@@ -649,7 +649,7 @@ button { font: inherit; color: inherit; }
   text-underline-offset: 0.16em;
   transition: color 0.3s ease;
 }
-@media (hover: hover) { .inline-link:hover { color: var(--accent); } }
+@media (hover: hover) and (pointer: fine) { .inline-link:hover { color: var(--accent); } }
 
 .now { border-top: 1px solid var(--fg); padding-top: 16px; }
 .now-label { color: var(--muted); margin-bottom: 8px; }
@@ -709,7 +709,7 @@ button { font: inherit; color: inherit; }
   color: var(--muted);
   transition: color 0.3s ease;
 }
-@media (hover: hover) { .ww:hover .ww-text { color: var(--fg); } }
+@media (hover: hover) and (pointer: fine) { .ww:hover .ww-text { color: var(--fg); } }
 .ww-top .ww-text {
   font-style: italic;
   font-size: clamp(56px, 8vw, 112px);
@@ -722,7 +722,7 @@ button { font: inherit; color: inherit; }
   color: var(--accent);
   font-size: 10px;
 }
-@media (hover: hover) { a.ww:hover .ww-text { color: var(--fg); } }
+@media (hover: hover) and (pointer: fine) { a.ww:hover .ww-text { color: var(--fg); } }
 .ww-ability { width: 15px; height: 15px; object-fit: contain; opacity: 0.9; }
 .ww-face {
   width: 24px;
@@ -768,7 +768,7 @@ button { font: inherit; color: inherit; }
   object-fit: cover;
   transition: transform 0.8s var(--ease);
 }
-@media (hover: hover) { a.ww-card:hover .ww-card-img img { transform: scale(1.04); } }
+@media (hover: hover) and (pointer: fine) { a.ww-card:hover .ww-card-img img { transform: scale(1.04); } }
 .ww-pos { color: var(--muted); font-size: 11px; }
 /* card labels: the position's number (1-5) rolls over to its name */
 .ww-card .ww-pos { display: block; height: 1.3em; line-height: 1.3; overflow: hidden; }
@@ -777,7 +777,7 @@ button { font: inherit; color: inherit; }
 .ww-pos-num { color: var(--accent); }
 .named .ww-pos-strip { transform: translateY(-1.3em); }
 .ww-card .ww-text { font-size: clamp(26px, 2.6vw, 38px); }
-@media (hover: hover) { a.ww-card:hover .ww-text { color: var(--fg); } }
+@media (hover: hover) and (pointer: fine) { a.ww-card:hover .ww-text { color: var(--fg); } }
 
 /* a wall with art gets a third column for the picture */
 .wordwall.has-art { grid-template-columns: 1fr 2fr 0.9fr; }
@@ -905,6 +905,55 @@ button { font: inherit; color: inherit; }
 /* Hunter's Fury's ult points: eight, filled by using Sova's other abilities;
    when they're all in, the word and its key glow, ready */
 .ult-points { display: inline-flex; align-items: center; gap: 4px; margin-left: 2px; }
+/* Phones: the ult's button, like the game's ult icon, when Hunter's Fury
+   is ready and on screen. Comes in with a quick ease-out, leaves faster. */
+.ult-button {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  z-index: 60;
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--sova-cyan) 55%, transparent);
+  border-radius: 50%;
+  background: rgba(8, 14, 20, 0.86);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  translate: -50% 14px;
+  scale: 0.95;
+  pointer-events: none;
+  transition: opacity 0.15s ease, translate 0.15s ease, scale 0.15s ease;
+}
+.ult-button.on {
+  opacity: 1;
+  translate: -50% 0;
+  scale: 1;
+  pointer-events: auto;
+  transition: opacity 0.25s cubic-bezier(0.23, 1, 0.32, 1), translate 0.25s cubic-bezier(0.23, 1, 0.32, 1), scale 0.25s cubic-bezier(0.23, 1, 0.32, 1);
+  animation: ult-ready 1.8s ease-in-out infinite;
+}
+.ult-button img { width: 30px; height: 30px; filter: drop-shadow(0 0 6px var(--sova-cyan)); }
+.ult-button-ring { position: absolute; inset: 0; }
+.ult-button-ring i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px;
+  background: var(--sova-cyan);
+  box-shadow: 0 0 5px var(--sova-cyan);
+  transform: rotate(calc(var(--k) * 45deg)) translateY(-40px) rotate(45deg);
+}
+@keyframes ult-ready {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(83, 221, 248, 0.4), 0 0 18px rgba(83, 221, 248, 0.22); }
+  50% { box-shadow: 0 0 0 9px rgba(83, 221, 248, 0), 0 0 30px rgba(83, 221, 248, 0.42); }
+}
+
 .ww-clip {
   display: inline-block;
   margin-left: 7px;
@@ -1159,7 +1208,7 @@ button { font: inherit; color: inherit; }
   text-align: left;
 }
 button.ww-spec { cursor: pointer; transition: border-color 0.3s ease; }
-@media (hover: hover) { button.ww-spec:hover { border-color: var(--fg); } }
+@media (hover: hover) and (pointer: fine) { button.ww-spec:hover { border-color: var(--fg); } }
 .ww-spec-label { color: var(--muted); font-size: 10px; }
 /* codes are case-sensitive, so show them exactly as typed */
 .ww-spec-value { text-transform: none; letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1188,7 +1237,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   color: var(--muted);
   transition: color 0.3s ease;
 }
-@media (hover: hover) { .story-item:hover .story-year { color: var(--fg); } }
+@media (hover: hover) and (pointer: fine) { .story-item:hover .story-year { color: var(--fg); } }
 .story-until { display: block; margin-top: 10px; font-style: normal; font-size: 10px; color: var(--accent); }
 .story-title { margin-bottom: 6px; font-size: 18px; }
 .story-medals { margin-left: 10px; font-size: 15px; letter-spacing: 2px; }
@@ -1219,7 +1268,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   cursor: zoom-in;
   transition: border-color 0.3s ease, color 0.3s ease;
 }
-@media (hover: hover) { .story-photo:hover { border-color: var(--fg); color: var(--fg); } }
+@media (hover: hover) and (pointer: fine) { .story-photo:hover { border-color: var(--fg); color: var(--fg); } }
 .story-photo-thumb {
   display: block;
   width: 52px;
@@ -1250,7 +1299,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   text-underline-offset: 2px;
   transition: color 0.3s ease;
 }
-@media (hover: hover) { .ww-credits a:hover { color: var(--fg); } }
+@media (hover: hover) and (pointer: fine) { .ww-credits a:hover { color: var(--fg); } }
 
 /* ============================================================
    Crafts
@@ -1286,7 +1335,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   transform-origin: left;
   transition: transform 0.7s var(--ease);
 }
-@media (hover: hover) { .video-row:hover::after,
+@media (hover: hover) and (pointer: fine) { .video-row:hover::after,
 .link:hover::after { transform: scaleX(1); } }
 
 .craft-num, .craft-tags, .craft-year { color: var(--muted); }
@@ -1307,7 +1356,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   transition: transform 0.6s var(--ease);
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .craft-list:hover .craft:not(:hover) { opacity: 0.3; }
   .craft-row:hover::after { transform: scaleX(1); }
   .craft-row:hover .craft-title { transform: translateX(18px); }
@@ -1369,7 +1418,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   margin-bottom: clamp(32px, 5vw, 64px);
   transition: transform 0.7s var(--ease);
 }
-@media (hover: hover) { .hobby:hover .hobby-emoji { transform: rotate(-12deg) scale(1.15); } }
+@media (hover: hover) and (pointer: fine) { .hobby:hover .hobby-emoji { transform: rotate(-12deg) scale(1.15); } }
 /* each emoji pops in with a little bounce as its card arrives; an animation
    (filled backwards only) so the hover tilt still works afterwards */
 .js .hobby:not(.in) .hobby-emoji { opacity: 0; }
@@ -1430,7 +1479,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   color: var(--muted);
   transition: color 0.3s ease;
 }
-@media (hover: hover) { .playlist-open:hover { color: var(--fg); } }
+@media (hover: hover) and (pointer: fine) { .playlist-open:hover { color: var(--fg); } }
 .playlist iframe {
   width: 100%;
   height: 152px;
@@ -1594,7 +1643,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
 .stage-state { color: var(--accent); flex-shrink: 0; }
 .stage-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stage-open { color: var(--muted); transition: color 0.3s ease; }
-@media (hover: hover) { .stage-open:hover { color: var(--fg); } }
+@media (hover: hover) and (pointer: fine) { .stage-open:hover { color: var(--fg); } }
 .play {
   position: relative;
   width: 64px;
@@ -1608,8 +1657,8 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   font-size: 18px;
   transition: transform 0.6s var(--ease), background-color 0.3s ease;
 }
-@media (hover: hover) { .thumb:hover img { transform: scale(1.04); filter: none; } }
-@media (hover: hover) { .thumb:hover .play { transform: scale(1.14); background: var(--accent); color: #fff; } }
+@media (hover: hover) and (pointer: fine) { .thumb:hover img { transform: scale(1.04); filter: none; } }
+@media (hover: hover) and (pointer: fine) { .thumb:hover .play { transform: scale(1.14); background: var(--accent); color: #fff; } }
 
 .channel-handle { color: var(--muted); margin-bottom: 10px; }
 .channel-name {
@@ -1667,7 +1716,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
 /* lengths roll up from 0:00, row by row and digit by digit */
 .video-note .odo-strip { transition: transform 1.2s var(--ease) calc(var(--r, 0) * 140ms + var(--k, 0) * 60ms + 150ms); }
 .video-list.rolled .video-note .odo-strip { transform: translateY(calc(var(--n, 0) * -1em)); }
-@media (hover: hover) { .video-row:hover .video-title { transform: translateX(8px); color: var(--fg); } }
+@media (hover: hover) and (pointer: fine) { .video-row:hover .video-title { transform: translateX(8px); color: var(--fg); } }
 .video-row.active .video-title { color: var(--fg); }
 .video-row.active .video-title::before { width: 6px; margin-right: 10px; }
 .video-row.active::after { transform: scaleX(1); }
@@ -1680,7 +1729,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   border-radius: 99px;
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
-@media (hover: hover) { .channel-visit:hover { background: var(--fg); color: var(--bg); border-color: var(--fg); } }
+@media (hover: hover) and (pointer: fine) { .channel-visit:hover { background: var(--fg); color: var(--bg); border-color: var(--fg); } }
 
 /* ============================================================
    Gallery
@@ -1744,7 +1793,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   .shot-meter.swish, .shot-meter.swish::after { animation: none; }
   .eq i { animation: none; }
 }
-@media (hover: hover) { .shot:hover img { transform: scale(1.04); } }
+@media (hover: hover) and (pointer: fine) { .shot:hover img { transform: scale(1.04); } }
 /* screenshots and notes: show the whole thing, centred on the card */
 .shot.contain img {
   inset: 0 0 40px 0;   /* leave room for the caption underneath */
@@ -1783,7 +1832,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   border-top: 9px solid transparent;
   border-bottom: 9px solid transparent;
 }
-@media (hover: hover) { .shot-clip:hover .shot-play { scale: 1.1; background: rgba(255, 90, 31, 0.8); } }
+@media (hover: hover) and (pointer: fine) { .shot-clip:hover .shot-play { scale: 1.1; background: rgba(255, 90, 31, 0.8); } }
 .lb-stage { position: relative; display: grid; justify-items: center; max-width: 100%; }
 .lb-play {
   position: absolute;
@@ -1801,7 +1850,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
 }
 .lb-play .lb-play-mark { position: relative; transition: scale 0.35s var(--ease), background 0.3s ease; }
 .lb-play:focus-visible .lb-play-mark { scale: 1.1; background: rgba(255, 90, 31, 0.85); }
-@media (hover: hover) { .lb-play:hover .lb-play-mark { scale: 1.1; background: rgba(255, 90, 31, 0.85); } }
+@media (hover: hover) and (pointer: fine) { .lb-play:hover .lb-play-mark { scale: 1.1; background: rgba(255, 90, 31, 0.85); } }
 .lb-frame {
   width: min(44vh, 100%);
   aspect-ratio: 9 / 16;
@@ -1828,7 +1877,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   transition: opacity 0.4s ease, transform 0.5s var(--ease);
 }
 .shot:focus-visible .shot-caption { opacity: 1; transform: none; }
-@media (hover: hover) { .shot:hover .shot-caption { opacity: 1; transform: none; } }
+@media (hover: hover) and (pointer: fine) { .shot:hover .shot-caption { opacity: 1; transform: none; } }
 .shot-caption:empty { visibility: hidden; }
 @media (hover: none) {
   .shot-caption { opacity: 1; transform: none; }
@@ -1858,7 +1907,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   letter-spacing: -0.02em;
   transition: transform 0.7s var(--ease);
 }
-@media (hover: hover) { .shot-more:hover .shot-more-handle { transform: translateX(10px); } }
+@media (hover: hover) and (pointer: fine) { .shot-more:hover .shot-more-handle { transform: translateX(10px); } }
 .shot-more-arrow {
   position: absolute;
   top: clamp(16px, 2.4vw, 28px);
@@ -1866,8 +1915,8 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   font-size: 28px;
   transition: transform 0.6s var(--ease), color 0.3s ease;
 }
-@media (hover: hover) { .shot-more:hover { border-color: var(--fg); } }
-@media (hover: hover) { .shot-more:hover .shot-more-arrow { transform: rotate(45deg); color: var(--accent); } }
+@media (hover: hover) and (pointer: fine) { .shot-more:hover { border-color: var(--fg); } }
+@media (hover: hover) and (pointer: fine) { .shot-more:hover .shot-more-arrow { transform: rotate(45deg); color: var(--accent); } }
 
 /* full-screen viewer (always dark, whatever the theme) */
 .lightbox {
@@ -1884,6 +1933,8 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   overflow: hidden;
 }
 .lightbox::backdrop { background: rgba(0, 0, 0, 0.4); }
+.lightbox { touch-action: pan-y pinch-zoom; }
+.lightbox img { -webkit-user-drag: none; user-select: none; }
 .lightbox[open] {
   display: grid;
   place-items: center;
@@ -1919,6 +1970,9 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   color: rgba(242, 240, 235, 0.75);
 }
 .lb-story[hidden] { display: none; }
+/* the viewer's play button and photo hide with the hidden attribute too (their
+   own display rules would otherwise keep them showing) */
+.lb-play[hidden], .lb-figure img[hidden] { display: none; }
 .lb-story .digits { font-family: var(--sans); font-style: normal; font-size: 0.86em; }
 /* the punchline: a beat after the photo opens, word by word */
 .lb-word { display: inline-block; }
@@ -1937,7 +1991,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   cursor: pointer;
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
-@media (hover: hover) { .lb-btn:hover { background: #f2f0eb; color: #0a0a0a; border-color: #f2f0eb; } }
+@media (hover: hover) and (pointer: fine) { .lb-btn:hover { background: #f2f0eb; color: #0a0a0a; border-color: #f2f0eb; } }
 .lb-close { top: 18px; right: var(--pad); padding: 6px 14px; }
 .lb-prev, .lb-next { top: 50%; width: 48px; height: 48px; margin-top: -24px; font-size: 18px; }
 .lb-prev { left: 16px; }
@@ -2017,12 +2071,12 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   transform-origin: right;
   transition: transform 0.9s var(--ease);
 }
-@media (hover: hover) { .link:hover::before { transform: scaleX(1); transform-origin: left; } }
+@media (hover: hover) and (pointer: fine) { .link:hover::before { transform: scaleX(1); transform-origin: left; } }
 .link-label, .link-arrow { color: var(--muted); transition: color 0.5s ease, transform 0.8s var(--ease); }
-@media (hover: hover) { .link:hover .link-label { color: var(--accent); } }
+@media (hover: hover) and (pointer: fine) { .link:hover .link-label { color: var(--accent); } }
 .link-arrow.icon { font-size: 22px; }
-@media (hover: hover) { .link:hover .link-arrow.icon { transform: translateX(8px) rotate(45deg); } }
-@media (hover: hover) { .link:hover .link-arrow.mono { transform: translateX(-6px); } }
+@media (hover: hover) and (pointer: fine) { .link:hover .link-arrow.icon { transform: translateX(8px) rotate(45deg); } }
+@media (hover: hover) and (pointer: fine) { .link:hover .link-arrow.mono { transform: translateX(-6px); } }
 .link-value {
   font-size: clamp(20px, 3.2vw, 38px);
   letter-spacing: -0.03em;
@@ -2030,8 +2084,8 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   overflow-wrap: anywhere;
   transition: transform 0.7s var(--ease);
 }
-@media (hover: hover) { .link:hover .link-value { transform: translateX(14px); } }
-@media (hover: hover) { .link:hover .link-arrow { color: var(--fg); } }
+@media (hover: hover) and (pointer: fine) { .link:hover .link-value { transform: translateX(14px); } }
+@media (hover: hover) and (pointer: fine) { .link:hover .link-arrow { color: var(--fg); } }
 .link:focus-visible, .craft-row:focus-visible, .thumb:focus-visible,
 .video-row:focus-visible, .channel-visit:focus-visible {
   outline: 1px solid var(--accent);
@@ -2050,7 +2104,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   border-top: 1px solid var(--line);
   color: var(--muted);
 }
-@media (hover: hover) { .footer a:hover { color: var(--fg); } }
+@media (hover: hover) and (pointer: fine) { .footer a:hover { color: var(--fg); } }
 /* the year rolls up from the story's first year as the footer arrives */
 .year-roll .odo-strip { transform: translateY(calc(var(--f, 0) * -1em)); transition: transform 1.8s var(--ease) 0.2s; }
 .year-roll.rolled .odo-strip { transform: translateY(calc(var(--n, 0) * -1em)); }
@@ -2122,7 +2176,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
 }
 .shot-meter.scrolling .shot-meter-pct { opacity: 1; }
 .shot-meter.scrolling .shot-meter-arrow { opacity: 0; }
-@media (hover: hover) { .shot-meter:hover .shot-meter-arrow { color: var(--accent); } }
+@media (hover: hover) and (pointer: fine) { .shot-meter:hover .shot-meter-arrow { color: var(--accent); } }
 
 /* clicking "Sova": the game's agent select, under his picture (colours
    sampled from a screenshot of it) */
@@ -2139,9 +2193,9 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   gap: 14px;
   opacity: 0;
   scale: 1.05;
-  transition: opacity 0.3s ease, scale 0.45s var(--ease);
+  transition: opacity 0.18s ease, scale 0.18s ease; /* leaving: quick */
 }
-.agent-select.on { opacity: 1; scale: 1; }
+.agent-select.on { opacity: 1; scale: 1; transition: opacity 0.3s ease, scale 0.45s var(--ease); }
 /* the agent's name in gold with the role over it, like the game's */
 .agent-title { display: grid; justify-items: center; gap: 4px; margin-bottom: -2px; }
 .agent-role { color: #8fd8d2; font-size: 10px; letter-spacing: 0.32em; margin-right: -0.32em; }
@@ -2165,7 +2219,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   box-shadow: inset 0 0 0 3px #fc4e5a, inset 0 0 0 4px rgba(236, 232, 225, 0.5);
   transition: filter 0.2s ease, opacity 0.4s ease;
 }
-@media (hover: hover) { .lock-in-btn:hover { filter: brightness(1.12); } }
+@media (hover: hover) and (pointer: fine) { .lock-in-btn:hover { filter: brightness(1.12); } }
 .lock-in-btn:disabled { cursor: default; }
 .agent-select.locked .lock-in-btn { animation: lock-in-flash 0.7s ease-out forwards; }
 @keyframes lock-in-flash {
@@ -2212,7 +2266,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   cursor: pointer;
 }
 .agent-voice svg { width: 14px; height: 14px; fill: currentColor; }
-@media (hover: hover) { .agent-voice:hover { border-color: var(--sova-cyan); color: var(--sova-cyan); } }
+@media (hover: hover) and (pointer: fine) { .agent-voice:hover { border-color: var(--sova-cyan); color: var(--sova-cyan); } }
 
 /* the kill feed, in the top corner of Sova's wall, styled like the game's:
    the killer's portrait and name on the ally teal, what they used, the victim
@@ -2293,10 +2347,10 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
 }
 .kit-slot img { width: 22px; height: 22px; object-fit: contain; }
 .kit-slot:focus-visible img { filter: drop-shadow(0 0 6px var(--sova-cyan)); }
-@media (hover: hover) { .kit-slot:hover img { filter: drop-shadow(0 0 6px var(--sova-cyan)); } }
+@media (hover: hover) and (pointer: fine) { .kit-slot:hover img { filter: drop-shadow(0 0 6px var(--sova-cyan)); } }
 .kit-key { position: absolute; bottom: -13px; font-size: 8px; color: rgba(236, 232, 225, 0.55); }
 .kit-slot:focus-visible { border-color: var(--sova-cyan); color: var(--sova-cyan); background: rgba(12, 32, 40, 0.9); }
-@media (hover: hover) { .kit-slot:hover { border-color: var(--sova-cyan); color: var(--sova-cyan); background: rgba(12, 32, 40, 0.9); } }
+@media (hover: hover) and (pointer: fine) { .kit-slot:hover { border-color: var(--sova-cyan); color: var(--sova-cyan); background: rgba(12, 32, 40, 0.9); } }
 .kit-info {
   position: absolute;
   right: calc(100% + 16px);
@@ -2359,7 +2413,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   cursor: pointer;
   transition: color 0.3s ease, border-color 0.3s ease;
 }
-@media (hover: hover) { .sound-switch:hover { color: var(--fg); border-color: var(--fg); } }
+@media (hover: hover) and (pointer: fine) { .sound-switch:hover { color: var(--fg); border-color: var(--fg); } }
 .sound-switch[aria-pressed="true"] svg path:first-child { fill: currentColor; }
 .sound-switch svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 
@@ -2477,16 +2531,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
 @media (max-width: 960px) {
   /* the ability's description sits under its keys when there's no room beside */
   .kit-info { position: static; width: 100%; margin-top: -4px; }
-  /* with the wall stacked, the agent select opens over whatever follows it,
-     so it gets a card behind it */
-  .agent-select {
-    width: 250px;
-    padding: 16px 18px 18px;
-    background: rgba(10, 12, 16, 0.94);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
-  }
+
   .about-grid { grid-template-columns: 1fr; }
   .wordwall, .wordwall.has-art { grid-template-columns: 1fr; }
   .ww-credits, .ww-specs { grid-column: 1; }
