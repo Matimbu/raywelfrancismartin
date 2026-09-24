@@ -1854,14 +1854,15 @@ if (gallery.length) {
   }
   lbCount.append(` / ${pad2(gallery.length)}`);
 }
-function setCounter(n) {
+function setCounter(n, instant = false) {
+  lbCount.classList.toggle("instant", instant); // keyboard: the digits just change
   const digits = pad2(n);
   counterStrips.forEach((strip, d) => { strip.style.transform = `translateY(${-digits[d]}em)`; });
   lbCount.setAttribute("aria-label", `Photo ${n} of ${gallery.length}`);
 }
 
 // dir: 1 = next, -1 = previous, 0 = just opened
-function showShot(i, dir = 0) {
+function showShot(i, dir = 0, instant = false) {
   lbIndex = (i + gallery.length) % gallery.length;
   const p = gallery[lbIndex];
   stopShotVideo();
@@ -1873,7 +1874,7 @@ function showShot(i, dir = 0) {
   const wanted = lbIndex;
   large.onload = () => { if (wanted === lbIndex) lbImg.src = large.src; };
   large.src = shotSrc(p, 1600);
-  setCounter(lbIndex + 1);
+  setCounter(lbIndex + 1, instant);
   $("lbText").textContent = p.caption;
   // The story is the punchline: it waits a beat after the photo, then comes
   // in word by word, pausing a little after commas and full stops
@@ -1894,7 +1895,7 @@ function showShot(i, dir = 0) {
     t += step + (/[.!?]["”]?$/.test(word) ? 260 : /,$/.test(word) ? 110 : 0);
   });
   story.hidden = !p.story;
-  revealShot(dir);
+  revealShot(dir, instant);
   // Warm up the neighbours so arrowing through feels instant
   [lbIndex - 1, lbIndex + 1].forEach((j) => {
     const next = gallery[(j + gallery.length) % gallery.length];
@@ -1904,13 +1905,15 @@ function showShot(i, dir = 0) {
 
 // The photo opens like a curtain from the side you're heading towards,
 // the same reveal the gallery tiles use. Its story line follows (see .tell).
-function revealShot(dir) {
+function revealShot(dir, instant = false) {
   const story = $("lbStory");
   story.classList.remove("tell");
+  story.classList.toggle("instant", instant); // keyboard: the story line is simply there
   const play = () => {
     story.classList.add("tell");
-    if (reduceMotion || !lbImg.animate) return;
     lbImg.getAnimations().forEach((a) => a.cancel());
+    // arrow keys flip photos instantly: keyboard actions don't animate
+    if (reduceMotion || instant || !lbImg.animate) return;
     lbImg.animate([
       {
         opacity: 0,
@@ -1918,7 +1921,7 @@ function revealShot(dir) {
         clipPath: dir > 0 ? "inset(0 0 0 24%)" : dir < 0 ? "inset(0 24% 0 0)" : "inset(24% 0 0 0)"
       },
       { opacity: 1, transform: "none", clipPath: "inset(0 0 0 0)" }
-    ], { duration: 750, easing: "cubic-bezier(0.22, 1, 0.36, 1)" });
+    ], { duration: 400, easing: "cubic-bezier(0.23, 1, 0.32, 1)" });
   };
   if (lbImg.complete) play();
   else lbImg.addEventListener("load", play, { once: true });
@@ -1938,8 +1941,8 @@ $("lbClose").addEventListener("click", () => lightbox.close());
 $("lbPrev").addEventListener("click", () => showShot(lbIndex - 1, -1));
 $("lbNext").addEventListener("click", () => showShot(lbIndex + 1, 1));
 lightbox.addEventListener("keydown", (e) => {
-  if (e.key === "ArrowLeft") showShot(lbIndex - 1, -1);
-  if (e.key === "ArrowRight") showShot(lbIndex + 1, 1);
+  if (e.key === "ArrowLeft") showShot(lbIndex - 1, -1, true);
+  if (e.key === "ArrowRight") showShot(lbIndex + 1, 1, true);
 });
 
 // Swipe: the photo follows your finger (or a dragged mouse), and letting go
@@ -2679,8 +2682,11 @@ function tink(fx, at, size = 60, duration = 380) {
   const ring = el("span", "sova-ring");
   ring.style.left = `${at.x}px`;
   ring.style.top = `${at.y}px`;
+  // laid out once at full size and grown with scale, so the compositor does
+  // the work instead of a layout and repaint every frame
+  ring.style.width = ring.style.height = `${size}px`;
   fx.appendChild(ring);
-  ring.animate([{ width: "0px", height: "0px", opacity: 1 }, { width: `${size}px`, height: `${size}px`, opacity: 0 }],
+  ring.animate([{ scale: "0.04", opacity: 1 }, { scale: "1", opacity: 0 }],
     { duration, easing: "ease-out", fill: "forwards" }).finished.then(() => ring.remove());
 }
 
