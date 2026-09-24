@@ -336,7 +336,7 @@ const SITE = {
         { title: "BAIT MY TEAMMATE", note: "Short", id: "1QQ4ncdYBoA", short: true, cover: "assets/youtube/bait-my-teammate.jpg" },
         { title: "NEVER BACK DOWN NEVER WHAT?", note: "Short", id: "lXQqb-qdOAg", short: true, cover: "assets/youtube/sova-clutch.jpg" },
         // the ace: called by what it is, with its real title as the note
-        { title: "RAZE ACE", note: "calmado", id: "WWy2S5vndPk", short: true, cover: "assets/youtube/raze-ace.jpg" }
+        { title: "RAZE ACE", note: "calmado", id: "WWy2S5vndPk", short: true, cover: "assets/youtube/raze-ace-glitchpop.jpg" }
       ]
     },
     {
@@ -445,10 +445,10 @@ const SITE = {
       story: "All-time favourite, whatever the OOTD."
     },
     {
-      cover: "assets/youtube/raze-ace.jpg",
+      cover: "assets/youtube/raze-ace-glitchpop.jpg",
       video: "WWy2S5vndPk",
       caption: "Raze ace",
-      alt: "The Showstopper kill that ended the round, five down",
+      alt: "The last kill of the ace with the Glitchpop Vandal, five down in one round",
       fit: "contain",
       story: "Five down, one round."
     }
