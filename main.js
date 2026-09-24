@@ -1420,6 +1420,17 @@ SITE.youtube.forEach((ch, i) => {
 
   card.append(media, info);
   $("channelList").appendChild(card);
+  // for the sneak peek above: play one of this channel's videos, or stop
+  card.dataset.channel = ch.name;
+  card.play = (id) => {
+    const v = videos.find((x) => x.id === id);
+    if (!v) return;
+    if (!location.protocol.startsWith("http")) return window.open(watchUrl(v, ch), "_blank", "noopener");
+    show(v, true);
+  };
+  card.stop = () => {
+    if (playing && current) show(current, false);
+  };
 
   if (current) {
     show(current, false);
@@ -1435,6 +1446,110 @@ SITE.youtube.forEach((ch, i) => {
 });
 
 addEventListener("resize", () => stageFits.forEach((fit) => fit()));
+
+// Watch Me opens on a sneak peek, like the share card: the channel's line and
+// a few Short covers fanned out. "Watch more" slides the full players down
+// from under it; tapping a cover opens them straight onto that Short.
+(function watchPeek() {
+  const host = SITE.youtube.find((ch) => (ch.peek || []).length);
+  const list = $("channelList");
+  if (!host || !list) return;
+  const card = [...list.children].find((c) => c.dataset.channel === host.name);
+  const picks = host.peek.map((id) => host.videos.find((v) => v.id === id)).filter((v) => v && v.cover);
+  if (!card || picks.length !== 3) return;
+
+  // the players go in a drawer that starts closed
+  const drawer = el("div", "watch-more");
+  drawer.id = "watchMore";
+  const inner = el("div", "watch-more-in");
+  list.replaceWith(drawer);
+  inner.appendChild(list);
+  drawer.appendChild(inner);
+  drawer.inert = true;
+
+  // the peek carries this channel's line now, so its card doesn't repeat it
+  card.classList.add("peeked");
+
+  const peek = el("div", "watch-peek");
+  const text = el("div", "peek-text");
+  text.append(
+    el("p", "peek-handle mono", host.handle),
+    el("p", "peek-tagline", "\u201C" + host.tagline + "\u201D"),
+    el("p", "peek-about mono", host.about)
+  );
+  const more = el("button", "peek-more mono");
+  more.type = "button";
+  more.setAttribute("aria-controls", "watchMore");
+  more.setAttribute("aria-expanded", "false");
+  const label = el("span", "", "Watch more");
+  more.append(label, el("span", "peek-arrow", "\u2193"));
+  text.appendChild(more);
+
+  const fan = el("div", "peek-fan");
+  ["left", "front", "right"].forEach((pos, k) => {
+    const v = picks[k];
+    const c = el("button", "peek-card");
+    c.type = "button";
+    c.dataset.pos = pos;
+    c.setAttribute("aria-label", "Play " + v.title);
+    const img = el("img");
+    img.src = v.cover;
+    img.alt = "";
+    img.loading = "lazy";
+    img.decoding = "async";
+    c.appendChild(img);
+    c.addEventListener("click", () => {
+      setOpen(true, true);
+      card.play(v.id);
+    });
+    fan.appendChild(c);
+  });
+  peek.append(text, fan);
+  drawer.before(peek);
+
+  // the covers deal out of a pile each time the peek comes on screen
+  if (!reduceMotion) {
+    let dealing = null;
+    new IntersectionObserver(([entry]) => {
+      if (entry.intersectionRatio >= 0.35 && !peek.classList.contains("dealt")) {
+        peek.classList.add("dealt", "dealing");
+        clearTimeout(dealing);
+        dealing = setTimeout(() => peek.classList.remove("dealing"), 1100);
+      } else if (!entry.isIntersecting) {
+        peek.classList.remove("dealt", "dealing");
+      }
+    }, { threshold: [0, 0.35] }).observe(peek);
+  } else {
+    peek.classList.add("dealt");
+  }
+
+  let open = false;
+  let settle = null;
+  function setOpen(on, toPlayer) {
+    if (on !== open) {
+      open = on;
+      clearTimeout(settle);
+      drawer.classList.remove("settled");
+      drawer.classList.toggle("open", on);
+      drawer.inert = !on;
+      more.setAttribute("aria-expanded", String(on));
+      label.textContent = on ? "Show less" : "Watch more";
+      if (on) settle = setTimeout(() => drawer.classList.add("settled"), 700); // nothing clipped once it's down
+      else document.querySelectorAll("#channelList .channel").forEach((c) => c.stop && c.stop());
+    }
+    if (!on) return;
+    // bring the players up into view if they'd open below the fold
+    requestAnimationFrame(() => {
+      const target = toPlayer ? card.querySelector(".channel-media") : drawer;
+      const top = target.getBoundingClientRect().top;
+      if (!toPlayer && top < innerHeight * 0.6) return;
+      const y = scrollY + top - (toPlayer ? 90 : innerHeight * 0.32);
+      if (lenis) lenis.scrollTo(y, { duration: 1, easing: easeInOut });
+      else window.scrollTo({ top: y, behavior: reduceMotion ? "auto" : "smooth" });
+    });
+  }
+  more.addEventListener("click", () => setOpen(!open, false));
+})();
 
 // ============================================================
 //  Gallery (click a photo to see it large)
@@ -2222,25 +2337,6 @@ function killFeed(block, kind, target) {
   }, 4200);
 }
 
-// ACE: all three blasts of the ult landed, so a Valorant-style banner sweeps
-// across the wall
-function aceBanner(block) {
-  const banner = el("div", "ace-banner");
-  banner.innerHTML = '<span class="ace-word">Ace</span><span class="ace-sub mono">3 hits · Hunter\'s Fury</span>';
-  wallFx(block).appendChild(banner);
-  banner.animate([
-    { clipPath: "inset(0 50% 0 50%)", opacity: 1 },
-    { clipPath: "inset(0 0 0 0)", opacity: 1, offset: 0.14 },
-    { clipPath: "inset(0 0 0 0)", opacity: 1, offset: 0.8 },
-    { clipPath: "inset(0 0 0 0)", opacity: 0 }
-  ], { duration: 2400, easing: "ease-out", fill: "forwards" }).finished.then(() => banner.remove());
-  banner.querySelector(".ace-word").animate([
-    { letterSpacing: "0.9em", filter: "blur(8px)", opacity: 0 },
-    { letterSpacing: "0.3em", filter: "blur(0)", opacity: 1, offset: 0.22 },
-    { letterSpacing: "0.34em", filter: "blur(0)", opacity: 1 }
-  ], { duration: 2400, easing: "cubic-bezier(0.2, 0.8, 0.3, 1)", fill: "forwards" });
-}
-
 // Only one of Sova's abilities runs at a time: whatever is playing has to
 // finish its animation before anything else can start
 let abilityBusy = false;
@@ -2589,7 +2685,6 @@ function huntersFury(block, item) {
     ], { duration: 950, easing: "ease-out" }).finished.then(() => beam.remove());
     flashWord(text, 60, 0.05);
     killFeed(block, "fury", text.textContent);
-    if (n === 2) setTimeout(() => aceBanner(block), 450); // all three landed
   };
   for (let n = 0; n < 3; n++) {
     const fireAt = EQUIP + WINDUP + n * EVERY;
@@ -2904,6 +2999,11 @@ function makeRoom(block, art, panel) {
   };
 }
 
+// For moving across the page: eases in, eases out
+function easeInOut(t) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
 // Clicking "Sova" brings the whole wall into view with the agent select
 // under it, centred, in one smooth move. If it can't all fit (a phone), the
 // agent select itself comes into view.
@@ -2916,8 +3016,7 @@ function framePick(block, art, panel) {
     ? top - header - (room - (bottom - top)) / 2
     : bottom + 24 - innerHeight;
   if (Math.abs(by) < 4) return;
-  const inOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
-  if (lenis) lenis.scrollTo(scrollY + by, { duration: 1, easing: inOut });
+  if (lenis) lenis.scrollTo(scrollY + by, { duration: 1, easing: easeInOut });
   else window.scrollTo({ top: scrollY + by, behavior: reduceMotion ? "auto" : "smooth" });
 }
 
@@ -3188,13 +3287,14 @@ if (reduceMotion) {
 // while held and come back when let go (Emil Kowalski's press rule: a quick
 // ease-out, 0.97 for controls, less for big surfaces)
 const PRESSABLE = ".lock-in-btn, .kit-slot, .agent-voice, .lb-btn, .lb-play, .header-link, .channel-visit, " +
-  ".sound-switch, .story-photo, button.ww-spec, .theme-toggle, .ult-button, .video-row, .thumb, .shot, .shot-more";
+  ".sound-switch, .story-photo, button.ww-spec, .theme-toggle, .ult-button, .video-row, .thumb, .shot, .shot-more, " +
+  ".peek-more, .peek-card";
 if (!reduceMotion) {
   document.addEventListener("pointerdown", (e) => {
     if (e.button > 0) return;
     const node = e.target.closest(PRESSABLE);
     if (!node || node.disabled) return;
-    const to = node.matches(".thumb, .shot, .shot-more, .video-row") ? "0.985" : "0.97";
+    const to = node.matches(".thumb, .shot, .shot-more, .video-row, .peek-card") ? "0.985" : "0.97";
     const press = node.animate([{ scale: "1" }, { scale: to }], { duration: 160, easing: EASE_OUT, fill: "forwards" });
     const release = () => {
       removeEventListener("pointerup", release);

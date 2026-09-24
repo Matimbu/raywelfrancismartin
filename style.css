@@ -1552,6 +1552,114 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   display: grid;
   gap: clamp(56px, 8vw, 96px);
 }
+
+/* Watch Me's sneak peek: the channel's line beside a fan of Short covers,
+   like the share card */
+.watch-peek {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  align-items: center;
+  gap: clamp(28px, 5vw, 72px);
+}
+.peek-text { display: grid; justify-items: start; gap: 16px; }
+.peek-handle { color: var(--accent); }
+.peek-tagline {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(36px, 4.4vw, 58px);
+  line-height: 1.04;
+  letter-spacing: -0.01em;
+}
+.peek-about { color: var(--muted); }
+.peek-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px 20px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: none;
+  color: var(--fg);
+  cursor: pointer;
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+@media (hover: hover) and (pointer: fine) { .peek-more:hover { background: var(--fg); color: var(--bg); border-color: var(--fg); } }
+.peek-arrow { display: inline-block; transition: rotate 0.3s cubic-bezier(0.23, 1, 0.32, 1); }
+.peek-more[aria-expanded="true"] .peek-arrow { rotate: 180deg; }
+
+.peek-fan { position: relative; height: 470px; }
+.peek-card {
+  --w: 204px;
+  --h: 363px;
+  --x: 0px;
+  --y: 0px;
+  --r: 0deg;
+  --lift: 0px;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--w);
+  height: var(--h);
+  margin: calc(var(--h) / -2) 0 0 calc(var(--w) / -2);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0a0a0a;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  translate: var(--x) calc(var(--y) + var(--lift));
+  rotate: var(--r);
+  filter: brightness(0.72);
+  transition: translate 0.25s cubic-bezier(0.23, 1, 0.32, 1), rotate 0.25s cubic-bezier(0.23, 1, 0.32, 1),
+    scale 0.25s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.25s ease, filter 0.25s ease;
+}
+.peek-card img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.peek-card[data-pos="left"] { --x: -122px; --y: 22px; --r: -8deg; --order: 1; }
+.peek-card[data-pos="right"] { --x: 122px; --y: 22px; --r: 8deg; --order: 2; }
+.peek-card[data-pos="front"] { --w: 228px; --h: 405px; --order: 0; z-index: 2; filter: none; }
+.peek-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; filter: none; }
+@media (hover: hover) and (pointer: fine) {
+  /* the fan opens a little under the cursor, and the card you're on lifts */
+  .peek-fan:hover .peek-card[data-pos="left"] { --x: -146px; --r: -11deg; }
+  .peek-fan:hover .peek-card[data-pos="right"] { --x: 146px; --r: 11deg; }
+  .peek-card:hover { --lift: -12px; filter: none; z-index: 3; }
+}
+/* dealt out of a pile when the peek comes on screen, front card first */
+.js .watch-peek:not(.dealt) .peek-card { translate: 0 36px; rotate: 0deg; scale: 0.95; opacity: 0; }
+.watch-peek.dealing .peek-card {
+  transition: translate 0.7s cubic-bezier(0.32, 0.72, 0, 1) calc(var(--order) * 70ms),
+    rotate 0.7s cubic-bezier(0.32, 0.72, 0, 1) calc(var(--order) * 70ms),
+    scale 0.7s cubic-bezier(0.32, 0.72, 0, 1) calc(var(--order) * 70ms),
+    opacity 0.4s ease calc(var(--order) * 70ms), filter 0.25s ease;
+}
+
+.channel.peeked .channel-tagline, .channel.peeked .channel-about { display: none; }
+
+/* the full players slide down from under the peek */
+.watch-more {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.4s cubic-bezier(0.23, 1, 0.32, 1); /* closing: quicker */
+}
+.watch-more.open { grid-template-rows: 1fr; transition: grid-template-rows 0.65s cubic-bezier(0.32, 0.72, 0, 1); }
+.watch-more-in { min-height: 0; overflow: hidden; }
+.watch-more.settled .watch-more-in { overflow: visible; }
+.watch-more-in > .channel-grid {
+  padding-top: clamp(56px, 8vw, 96px);
+  opacity: 0;
+  translate: 0 -28px;
+  transition: opacity 0.2s ease, translate 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.watch-more.open .watch-more-in > .channel-grid {
+  opacity: 1;
+  translate: 0 0;
+  transition: opacity 0.45s ease 0.08s, translate 0.65s cubic-bezier(0.32, 0.72, 0, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .watch-more, .watch-more.open, .watch-more-in > .channel-grid, .peek-card { transition: none !important; }
+}
 .channel {
   display: grid;
   grid-template-columns: 1.35fr 1fr;
@@ -2305,30 +2413,6 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
 .kf-weapon { display: grid; place-items: center; padding: 0 12px; }
 .kf-weapon svg { width: 20px; height: 20px; fill: none; stroke: #ece8e1; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
-/* ACE: a Valorant-style banner sweeping across the wall */
-.ace-banner {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 40%;
-  translate: 0 -50%;
-  display: grid;
-  justify-items: center;
-  gap: 6px;
-  padding: 18px 0 16px;
-  background: linear-gradient(90deg, transparent, rgba(255, 70, 85, 0.24) 20%, rgba(15, 25, 35, 0.78) 50%, rgba(255, 70, 85, 0.24) 80%, transparent);
-  border-block: 1px solid rgba(255, 70, 85, 0.6);
-}
-.ace-word {
-  margin-right: -0.3em; /* the letter spacing after the last letter */
-  font: italic 800 64px/1 var(--sans);
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: #ece8e1;
-  text-shadow: 0 0 20px rgba(255, 70, 85, 0.85);
-}
-.ace-sub { color: #ff8a93; font-size: 11px; letter-spacing: 0.2em; }
-
 /* the abilities in the agent select: hover a key to read what it does */
 .agent-kit { display: flex; gap: 8px; margin-bottom: 8px; }
 .kit-slot {
@@ -2555,6 +2639,12 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
 }
 
 @media (max-width: 760px) {
+  .watch-peek { grid-template-columns: 1fr; gap: 26px; }
+  .peek-fan { order: -1; height: 300px; }
+  .peek-card { --w: 132px; --h: 235px; }
+  .peek-card[data-pos="front"] { --w: 150px; --h: 267px; }
+  .peek-card[data-pos="left"] { --x: -92px; --y: 16px; --r: -7deg; }
+  .peek-card[data-pos="right"] { --x: 92px; --y: 16px; --r: 7deg; }
   /* the kill feed sits under the ult's name instead of across it */
   .kill-feed { top: 46px; }
   .header { grid-template-columns: 1fr auto; }

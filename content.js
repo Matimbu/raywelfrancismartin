@@ -330,6 +330,10 @@ const SITE = {
       tagline: "People change, memories don't.",
       about: "Memory videos with friends, plus Valorant clips.",
       featuredVideo: "wZsDlJYYQDI",
+      // Watch Me opens on a sneak peek of these Shorts, fanned out like the
+      // share card (left, front, right; each needs a `cover`). "Watch more"
+      // brings the full players down.
+      peek: ["lXQqb-qdOAg", "WWy2S5vndPk", "1QQ4ncdYBoA"],
       videos: [
         { title: "BNF BTG PNM", note: "15:54", id: "IrMJpBgpFjY" },
         { title: "batugans 22 - 23", note: "4:06", id: "wZsDlJYYQDI" },
