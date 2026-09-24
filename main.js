@@ -2671,6 +2671,11 @@ function makeBow(layer, grip, angle, H) {
       const a = (angle * Math.PI) / 180;
       return { x: grip.x + (tip - o) * Math.cos(a), y: grip.y + (tip - o) * Math.sin(a) };
     },
+    // turn the bow: while it's drawn it follows the aim
+    aim(to) {
+      angle = to;
+      box.style.rotate = `${to}deg`;
+    },
     nock() {
       loosed = null;
       arrow.style.opacity = orb.style.opacity = "";
@@ -2800,7 +2805,11 @@ function reconPing(block, item, at) {
   let aim = at && at.clientX != null
     ? { cx: at.clientX, cy: at.clientY }
     : { cx: src.left + src.width / 2, cy: src.top + src.height / 2 };
-  const follow = (e) => (aim = { cx: e.clientX, cy: e.clientY });
+  const follow = (e) => {
+    aim = { cx: e.clientX, cy: e.clientY };
+    const t = target(); // the bow turns with it, so the bolt leaves the way it points
+    bow.aim((Math.atan2(t.y - grip.y, t.x - grip.x) * 180) / Math.PI);
+  };
   if (at && at.clientX != null) block.addEventListener("mousemove", follow);
   const target = () => {
     const b = block.getBoundingClientRect();
@@ -3076,30 +3085,55 @@ function droneHud(block, item) {
 
 // Shock Bolt: Sova's bow comes up and winds up for 0.4 s (VALORANT wiki),
 // the bolt arcs out, banks off the ground twice (its most, like in the
-// game), lands under the word and bursts into an electric dome like the
-// game's shock dart, while the word jolts and flickers
+// game), lands where you're pointing and bursts into an electric dome like
+// the game's shock dart; the words it reaches jolt and flicker, and landing
+// on nothing is a miss
 let shocking = false;
-function shockBolt(block, item) {
+function shockBolt(block, item, at) {
   if (shocking || !claimAbility(2500, block, item)) return;
   shocking = true;
   earnUlt();
-  const box = block.getBoundingClientRect();
   const text = item.querySelector(".ww-text");
   const r = text.getBoundingClientRect();
-  const x = r.left + r.width / 2 - box.left;
-  const ground = r.bottom - box.top;
+  // Aim, like Recon Bolt: it follows the mouse while the bow winds up (or
+  // goes where you tap); the Q key aims under the word
+  let aim = at && at.clientX != null
+    ? { cx: at.clientX, cy: at.clientY }
+    : { cx: r.left + r.width / 2, cy: r.bottom };
+  const follow = (e) => {
+    aim = { cx: e.clientX, cy: e.clientY };
+    const first = path(target())[0]; // the bow turns to the new launch angle
+    bow.aim(launchAngle(grip, first.to, first.lift, first.time));
+  };
+  if (at && at.clientX != null) block.addEventListener("mousemove", follow);
+  const target = () => {
+    const b = block.getBoundingClientRect();
+    return {
+      x: Math.min(Math.max(aim.cx - b.left, 12), b.width - 12),
+      y: Math.min(Math.max(aim.cy - b.top, 12), b.height - 12)
+    };
+  };
+  let land = target();
+  const R = Math.max(r.width * 0.62, r.height * 1.15);
   const fx = wallFx(block);
-  const grip = bowSpot(block, ground - 50);
-  const land = { x, y: ground };
-  const along = (f) => ({ x: grip.x + (land.x - grip.x) * f, y: ground });
-  const hops = [
-    { to: along(0.45), lift: 55, time: 0.42 },
-    { to: along(0.78), lift: 30, time: 0.26 },
-    { to: land, lift: 16, time: 0.18 }
-  ];
+  const grip = bowSpot(block, land.y - 50);
+  // two banks along the ground on the way, then the landing
+  const path = (to) => {
+    const along = (f) => ({ x: grip.x + (to.x - grip.x) * f, y: to.y });
+    return [
+      { to: along(0.45), lift: 55, time: 0.42 },
+      { to: along(0.78), lift: 30, time: 0.26 },
+      { to, lift: 16, time: 0.18 }
+    ];
+  };
+  let hops = path(land);
   const bow = makeBow(fx, grip, launchAngle(grip, hops[0].to, hops[0].lift, hops[0].time), 56);
   bow.draw(1, 400)
     .then(() => {
+      // fires at wherever the mouse is now
+      block.removeEventListener("mousemove", follow);
+      land = target();
+      hops = path(land);
       let from = bow.release();
       setTimeout(() => bow.fade(), 450);
       const legs = hops.map((hop) => {
@@ -3117,25 +3151,40 @@ function shockBolt(block, item) {
     })
     .then(() => {
       setTimeout(() => (shocking = false), 1100);
-      shockBurst(fx, text, x, ground, Math.max(r.width * 0.62, r.height * 1.15));
-      killFeed(block, "shock", text.textContent);
+      // the dome shocks the words it reaches, nearest first
+      const b = block.getBoundingClientRect();
+      const hits = [...block.querySelectorAll(".ww-text")]
+        .map((t) => {
+          const q = t.getBoundingClientRect();
+          const dx = Math.max(q.left - b.left - land.x, 0, land.x - (q.right - b.left));
+          const dy = Math.max(q.top - b.top - land.y, 0, land.y - (q.bottom - b.top));
+          return { t, d: Math.hypot(dx, dy) };
+        })
+        .filter((h) => h.d < R * 0.9)
+        .sort((m, n) => m.d - n.d)
+        .map((h) => h.t);
+      shockBurst(fx, hits, land.x, land.y, R);
+      if (hits.length) killFeed(block, "shock", hits[0].textContent);
     });
 }
 
 // The shock dart's dome: a half-sphere of lightning on the ground, its arcs
 // crawling over it and curling inside, flaring up fast and fading out
-function shockBurst(fx, text, x, ground, R) {
+function shockBurst(fx, hits, x, ground, R) {
   const c = shockColors();
   const lit = { color: c.core, textShadow: sovaBloom(c) };
-  const off = { color: getComputedStyle(text).color, textShadow: "none" };
-  text.animate([
-    { ...lit, offset: 0 }, { ...off, offset: 0.1 }, { ...lit, offset: 0.18 },
-    { ...off, offset: 0.3 }, { ...lit, offset: 0.38 }, { ...lit, offset: 0.55 }, { ...off, offset: 1 }
-  ], { duration: 900 });
-  text.animate([
-    { translate: "0 0" }, { translate: "-3px 1px" }, { translate: "3px -1px" },
-    { translate: "-2px 0" }, { translate: "2px 1px" }, { translate: "0 0" }
-  ], { duration: 360 });
+  // every word the dome reached flickers and jolts
+  hits.forEach((text) => {
+    const off = { color: getComputedStyle(text).color, textShadow: "none" };
+    text.animate([
+      { ...lit, offset: 0 }, { ...off, offset: 0.1 }, { ...lit, offset: 0.18 },
+      { ...off, offset: 0.3 }, { ...lit, offset: 0.38 }, { ...lit, offset: 0.55 }, { ...off, offset: 1 }
+    ], { duration: 900 });
+    text.animate([
+      { translate: "0 0" }, { translate: "-3px 1px" }, { translate: "3px -1px" },
+      { translate: "-2px 0" }, { translate: "2px 1px" }, { translate: "0 0" }
+    ], { duration: 360 });
+  });
   const dome = el("span", "shock-dome");
   dome.style.left = `${x}px`;
   dome.style.top = `${ground}px`;
@@ -3546,20 +3595,20 @@ if (reduceMotion) {
 // ease-out, 0.97 for controls, less for big surfaces)
 const PRESSABLE = ".lock-in-btn, .kit-slot, .agent-voice, .lb-btn, .lb-play, .header-link, .channel-visit, " +
   ".sound-switch, .story-photo, button.ww-spec, .theme-toggle, .ult-button, .video-row, .thumb, .shot, .shot-more, " +
-  ".peek-more, .peek-less, .peek-card";
+  ".peek-more, .peek-less, .peek-card, .craft-row, .link, .shot-meter";
 if (!reduceMotion) {
   document.addEventListener("pointerdown", (e) => {
     if (e.button > 0) return;
     const node = e.target.closest(PRESSABLE);
     if (!node || node.disabled) return;
-    const to = node.matches(".thumb, .shot, .shot-more, .video-row, .peek-card") ? "0.985" : "0.97";
+    const to = node.matches(".thumb, .shot, .shot-more, .video-row, .peek-card, .craft-row, .link") ? "0.985" : "0.97";
     const press = node.animate([{ scale: "1" }, { scale: to }], { duration: 160, easing: EASE_OUT, fill: "forwards" });
     const release = () => {
       removeEventListener("pointerup", release);
       removeEventListener("pointercancel", release);
       const now = getComputedStyle(node).scale; // wherever the press got to
       press.cancel();
-      node.animate([{ scale: now === "none" ? "1" : now }, { scale: "1" }], { duration: 200, easing: EASE_OUT });
+      node.animate([{ scale: now === "none" ? "1" : now }, { scale: "1" }], { duration: 120, easing: EASE_OUT }); // snaps back faster than it went in
     };
     addEventListener("pointerup", release);
     addEventListener("pointercancel", release);
