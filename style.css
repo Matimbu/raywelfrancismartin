@@ -899,6 +899,7 @@ button { font: inherit; color: inherit; }
   overflow: visible;
   border-radius: 0;
   background: none;
+  color: #fff; /* (its own dark design in either theme) */
   transform: rotateY(180deg) translateZ(1px);
 }
 .tk-side[data-tier="goat"] { --glow: #ffcf4a; }
@@ -931,10 +932,11 @@ button { font: inherit; color: inherit; }
 .tk[data-tier="pink-diamond"] { --m1: #fff0f6; --m2: #ff9cc7; --m3: #d92c77; --m4: #ffd1e6; --m5: #7c103a; --spark: #ffb3d6; --deep: #1a0610; }
 .tk[data-tier="diamond"] { --m1: #f4feff; --m2: #a8f0ff; --m3: #2f98d0; --m4: #e1fbff; --m5: #145a80; --spark: #b8f4ff; --deep: #04121a; }
 
-/* the frame: a bar of the tier's metal, notched at the top right, glowing */
+/* the frame: a bar of the tier's metal, notched at the top right, glowing,
+   set down from the top to leave room for the player to break over it */
 .tk-glow {
   position: absolute;
-  inset: 6.5cqw 3.5cqw 11cqw;
+  inset: 12cqw 3.5cqw 11cqw;
   filter: drop-shadow(0 0 1cqw var(--m2)) drop-shadow(0 0 3.2cqw color-mix(in srgb, var(--m3) 70%, transparent));
 }
 .tk-frame {
@@ -969,8 +971,77 @@ button { font: inherit; color: inherit; }
     radial-gradient(75% 55% at 50% 36%, transparent 38%, color-mix(in srgb, var(--deep) 78%, transparent) 100%),
     linear-gradient(to top, var(--deep) 2%, color-mix(in srgb, var(--deep) 72%, transparent) 30%, transparent 56%);
 }
+/* behind a cutout: the tier's colour lit up behind him, with faint rays */
+.tk.has-cut .tk-body {
+  background:
+    radial-gradient(58% 40% at 50% 30%, color-mix(in srgb, var(--m3) 45%, transparent), transparent 75%),
+    repeating-conic-gradient(from -6deg at 50% 24%, rgb(255 255 255 / 0.045) 0deg 5deg, transparent 5deg 16deg),
+    radial-gradient(120% 60% at 50% 105%, color-mix(in srgb, var(--m5) 60%, transparent), transparent 72%),
+    var(--deep);
+}
+/* The player, cut out of his photo: in front of the frame and breaking over
+   its top, like Melo on the G.O.A.T. card, but kept inside it at the sides,
+   and fading into the dark toward the name. The shine and the holo pass over
+   him too, masked to his shape (--cutout is the image). */
+.tk-cut {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 2;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  clip-path: inset(0 4.5cqw 12cqw);
+  -webkit-mask-image: linear-gradient(#000 50%, rgb(0 0 0 / 0.3) 78%, rgb(0 0 0 / 0.2));
+  mask-image: linear-gradient(#000 50%, rgb(0 0 0 / 0.3) 78%, rgb(0 0 0 / 0.2));
+  pointer-events: none;
+  transition: filter 0.22s ease, clip-path 0.35s var(--ease-out);
+}
+/* (in a stack only the card in front breaks out; the one behind stays in
+   its frame) */
+.tk-stack .tk-alt .tk-cut,
+.tk-stack.swap .tk:not(.tk-alt) .tk-cut { clip-path: inset(13cqw 4.5cqw 12cqw); }
+.tk-stack.swap .tk-alt .tk-cut { clip-path: inset(0 4.5cqw 12cqw); }
+.tk-cut img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0.6cqw 1.2cqw rgb(0 0 0 / 0.6)) drop-shadow(0 0 0.45cqw color-mix(in srgb, var(--spark) 55%, transparent));
+}
+.tk-cut::before,
+.tk-cut::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  -webkit-mask: var(--cutout) 0 0 / 100% 100% no-repeat;
+  mask: var(--cutout) 0 0 / 100% 100% no-repeat;
+}
+/* (the shine's band is moved by its background, since the mask mustn't move) */
+.tk-cut::before {
+  background: linear-gradient(105deg, transparent 46.8%, rgb(255 255 255 / 0.3) 50%, transparent 53.2%) 87% 0 / 400% 100% no-repeat;
+}
+.ww-card.flipped .tk-cut::before,
+.ww-card.flips:focus-visible .tk-cut::before { background-position: 13% 0; transition: background-position 0.9s var(--ease-out) 0.3s; }
+/* (the holo on him is the card's, below) */
+/* on the attributes layer he steps back into the dark, so the numbers read */
+.layer-stats .tk-cut { filter: brightness(0.42) saturate(0.7); }
 .tk-sparks { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; mix-blend-mode: screen; pointer-events: none; }
 .tk-glitter { fill: var(--spark); }
+/* the glitter twinkles while the card shows, each dot on its own beat, and
+   faster the higher the tier */
+.tk { --tw: 1.2s; }
+.tk[data-tier="goat"] { --tw: 0.8s; }
+.tk[data-tier="invincible"] { --tw: 0.9s; }
+.tk[data-tier="galaxy-opal"] { --tw: 1.6s; }
+.tk[data-tier="pink-diamond"] { --tw: 2s; }
+.tk[data-tier="diamond"] { --tw: 2.4s; }
+.tk-glitter circle {
+  opacity: var(--o, 0.8);
+  animation: twinkle var(--tw) ease-in-out infinite alternate paused;
+  animation-delay: calc(var(--i, 0) * -0.29s);
+}
+.ww-card.flipped .tk-glitter circle { animation-play-state: running; }
+@keyframes twinkle { from { opacity: 0.1; } to { opacity: var(--o, 1); } }
+@media (prefers-reduced-motion: reduce) { .tk-glitter circle { animation: none; } }
 .tk-bolt-glow, .tk-bolt { fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .tk-bolt-glow { stroke: var(--spark); stroke-width: 2.6; opacity: 0.4; }
 .tk-bolt { stroke: color-mix(in srgb, var(--spark) 35%, #fff); stroke-width: 0.75; opacity: 0.95; }
@@ -1014,7 +1085,7 @@ button { font: inherit; color: inherit; }
 /* the tier, painted top right with drips, like the G.O.A.T. label */
 .tk-label {
   position: absolute;
-  top: 9.5cqw;
+  top: 15cqw;
   right: 6.5cqw;
   z-index: 3;
   padding: 1.1cqw 2.6cqw 2.6cqw;
@@ -1029,12 +1100,13 @@ button { font: inherit; color: inherit; }
   white-space: nowrap;
   clip-path: polygon(2% 0, 100% 0, 98% 62%, 94% 100%, 90% 64%, 74% 74%, 66% 60%, 44% 70%, 36% 58%, 16% 88%, 10% 60%, 0 66%);
 }
-/* badges (and, on the second layer, attributes) on slanted tags */
+/* badges (and, on the second layer, attributes) on slanted tags, over the
+   player */
 .tk-badges, .tk-stats {
   position: absolute;
-  left: 3cqw;
-  right: 3cqw;
-  bottom: 23cqw;
+  left: 7.5cqw;
+  right: 7.5cqw;
+  bottom: 35cqw;
   z-index: 3;
   display: grid;
   gap: 1.8cqw;
@@ -1189,20 +1261,25 @@ button { font: inherit; color: inherit; }
 .ww-card.flipped .tk-shine,
 .ww-card.flips:focus-visible .tk-shine { translate: 120% 0; transition: translate 0.9s var(--ease-out) 0.3s; }
 /* holo: while the card leans toward the cursor, a sheen and a hot spot
-   follow it (see main.js) */
+   follow it (see main.js), on the card and on the player; soft, so the
+   dark of the card stays dark */
 .tk-holo {
   position: absolute;
   inset: 0;
   z-index: 4;
+  pointer-events: none;
+}
+.tk-holo,
+.tk-cut::after {
   opacity: 0;
   mix-blend-mode: color-dodge;
-  pointer-events: none;
   transition: opacity 0.3s ease;
   background:
-    radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgb(255 255 255 / 0.26), transparent 38%),
-    linear-gradient(115deg, transparent 22%, color-mix(in srgb, var(--m2) 42%, transparent) 36%, color-mix(in srgb, var(--m4) 42%, transparent) 50%, color-mix(in srgb, var(--m3) 42%, transparent) 64%, transparent 78%) var(--mx, 50%) var(--my, 50%) / 260% 260%;
+    radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgb(255 255 255 / 0.16), transparent 38%),
+    linear-gradient(115deg, transparent 22%, color-mix(in srgb, var(--m2) 22%, transparent) 36%, color-mix(in srgb, var(--m4) 22%, transparent) 50%, color-mix(in srgb, var(--m3) 22%, transparent) 64%, transparent 78%) var(--mx, 50%) var(--my, 50%) / 260% 260%;
 }
-.ww-card.tilting .tk-holo { opacity: 1; }
+.ww-card.tilting .tk-holo,
+.ww-card.tilting .tk-cut::after { opacity: 1; }
 .ww-card.flipped.tilting .flip {
   transform: rotateY(calc(180deg - var(--tilt-y, 0deg))) rotateX(var(--tilt-x, 0deg));
   transition: transform 0.12s ease-out;
@@ -1212,7 +1289,7 @@ button { font: inherit; color: inherit; }
    clicks from a good way around it */
 .tk-layer {
   position: absolute;
-  top: 18cqw;
+  top: 24.5cqw;
   right: 6.5cqw;
   z-index: 5;
   padding: 0.6cqw 2.2cqw;
@@ -1341,6 +1418,47 @@ button { font: inherit; color: inherit; }
 .tk-ring span { max-width: 36cqw; margin-top: 1cqw; font-weight: 600; font-size: max(7px, 3.8cqw); letter-spacing: 0.04em; }
 .clued .tk-mt { opacity: 0; transition-delay: 0.28s; }
 .clued .tk-ring { opacity: 1; scale: 1; }
+/* ...and last the name slams in, with a flash, over the dimmed clues */
+.tk-callout {
+  position: absolute;
+  left: 5cqw;
+  right: 5cqw;
+  top: 60%;
+  display: grid;
+  justify-items: center;
+  font-style: italic;
+  line-height: 0.92;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+}
+.tk-callout-first { font-weight: 700; font-size: max(8px, 6cqw); letter-spacing: 0.1em; }
+.tk-callout-last {
+  font-weight: 800;
+  font-size: 15cqw;
+  letter-spacing: 0.01em;
+  text-shadow: 0 0 3cqw var(--glow), 0 0 8cqw color-mix(in srgb, var(--glow) 60%, transparent);
+}
+.called .tk-callout { animation: callout-slam 0.42s cubic-bezier(0.2, 0.9, 0.25, 1.15) both; }
+@keyframes callout-slam {
+  from { opacity: 0; scale: 1.9; filter: blur(4px); }
+  60% { opacity: 1; filter: blur(0); }
+  to { opacity: 1; scale: 1; filter: blur(0); }
+}
+.called .tk-clue, .called .tk-ring { opacity: 0.22; transition: opacity 0.2s ease; }
+.tk-pack::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 62%, rgb(255 255 255 / 0.85), color-mix(in srgb, var(--glow) 40%, transparent) 40%, transparent 70%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  pointer-events: none;
+}
+.called .tk-pack::after { animation: pack-flash 0.5s ease-out; }
+@keyframes pack-flash { from { opacity: 0.9; } to { opacity: 0; } }
 /* Open the pack again (see main.js): shows once the pack is open */
 .pack-again {
   display: inline-flex;
@@ -1366,7 +1484,11 @@ button { font: inherit; color: inherit; }
   .ww-card.flipped .flip, .ww-card.flips:focus-visible .flip { transform: none; }
   .tk-side { transform: none; opacity: 0; transition: opacity 0.2s ease; }
   .ww-card.flipped .tk-side, .ww-card.flips:focus-visible .tk-side { opacity: 1; }
-  .tk-shine, .tk-holo { display: none; }
+  /* (and the photo fades out under it, or it shows around the card) */
+  .flip > .flip-face:not(.tk-side) { transition: opacity 0.2s ease; }
+  .ww-card.flipped .flip > .flip-face:not(.tk-side),
+  .ww-card.flips:focus-visible .flip > .flip-face:not(.tk-side) { opacity: 0; }
+  .tk-shine, .tk-holo, .tk-cut::before, .tk-cut::after { display: none; }
   .tk-badges, .tk-stats, .layer-stats .tk-badges { translate: none; }
   .tk { transition: none; }
 }
@@ -2040,6 +2162,15 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   margin-bottom: 8px;
 }
 .hobby-text { color: var(--muted); font-size: 15px; }
+/* a small link under a hobby (Basketball: the Airball game) */
+.hobby-link {
+  display: inline-block;
+  margin-top: 14px;
+  color: var(--accent);
+  font-size: 11px;
+  transition: color 0.2s ease;
+}
+@media (hover: hover) and (pointer: fine) { .hobby-link:hover { color: var(--fg); } }
 
 /* Spotify player */
 .playlist {

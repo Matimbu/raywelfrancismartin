@@ -77,9 +77,12 @@ const SITE = {
   // or "Diamond"), the `name` on it, the jersey `num`, three `badges`, each
   // [name, level] with the level "HOF", "Gold", "Silver" or "Bronze", and four
   // `stats`, each [attribute, rating] (the card's second layer; the best one
-  // is the last clue of its walkout). `cards` (a list) stacks two cards in
-  // one spot: each has its own `image` and a `short` name, and the names under
-  // the card choose which one is in front.
+  // is the last clue of its walkout). `cut` is the player cut out of a photo
+  // (a 600 x 800 transparent WebP in the card's shape), so he stands in front
+  // of the frame and breaks over its top; without it the photo goes inside.
+  // `cards` (a list) stacks two cards in one spot: each has its own `image`
+  // (and `cut`) and a `short` name, and the names under the card choose which
+  // one is in front. `creditLead` starts the wall's credit line.
   // `board: true` draws the words on a coach's play board beside the wall, one
   // step for each word as it lights up (made for On the court with `lightUp`).
   // `specs` lists small settings under the words; `copy: true` adds a Copy button.
@@ -137,13 +140,14 @@ const SITE = {
       section: "hobbies",
       intro: "My all-time five, if I got to pick.",
       layout: "cards",
+      creditLead: "Photos via Wikimedia Commons, cropped and cut out: ", // the card players are cut out of them
       words: [
         {
           pos: "PG", text: "Rondo", note: "the passer",
           link: "https://en.wikipedia.org/wiki/Rajon_Rondo",
           image: "assets/five/rondo-celtics.jpg", alt: "Rajon Rondo calling a play as he brings the ball up for the Celtics",
           card: {
-            ovr: 92, tier: "Pink Diamond", name: "Rajon Rondo", num: 9,
+            ovr: 92, tier: "Pink Diamond", name: "Rajon Rondo", num: 9, cut: "assets/five/cut/rondo.webp",
             badges: [["Dimer", "HOF"], ["Needle Threader", "HOF"], ["Interceptor", "Gold"]],
             stats: [["Pass Vision", 99], ["Pass Accuracy", 98], ["Ball Handle", 92], ["Steal", 91]]
           }
@@ -153,7 +157,7 @@ const SITE = {
           link: "https://en.wikipedia.org/wiki/Kobe_Bryant",
           image: "assets/five/kobe-lakers.jpg", alt: "Kobe Bryant driving to the basket for the Lakers",
           card: {
-            ovr: 98, tier: "Dark Matter", name: "Kobe Bryant", num: 24,
+            ovr: 98, tier: "Dark Matter", name: "Kobe Bryant", num: 24, cut: "assets/five/cut/kobe.webp",
             badges: [["Space Creator", "HOF"], ["Deadeye", "HOF"], ["Tireless Scorer", "HOF"]],
             stats: [["Shot IQ", 99], ["Mid-Range Shot", 98], ["Close Shot", 96], ["Perimeter Defense", 93]]
           }
@@ -164,7 +168,7 @@ const SITE = {
           image: "assets/five/mj-bulls.jpg", alt: "Michael Jordan rising for a jump shot for the Bulls",
           // the GOAT gets the G.O.A.T. card itself, in gold (was 99 Dark Matter)
           card: {
-            ovr: 100, tier: "G.O.A.T.", name: "Michael Jordan", num: 23,
+            ovr: 100, tier: "G.O.A.T.", name: "Michael Jordan", num: 23, cut: "assets/five/cut/mj.webp",
             badges: [["Clutch Shooter", "HOF"], ["Middy Magician", "HOF"], ["Clamps", "HOF"]],
             stats: [["Mid-Range Shot", 99], ["Driving Dunk", 99], ["Vertical", 98], ["Perimeter Defense", 97]]
           }
@@ -174,30 +178,30 @@ const SITE = {
           link: "https://en.wikipedia.org/wiki/LeBron_James",
           image: "assets/five/lebron-heat.jpg", alt: "LeBron James cocking the ball back for a dunk with the Heat",
           card: {
-            ovr: 98, tier: "Dark Matter", name: "LeBron James", num: 6,
+            ovr: 98, tier: "Dark Matter", name: "LeBron James", num: 6, cut: "assets/five/cut/lebron.webp",
             badges: [["Chase Down Artist", "HOF"], ["Posterizer", "HOF"], ["Floor General", "Gold"]],
             stats: [["Driving Dunk", 98], ["Pass Vision", 96], ["Strength", 95], ["Speed with Ball", 93]]
           }
         },
         {
           pos: "C", text: "Yao / Shaq", note: "co-starters",
-          image: "assets/five/yao-shaq.jpg", alt: "Yao Ming and Shaquille O'Neal posting up",
+          image: "assets/five/yao-shaq-lakers.jpg", alt: "Yao Ming calling for the ball for the Rockets, and Shaquille O'Neal in the Lakers' purple and gold",
           // co-starters: two cards stacked, pick one with the names under it
           cards: [
             {
               short: "Yao", ovr: 96, tier: "Galaxy Opal", name: "Yao Ming", num: 11,
-              image: "assets/five/yao-rockets.jpg",
+              image: "assets/five/yao-rockets.jpg", cut: "assets/five/cut/yao.webp",
               badges: [["Post Spin Technician", "HOF"], ["Rim Protector", "HOF"], ["Middy Magician", "Gold"]],
               stats: [["Post Hook", 97], ["Block", 94], ["Mid-Range Shot", 88], ["Free Throw", 86]]
             },
             {
-              short: "Shaq", ovr: 98, tier: "Dark Matter", name: "Shaquille O'Neal", num: 32,
-              image: "assets/five/shaq-heat.jpg",
+              short: "Shaq", ovr: 98, tier: "Dark Matter", name: "Shaquille O'Neal", num: 34,
+              image: "assets/five/shaq-lakers.jpg", cut: "assets/five/cut/shaq.webp",
               badges: [["Backdown Punisher", "HOF"], ["Posterizer", "HOF"], ["Brick Wall", "HOF"]],
               stats: [["Standing Dunk", 99], ["Strength", 99], ["Post Control", 98], ["Offensive Rebound", 95]]
             }
           ],
-          credit: [{ subject: "Yao Ming", by: "Keith Allison", license: "CC BY-SA 2.0", licenseUrl: "https://creativecommons.org/licenses/by-sa/2.0/", source: "https://commons.wikimedia.org/wiki/File:Yao_Ming_(2310548923).jpg" }, { subject: "Shaquille O'Neal", by: "Jeramey Jannene", license: "CC BY 2.0", licenseUrl: "https://creativecommons.org/licenses/by/2.0/", source: "https://commons.wikimedia.org/wiki/File:%22Give_Me_The_Damn_Ball%22_(73833605).jpg" }]
+          credit: [{ subject: "Yao Ming", by: "Keith Allison", license: "CC BY-SA 2.0", licenseUrl: "https://creativecommons.org/licenses/by-sa/2.0/", source: "https://commons.wikimedia.org/wiki/File:Yao_Ming_(2310548923).jpg" }, { subject: "Shaquille O'Neal", by: "Bigmoe797", license: "CC BY-SA 4.0", licenseUrl: "https://creativecommons.org/licenses/by-sa/4.0/", source: "https://commons.wikimedia.org/wiki/File:Shaq1_2000finals3.tif" }]
         }
       ],
       notice: "The Rondo, Kobe, MJ and LeBron photos belong to their photographers."
@@ -344,7 +348,9 @@ const SITE = {
   ],
 
   hobbies: [
-    { emoji: "🏀", title: "Basketball", text: "Where I switch off from code. Want to talk hoops? Message me." },
+    // `link` + `linkText`: a small link under the card (here, the Airball
+    // game on the site's 404 page: any address that doesn't exist)
+    { emoji: "🏀", title: "Basketball", text: "Where I switch off from code. Want to talk hoops? Message me.", link: "airball", linkText: "Take a shot" },
     { emoji: "🖌️", title: "Graphic design", text: "Posters, layouts, and messing around in Photoshop." },
     { emoji: "🎮", title: "Valorant", text: "Playing with friends and clipping the moments worth keeping, like using a teammate as a Sova drone." },
     { emoji: "🎧", title: "Music", text: "Hip-hop on repeat, mostly Travis Scott, Drake, Mustard and Offset. Press play on my playlist below." }

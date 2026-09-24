@@ -633,7 +633,7 @@ function cardSparks(seed) {
     const edge = rnd() < 0.72;
     const x = edge ? (rnd() < 0.5 ? rnd() * 24 : 76 + rnd() * 24) : rnd() * 100;
     const y = rnd() * 133;
-    dots += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(0.25 + rnd() * 1.1).toFixed(2)}" opacity="${(0.3 + rnd() * 0.7).toFixed(2)}"/>`;
+    dots += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(0.25 + rnd() * 1.1).toFixed(2)}" style="--i:${k};--o:${(0.35 + rnd() * 0.65).toFixed(2)}"/>`;
   }
   // a jagged bolt with a fork or two off it
   const bolt = (x, y, dir, steps) => {
@@ -663,8 +663,9 @@ function cardSparks(seed) {
     `<g class="tk-glitter">${dots}</g><g class="tk-bolt-glow">${bolts}</g><g class="tk-bolt">${bolts}</g></svg>`;
 }
 
-// One card: a glowing frame (notched at the top right) over the photo with
-// glitter and lightning, the overall in a big hexagon breaking out of the top
+// One card: a glowing frame (notched at the top right) with glitter and
+// lightning, the player cut out of his photo and standing in front of it,
+// breaking over its top, the overall in a big hexagon breaking out of the top
 // left, the tier painted top right, badges (or on the second layer,
 // attributes) on slanted tags, and a black banner across the bottom that runs
 // past the frame: the jersey number, the last name big in metal with the
@@ -675,12 +676,22 @@ function twoKCard(c, w, extra = "") {
   const glow = el("span", "tk-glow");
   const frame = el("span", "tk-frame");
   const body = el("span", "tk-body");
-  const photo = el("img", "tk-photo");
-  photo.src = c.image || w.image;
-  photo.alt = "";
-  photo.loading = "lazy";
-  photo.decoding = "async";
-  body.appendChild(photo);
+  // the cutout (--cutout masks the shine and the holo to his shape), or
+  // without one, the photo inside the frame
+  let player = null;
+  const img = el("img", c.cut ? "" : "tk-photo");
+  img.src = c.cut || c.image || w.image;
+  img.alt = "";
+  img.loading = "lazy";
+  img.decoding = "async";
+  if (c.cut) {
+    card.classList.add("has-cut");
+    player = el("span", "tk-cut");
+    player.style.setProperty("--cutout", `url("${c.cut}")`);
+    player.appendChild(img);
+  } else {
+    body.appendChild(img);
+  }
   body.insertAdjacentHTML("beforeend", cardSparks(c.name || w.text));
   const badges = el("span", "tk-badges");
   (c.badges || []).slice(0, 3).forEach(([name, level]) => {
@@ -698,9 +709,11 @@ function twoKCard(c, w, extra = "") {
     row.append(el("span", "tk-stat-name", name), el("b", "tk-stat-value", String(value)), el("i", "tk-stat-bar"));
     stats.appendChild(row);
   });
-  body.append(badges, stats, el("span", "tk-shine"), el("span", "tk-holo"));
+  body.append(el("span", "tk-shine"), el("span", "tk-holo"));
   frame.appendChild(body);
   glow.appendChild(frame);
+  card.appendChild(glow);
+  if (player) card.appendChild(player);
   const emblem = el("span", "tk-emblem");
   emblem.append(el("i", "tk-hex"), el("b", "", String(c.ovr)));
   if (String(c.ovr).length > 2) emblem.classList.add("wide"); // a 100 needs a smaller number
@@ -711,7 +724,7 @@ function twoKCard(c, w, extra = "") {
   if (last.length > 6) lastName.classList.add("long");
   const banner = el("span", "tk-banner");
   banner.append(el("span", "tk-medal", c.num != null ? String(c.num) : ""), lastName, el("span", "tk-pos", w.pos || ""));
-  card.append(glow, emblem, el("span", "tk-label", c.tier), el("span", "tk-first", cut > 0 ? full.slice(0, cut) : ""), banner);
+  card.append(badges, stats, emblem, el("span", "tk-label", c.tier), el("span", "tk-first", cut > 0 ? full.slice(0, cut) : ""), banner);
   return card;
 }
 
@@ -731,6 +744,12 @@ function packFace(w, c) {
     ring.append(el("b", "", String(best[1])), el("span", "", best[0]));
     pack.appendChild(ring);
   }
+  // and last, the name slams in, like the walkout's reveal
+  const full = (c.name || w.text).trim();
+  const cut = full.lastIndexOf(" ");
+  const callout = el("span", "tk-callout");
+  callout.append(el("span", "tk-callout-first", cut > 0 ? full.slice(0, cut) : ""), el("span", "tk-callout-last", cut > 0 ? full.slice(cut + 1) : full));
+  pack.appendChild(callout);
   return pack;
 }
 
@@ -784,6 +803,37 @@ function coverTint(img) {
     return `hsl(${hue.toFixed(0)} ${Math.round(Math.max(55, Math.min(85, sat * 100)))}% 62%)`;
   } catch (e) {
     return null;
+  }
+}
+
+// Phones: a turned 2K card leans as the phone tilts and its shine moves
+// with it, like the holo on computers. The lean is measured from how the
+// phone was held when the card turned. iPhones ask for motion access once
+// (it has to be asked from the tap that turns the card).
+let tiltBase = null;
+let tiltOn = false;
+function phoneTilt() {
+  tiltBase = null;
+  if (tiltOn || reduceMotion || !("DeviceOrientationEvent" in window)) return;
+  const listen = () => {
+    tiltOn = true;
+    addEventListener("deviceorientation", (e) => {
+      const card = document.querySelector(".ww-card.flipped");
+      if (!card || e.beta == null || e.gamma == null) return;
+      if (!tiltBase) tiltBase = { beta: e.beta, gamma: e.gamma };
+      const x = Math.max(-1, Math.min(1, (e.gamma - tiltBase.gamma) / 22));
+      const y = Math.max(-1, Math.min(1, (e.beta - tiltBase.beta) / 22));
+      card.style.setProperty("--tilt-x", `${(-y * 10).toFixed(2)}deg`);
+      card.style.setProperty("--tilt-y", `${(x * 12).toFixed(2)}deg`);
+      card.style.setProperty("--mx", `${(50 + x * 42).toFixed(1)}%`);
+      card.style.setProperty("--my", `${(50 + y * 42).toFixed(1)}%`);
+      card.classList.add("tilting");
+    });
+  };
+  if (typeof DeviceOrientationEvent.requestPermission === "function") {
+    DeviceOrientationEvent.requestPermission().then((answer) => answer === "granted" && listen()).catch(() => {});
+  } else {
+    listen();
   }
 }
 
@@ -1099,9 +1149,10 @@ function playBoard() {
         if (words.classList.contains("packed")) return e.preventDefault();
         if (turned && w.link) return;
         e.preventDefault();
-        words.querySelectorAll(".flipped").forEach((c) => c.classList.remove("flipped", "layer-stats"));
+        words.querySelectorAll(".flipped").forEach((c) => c.classList.remove("flipped", "layer-stats", "tilting"));
         item.classList.toggle("flipped", !turned);
         firstLayer();
+        if (!turned) phoneTilt(); // the turned card leans as the phone tilts
       });
     }
     // A stack: hovering a name under it (or tapping it) brings that card to
@@ -1187,7 +1238,7 @@ function playBoard() {
       words.classList.remove("opened");
       words.classList.add("packed");
       packCards.forEach((c) => {
-        c.classList.remove("flipped", "tilting", "layer-stats", "clued");
+        c.classList.remove("flipped", "tilting", "layer-stats", "clued", "called");
         c.classList.add("face-down");
         c.querySelectorAll(".tk-layer").forEach((tab) => (tab.textContent = "Attributes"));
       });
@@ -1195,7 +1246,7 @@ function playBoard() {
     pack();
     const turn = (c) => {
       if (!c.classList.contains("face-down")) return;
-      c.classList.remove("face-down", "clued");
+      c.classList.remove("face-down", "clued", "called");
       packSound("flip");
       packSound("reveal", { tier: c.querySelector(".tk-side").dataset.tier, delay: 0.34 });
       if (!words.querySelector(".face-down")) setTimeout(() => words.classList.replace("packed", "opened"), 800);
@@ -1206,7 +1257,13 @@ function playBoard() {
       if (!c.classList.contains("face-down")) return;
       c.classList.add("clued");
       c.querySelectorAll(".tk-clue, .tk-ring").forEach((clue, i) => packSound("clue", { i, delay: i * 0.14 }));
-      setTimeout(() => turn(c), 700);
+      // the name slams in on the last clue, then the card turns
+      setTimeout(() => {
+        if (!c.classList.contains("face-down")) return;
+        c.classList.add("called");
+        packSound("name");
+      }, 640);
+      setTimeout(() => turn(c), 1300);
     };
     packCards.forEach((c) => c.addEventListener("click", (e) => {
       if (!c.classList.contains("face-down")) return;
@@ -1218,7 +1275,7 @@ function playBoard() {
     const open = () => {
       dealing.forEach(clearTimeout);
       packSound("deal");
-      dealing = packCards.map((c, k) => setTimeout(() => walkout(c), 800 + k * 850));
+      dealing = packCards.map((c, k) => setTimeout(() => walkout(c), 800 + k * 1150));
     };
     const deal = new IntersectionObserver(([entry]) => {
       if (!entry.isIntersecting) return;
@@ -1337,7 +1394,7 @@ function playBoard() {
   const credits = wall.words.flatMap((w) => [].concat(w.credit || []));
   if (credits.length) {
     const line = el("p", "ww-credits");
-    line.appendChild(document.createTextNode("Photos via Wikimedia Commons, cropped: "));
+    line.appendChild(document.createTextNode(wall.creditLead || "Photos via Wikimedia Commons, cropped: "));
     credits.forEach((c, i) => {
       if (i) line.appendChild(document.createTextNode(" · "));
       const who = el("a", "", `${c.subject} by ${c.by}`);
@@ -1548,6 +1605,11 @@ SITE.hobbies.forEach((h, i) => {
   card.style.setProperty("--d", i);
   if (isTodo(h.title, h.text)) card.classList.add("todo");
   card.append(el("span", "hobby-emoji", h.emoji), el("h3", "hobby-title", h.title), el("p", "hobby-text", h.text));
+  if (h.link) {
+    const go = el("a", "hobby-link mono", `${h.linkText || "More"} ↗`);
+    go.href = h.link; // same site, same tab (Airball has its own way back)
+    card.appendChild(go);
+  }
   $("hobbyGrid").appendChild(card);
 });
 
@@ -3091,6 +3153,11 @@ function packSound(kind, opts = {}) {
     tone("sine", 96, 36, t, 0.8 * more, 0.004, 0.5);
     noise(t, 0.08, 1100, 500, 0.5 * more, "lowpass", 0.8, 0.003);
     noise(t, 0.16, 1500, 450, 0.18 * more, "bandpass", 1, 0.02);
+  } else if (kind === "name") {
+    // the name slams in: the biggest hit of the walkout, with a short brass stab
+    tone("sine", 110, 30, t, 0.95, 0.004, 0.9);
+    noise(t, 0.14, 1800, 300, 0.55, "lowpass", 0.8, 0.002);
+    braam([55, 82.4, 110], t, 0.08, 1300, 0.8);
   } else if (kind === "tab") {
     noise(t, 0.035, 3200, 2600, 0.35, "bandpass", 1.2, 0.002);
     tone("sine", 170, 90, t, 0.35, 0.003, 0.07);
