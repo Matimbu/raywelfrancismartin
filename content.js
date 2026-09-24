@@ -333,8 +333,8 @@ const SITE = {
       videos: [
         { title: "BNF BTG PNM", note: "15:54", id: "IrMJpBgpFjY" },
         { title: "batugans 22 - 23", note: "4:06", id: "wZsDlJYYQDI" },
-        { title: "BAIT MY TEAMMATE", note: "Short", id: "1QQ4ncdYBoA", short: true },
-        { title: "NEVER BACK DOWN NEVER WHAT?", note: "Short", id: "lXQqb-qdOAg", short: true },
+        { title: "BAIT MY TEAMMATE", note: "Short", id: "1QQ4ncdYBoA", short: true, cover: "assets/youtube/bait-my-teammate.jpg" },
+        { title: "NEVER BACK DOWN NEVER WHAT?", note: "Short", id: "lXQqb-qdOAg", short: true, cover: "assets/youtube/sova-clutch.jpg" },
         // the ace: called by what it is, with its real title as the note
         { title: "RAZE ACE", note: "calmado", id: "WWy2S5vndPk", short: true, cover: "assets/youtube/raze-ace.jpg" }
       ]
