@@ -158,40 +158,84 @@ const SITE = {
       // my player, under the intro: the photo holding my custom jacket;
       // turned over, my NBA 2K26 MyCAREER build (the closest to how I really
       // play) on a card like the game's builds screen, my player's face in
-      // the ring, in G.O.A.T. gold. `build` is its 21 ratings as they are
-      // now, `badges` its best three and `allBadges` all 35 by group (the
-      // card's third layer).
+      // the ring, in G.O.A.T. gold, with my player's name. `build` is its 21
+      // ratings as they are now, `badges` its best three, `jumper` my custom
+      // jump shot with its grades (both on the Attributes side), and
+      // `allBadges` all 35 by group, each [name, level, what it does in my
+      // own words], plus the 4 personality badges (the third side; tap a
+      // badge there to read it).
       player: {
         pos: "My player", text: "Me", note: "the Court's Coder",
         image: "assets/five/raywel-jacket.jpg", alt: "Me in sunglasses, holding my custom RAYWEL jacket at a clothing shop",
         card: {
           style: "career", ovr: 95, tier: "G.O.A.T.", label: "G.O.A.T. Build", name: "Raywel Martin", pos: "PF",
+          player: "Yao Ming", // my MyPLAYER's name (and what they call me on the court)
           face: "assets/five/raywel-mycareer.webp",
           archetype: "2-Way Middy-Slashing Cleaner",
           size: "HT 6'8\" · WT 239 lbs · WS 7'1\"",
-          jumper: "Ray Allen base · Beluba and Rudy Gay releases, 65 / 35",
+          jumper: {
+            name: "Mochi",
+            line: "Ray Allen base · Beluba / Rudy Gay releases, 65 / 35 · very quick",
+            grades: [["Release height", "B+"], ["Release speed", "A+"], ["Defensive immunity", "A+"], ["Timing stability", "B"]]
+          },
           badges: [["Pogo Stick", "Legend"], ["Posterizer", "HOF"], ["Aerial Wizard", "HOF"]],
           stats: [["Driving Dunk", 96], ["Defensive Rebound", 90], ["Vertical", 88], ["Mid-Range Shot", 87]],
           build: [43, 38, 96, 40, 70, 87, 83, 78, 66, 85, 75, 71, 85, 70, 71, 61, 90, 85, 80, 85, 88],
           allBadges: [
-            ["Finishing", [["Posterizer", "HOF"], ["Aerial Wizard", "HOF"], ["Post Fade Phenom", "Gold"], ["Post Powerhouse", "Silver"],
-              ["Post-Up Poet", "Silver"], ["Float Game", "Bronze"], ["Hook Specialist", "Bronze"], ["Physical Finisher", "Bronze"]]],
-            ["Shooting", [["Slippery Off-Ball", "Gold"], ["Deadeye", "Silver"], ["Set Shot Specialist", "Silver"], ["Shifty Shooter", "Silver"],
-              ["Limitless Range", "Bronze"]]],
-            ["Playmaking", [["Strong Handle", "HOF"], ["Dimer", "Silver"], ["Handles for Days", "Silver"], ["Unpluckable", "Silver"],
-              ["Ankle Assassin", "Silver"], ["Lightning Launch", "Silver"], ["Break Starter", "Bronze"], ["Versatile Visionary", "Bronze"]]],
-            ["Defense", [["Pogo Stick", "Legend"], ["Off-Ball Pest", "HOF"], ["Pick Dodger", "Gold"], ["High-Flying Denier", "Gold"],
-              ["Post Lockdown", "Silver"], ["Challenger", "Silver"], ["Interceptor", "Silver"], ["On-Ball Menace", "Silver"],
-              ["Paint Patroller", "Silver"], ["Glove", "Bronze"]]],
-            ["Rebounding", [["Box-Out Beast", "Gold"], ["Rebound Chaser", "Gold"], ["Immovable Enforcer", "Gold"], ["Brick Wall", "Silver"]]]
+            ["Finishing", [
+              ["Posterizer", "HOF", "Better odds of dunking right over a defender."],
+              ["Aerial Wizard", "HOF", "Finishes alley-oops and putbacks in the air."],
+              ["Post Fade Phenom", "Gold", "Knocks down fadeaways out of the post."],
+              ["Post Powerhouse", "Silver", "Backs defenders down and moves them in the post."],
+              ["Post-Up Poet", "Silver", "Hooks, shimmies and drop steps go in more often."],
+              ["Float Game", "Bronze", "Softer, surer floaters in the lane."],
+              ["Hook Specialist", "Bronze", "A more reliable hook shot."],
+              ["Physical Finisher", "Bronze", "Finishes layups through contact."]]],
+            ["Shooting", [
+              ["Slippery Off-Ball", "Gold", "Gets open off the ball and through screens."],
+              ["Deadeye", "Silver", "Jumpers hold up better with a hand in the face."],
+              ["Set Shot Specialist", "Silver", "Better standing still, feet set."],
+              ["Shifty Shooter", "Silver", "Better shots off the dribble and on the move."],
+              ["Limitless Range", "Bronze", "Shoots from well beyond the arc."]]],
+            ["Playmaking", [
+              ["Strong Handle", "HOF", "Hard to bump off the dribble."],
+              ["Dimer", "Silver", "Teammates shoot better off my passes."],
+              ["Handles for Days", "Silver", "Dribble moves tire me out less."],
+              ["Unpluckable", "Silver", "Hard to strip the ball from."],
+              ["Ankle Assassin", "Silver", "Dribble moves break ankles more often."],
+              ["Lightning Launch", "Silver", "A quicker first step on the drive."],
+              ["Break Starter", "Bronze", "Long outlet passes off a rebound."],
+              ["Versatile Visionary", "Bronze", "Every kind of pass is more accurate."]]],
+            ["Defense", [
+              ["Pogo Stick", "Legend", "Back up in the air quickly after landing."],
+              ["Off-Ball Pest", "HOF", "Hard to get open against, off the ball."],
+              ["Pick Dodger", "Gold", "Slips through screens on defense."],
+              ["High-Flying Denier", "Gold", "Big blocks coming over from the weak side."],
+              ["Post Lockdown", "Silver", "Tougher to score on in the post."],
+              ["Challenger", "Silver", "Better contests on jump shots."],
+              ["Interceptor", "Silver", "Picks off more passes."],
+              ["On-Ball Menace", "Silver", "Stays in front of the ball handler."],
+              ["Paint Patroller", "Silver", "Blocks and contests at the rim."],
+              ["Glove", "Bronze", "Strips the ball from dribblers and shooters."]]],
+            ["Rebounding", [
+              ["Box-Out Beast", "Gold", "Wins the box-out battles."],
+              ["Rebound Chaser", "Gold", "Tracks down rebounds from farther away."],
+              ["Immovable Enforcer", "Gold", "Holds ground against drivers and contact."],
+              ["Brick Wall", "Silver", "Screens that hit hard and wear defenders down."]]],
+            ["Personality", [
+              ["Alpha Dog", "Personality", "Enhances the ability to rally teammates."],
+              ["Enforcer", "Personality", "Adds more grit and toughness to a player."],
+              ["Expressive", "Personality", "Not one to hide emotion during big moments."],
+              ["Marketability", "Personality", "Has a charisma that can sell jerseys and tickets."]]]
           ]
         }
       },
+      // each word calls up its play on the board (hover, or tap on phones)
       words: [
-        { text: "Power forward", note: "not the 5: I'd rather run the floor", top: true },
-        { text: "6 ft", note: "easy fouls in the post" },
-        { text: "Back door", note: "my man overplays, I cut behind him" },
-        { text: "Drop step spin", note: "and one!" }
+        { text: "Power forward", note: "not the 5: I'd rather run the floor", top: true, play: "horns" },
+        { text: "6 ft", note: "easy fouls in the post", play: "post" },
+        { text: "Back door", note: "my man overplays, I cut behind him", play: "back-door" },
+        { text: "Drop step spin", note: "and one!", play: "post" }
       ]
     },
     {

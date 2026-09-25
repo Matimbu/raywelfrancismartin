@@ -1225,8 +1225,8 @@ button { font: inherit; color: inherit; }
   clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
   background: linear-gradient(160deg, var(--lv-hi), var(--lv-lo));
 }
-.tk-badge[data-level="hof"], .tk-chip[data-level="hof"] { --lv-hi: #d6b6ff; --lv-lo: #7a3de0; }
-.tk-chip[data-level="legend"] { --lv-hi: #ffc9a3; --lv-lo: #e2451f; }
+.tk-badge[data-level="hof"], .tk-chip[data-level="hof"], .tk-badge-info[data-level="hof"] { --lv-hi: #d6b6ff; --lv-lo: #7a3de0; }
+.tk-chip[data-level="legend"], .tk-badge-info[data-level="legend"] { --lv-hi: #ffc9a3; --lv-lo: #e2451f; }
 /* Legend, 2K26's level above Hall of Fame, in red-gold: its tags catch a
    slow shine one after another while the card shows (HOF and below don't) */
 .tk-badge[data-level="legend"] { --lv-hi: #ffc9a3; --lv-lo: #e2451f; position: relative; overflow: hidden; }
@@ -1243,9 +1243,9 @@ button { font: inherit; color: inherit; }
 .ww-card.flipped .tk-badge[data-level="legend"]::after { animation-play-state: running; }
 @keyframes legend-shine { 0% { translate: -105% 0; } 35%, 100% { translate: 105% 0; } }
 @media (prefers-reduced-motion: reduce) { .tk-badge[data-level="legend"]::after { display: none; } }
-.tk-badge[data-level="gold"], .tk-chip[data-level="gold"] { --lv-hi: #ffe7a3; --lv-lo: #c8921a; }
-.tk-badge[data-level="silver"], .tk-chip[data-level="silver"] { --lv-hi: #f1f4f6; --lv-lo: #8d98a1; }
-.tk-badge[data-level="bronze"], .tk-chip[data-level="bronze"] { --lv-hi: #f0b889; --lv-lo: #93502a; }
+.tk-badge[data-level="gold"], .tk-chip[data-level="gold"], .tk-badge-info[data-level="gold"] { --lv-hi: #ffe7a3; --lv-lo: #c8921a; }
+.tk-badge[data-level="silver"], .tk-chip[data-level="silver"], .tk-badge-info[data-level="silver"] { --lv-hi: #f1f4f6; --lv-lo: #8d98a1; }
+.tk-badge[data-level="bronze"], .tk-chip[data-level="bronze"], .tk-badge-info[data-level="bronze"] { --lv-hi: #f0b889; --lv-lo: #93502a; }
 .tk-badge-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tk-level { flex: none; margin-left: 1cqw; font-weight: 700; font-size: max(7px, 3.4cqw); letter-spacing: 0.08em; text-transform: uppercase; color: var(--lv-hi); }
 @container (max-width: 190px) { .tk-level { display: none; } }
@@ -1503,13 +1503,27 @@ button { font: inherit; color: inherit; }
   transition: opacity 0.22s ease, scale 0.3s var(--ease-out);
 }
 .tk-career-face img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.tk-career-arch {
+/* my player's name, small and gold over the build's name */
+.tk-career-name {
   position: absolute;
-  top: 73cqw;
+  top: 70cqw;
   left: 8cqw;
   right: 8cqw;
   font-weight: 700;
-  font-size: 6.6cqw;
+  font-size: max(6.5px, 3.4cqw);
+  letter-spacing: 0.16em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--m2);
+  transition: opacity 0.22s ease;
+}
+.tk-career-arch {
+  position: absolute;
+  top: 74.5cqw;
+  left: 8cqw;
+  right: 8cqw;
+  font-weight: 700;
+  font-size: 6.2cqw;
   line-height: 1.05;
   text-align: center;
   text-wrap: balance;
@@ -1550,26 +1564,44 @@ button { font: inherit; color: inherit; }
 .tk-career-jumper { display: grid; gap: 0.8cqw; font-size: max(7px, 3.7cqw); line-height: 1.2; }
 .tk-career-jumper b { font-size: max(6px, 3.1cqw); letter-spacing: 0.12em; text-transform: uppercase; color: var(--m2); }
 .layer-stats .tk-career-face { opacity: 0; scale: 0.92; }
+/* (the jumper's grades run down into where the names were) */
+.layer-stats .tk-career-name, .layer-stats .tk-career-arch { opacity: 0; }
+.tk-career-grades { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8cqw 3.4cqw; margin-top: 1.4cqw; }
+.tk-career-grades > span { display: flex; justify-content: space-between; gap: 1cqw; font-size: max(6.5px, 3.3cqw); }
+.tk-career-grades b { color: var(--m2); font-size: 1.1em; }
 /* the third layer: every badge, grouped, each with its level's hexagon */
 .tk-career-arch, .tk-career-size, .tk-career-pos { transition: opacity 0.22s ease; }
 .tk-allbadges {
   position: absolute;
-  top: 26cqw;
+  top: 24.5cqw;
   left: 7cqw;
   right: 7cqw;
   display: grid;
-  gap: 2.2cqw;
+  gap: 1.2cqw;
   opacity: 0;
   translate: 0 4px;
   pointer-events: none;
   transition: opacity 0.22s ease, translate 0.22s var(--ease-out);
 }
-.layer-all .tk-allbadges { opacity: 1; translate: 0 0; }
-.layer-all .tk-career-face, .layer-all .tk-career-arch, .layer-all .tk-career-size,
+.layer-all .tk-allbadges { opacity: 1; translate: 0 0; pointer-events: auto; }
+.layer-all .tk-career-face, .layer-all .tk-career-name, .layer-all .tk-career-arch, .layer-all .tk-career-size,
 .layer-all .tk-career-pos, .layer-all .tk-badges { opacity: 0; }
+/* the top of that side: the count by level and a hint, or the badge picked
+   and what it does */
+.tk-badge-info { display: grid; gap: 0.8cqw; min-height: 10cqw; align-content: start; }
+.tk-badge-info-hint { font-size: max(6px, 2.9cqw); color: rgb(255 255 255 / 0.6); }
+.tk-badge-info > b { display: flex; align-items: baseline; gap: 1.8cqw; font-size: max(8px, 4.4cqw); color: var(--lv-hi, var(--m1)); }
+.tk-badge-info > b span { font-size: 0.7em; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.85; }
+.tk-badge-info > b + span { font-size: max(7px, 3.5cqw); line-height: 1.25; }
+.tk-chip.has-info { cursor: pointer; }
+.tk-chip.picked { text-decoration: underline; text-underline-offset: 0.25em; color: #fff; }
+.tk-chip[data-level="personality"], .tk-badge-info[data-level="personality"] { --lv-hi: #a6ecff; --lv-lo: #2a7fa6; }
 .tk-allbadges-tiers { display: flex; flex-wrap: wrap; align-items: center; gap: 0.8cqw 2.2cqw; }
 .tk-allbadges-tiers > b { font-size: max(8px, 4.6cqw); font-weight: 800; letter-spacing: 0.02em; color: var(--m2); }
-.tk-allbadges-group { display: grid; gap: 0.8cqw; }
+.tk-allbadges-group { display: grid; gap: 0.4cqw; }
+/* (the glitter and lightning dim on the sides with small print) */
+.tk-career .tk-sparks { transition: opacity 0.3s ease; }
+.layer-stats .tk-career .tk-sparks, .layer-all .tk-career .tk-sparks { opacity: 0.28; }
 .tk-allbadges-group > b {
   font-size: max(6px, 2.9cqw);
   font-weight: 700;
@@ -1577,13 +1609,13 @@ button { font: inherit; color: inherit; }
   text-transform: uppercase;
   color: var(--m4);
 }
-.tk-allbadges-list { display: flex; flex-wrap: wrap; gap: 0.6cqw 2cqw; }
+.tk-allbadges-list { display: flex; flex-wrap: wrap; gap: 0.2cqw 1.8cqw; }
 .tk-chip {
   display: inline-flex;
   align-items: center;
   gap: 0.9cqw;
   font-weight: 600;
-  font-size: max(6.5px, 3.2cqw);
+  font-size: max(6.5px, 2.95cqw);
   line-height: 1.15;
   white-space: nowrap;
 }
@@ -3649,6 +3681,24 @@ button.craft-row {
 .rush-power[hidden] { display: none; }
 .rush-power b { display: block; height: 100%; background: #f5b841; box-shadow: 0 0 8px rgb(245 184 65 / 0.7); transform-origin: left; }
 .rush-fps { color: #9be38b; }
+/* my player on the start card: the face in a gold ring, name and build */
+.rush-me {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -6px auto 12px;
+  padding: 6px 12px 6px 6px;
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid rgb(245 184 65 / 0.35);
+  border-radius: 999px;
+  background: rgb(245 184 65 / 0.08);
+  text-align: left;
+}
+.rush-me img { flex: none; width: 34px; height: 34px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 2px #f5b841; }
+.rush-me span { display: grid; gap: 2px; min-width: 0; }
+.rush-me b { font-size: 13px; font-weight: 600; color: #f5b841; }
+.rush-me .mono { font-size: 9px; color: #b9b5ad; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rush-pts { color: #f5b841; }
 /* a word across the sky: Barasoain reached, an ensaymada grabbed */
 .rush-banner {

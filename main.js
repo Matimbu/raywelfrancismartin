@@ -824,36 +824,71 @@ function careerCard(c, w, extra) {
   const pos = c.pos || w.pos || "";
   const stats = el("span", "tk-stats");
   if (c.build != null) stats.appendChild(buildChart(c));
+  // the jump shot: its name, what it's made of, and its grades
   if (c.jumper) {
+    const shot = typeof c.jumper === "string" ? { line: c.jumper } : c.jumper;
     const jumper = el("span", "tk-career-jumper");
-    jumper.append(el("b", "", "Jumper"), el("span", "", c.jumper));
+    jumper.append(el("b", "", shot.name ? `Jumper · ${shot.name}` : "Jumper"), el("span", "", shot.line || ""));
+    if (shot.grades) {
+      const grades = el("span", "tk-career-grades");
+      shot.grades.forEach(([name, grade]) => {
+        const row = el("span");
+        row.append(el("span", "", name), el("b", "", grade));
+        grades.appendChild(row);
+      });
+      jumper.appendChild(grades);
+    }
     stats.appendChild(jumper);
   }
   // the third layer: every badge, by group, each in its level's colour, and
   // how many of each level up top
+  // (tap one, or point at it, and what it does shows at the bottom)
   const all = el("span", "tk-allbadges");
   if (c.allBadges) {
+    const LEVELS = ["Legend", "HOF", "Gold", "Silver", "Bronze"];
     const count = {};
     c.allBadges.forEach(([, list]) => list.forEach(([, level]) => (count[level] = (count[level] || 0) + 1)));
-    const total = Object.values(count).reduce((a, b) => a + b, 0);
+    const total = LEVELS.reduce((sum, level) => sum + (count[level] || 0), 0);
     const tiers = el("span", "tk-allbadges-tiers");
     tiers.appendChild(el("b", "", `${total} badges`));
-    ["Legend", "HOF", "Gold", "Silver", "Bronze"].forEach((level) => {
+    LEVELS.forEach((level) => {
       if (!count[level]) return;
       const chip = el("span", "tk-chip");
       chip.dataset.level = level.toLowerCase();
       chip.append(el("i"), document.createTextNode(`${count[level]} ${level}`));
       tiers.appendChild(chip);
     });
-    all.appendChild(tiers);
+    // the top: the count by level and a hint, until a badge is picked; then
+    // that badge and what it does
+    const info = el("span", "tk-badge-info");
+    info.append(tiers, el("span", "tk-badge-info-hint", canHover ? "Point at a badge for what it does" : "Tap a badge for what it does"));
+    all.appendChild(info);
+    const show = (chip, name, level, what) => {
+      all.querySelectorAll(".tk-chip.picked").forEach((c) => c.classList.remove("picked"));
+      chip.classList.add("picked");
+      info.textContent = "";
+      info.classList.add("on");
+      const title = el("b", "", name);
+      title.appendChild(el("span", "", level));
+      info.dataset.level = level.toLowerCase();
+      info.append(title, el("span", "", what || ""));
+    };
     c.allBadges.forEach(([group, list]) => {
       const row = el("span", "tk-allbadges-group");
       const chips = el("span", "tk-allbadges-list");
-      list.forEach(([name, level]) => {
+      list.forEach(([name, level, what]) => {
         const chip = el("span", "tk-chip");
         chip.dataset.level = level.toLowerCase();
-        chip.title = `${name}, ${level}`;
         chip.append(el("i"), document.createTextNode(name));
+        if (what) {
+          chip.classList.add("has-info");
+          if (canHover) onHover(chip, () => show(chip, name, level, what));
+          chip.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            show(chip, name, level, what);
+          });
+        }
         chips.appendChild(chip);
       });
       row.append(el("b", "", group), chips);
@@ -861,7 +896,7 @@ function careerCard(c, w, extra) {
     });
   }
   const ui = el("span", "tk-ui");
-  ui.append(top, ovr, face, el("span", "tk-career-arch", c.archetype || ""), el("span", "tk-career-size", c.size || ""),
+  ui.append(top, ovr, face, el("span", "tk-career-name", c.player || ""), el("span", "tk-career-arch", c.archetype || ""), el("span", "tk-career-size", c.size || ""),
     el("span", "tk-career-pos", POSITIONS[pos] || pos), cardBadges(c), stats);
   if (c.allBadges) ui.appendChild(all);
   card.appendChild(ui);
@@ -1207,22 +1242,31 @@ function playBoard() {
   board.addEventListener("click", again);
   // the plays, under the board: pick one and it draws from the start
   const tabs = el("div", "play-tabs");
+  const select = (key) => {
+    board.querySelectorAll(".play-set").forEach((p) => p.classList.toggle("active", p.dataset.play === key));
+    tabs.querySelectorAll(".play-tab").forEach((t) => {
+      t.classList.toggle("on", t.dataset.play === key);
+      t.setAttribute("aria-pressed", String(t.dataset.play === key));
+    });
+    again();
+  };
   [["back-door", "Back door"], ["horns", "Horns"], ["post", "5-out post"]].forEach(([key, name], k) => {
     const tab = el("button", `play-tab mono${k ? "" : " on"}`, name);
     tab.type = "button";
+    tab.dataset.play = key;
     tab.setAttribute("aria-pressed", String(!k));
     tab.addEventListener("click", (e) => {
       e.stopPropagation();
-      board.querySelectorAll(".play-set").forEach((p) => p.classList.toggle("active", p.dataset.play === key));
-      tabs.querySelectorAll(".play-tab").forEach((t) => {
-        t.classList.toggle("on", t === tab);
-        t.setAttribute("aria-pressed", String(t === tab));
-      });
-      again();
+      select(key);
     });
     tabs.appendChild(tab);
   });
   board.appendChild(tabs);
+  // (a word on the wall calls up its play; the one already up stays put)
+  board.pick = (key) => {
+    const current = board.querySelector(".play-set.active");
+    if (!current || current.dataset.play !== key) select(key);
+  };
   return board;
 }
 
@@ -1418,7 +1462,7 @@ function playBoard() {
         item.addEventListener("mousemove", (e) => {
           if (!item.classList.contains("flipped")) return;
           // hold still over the tab, so it doesn't move away from the cursor
-          if (e.target.closest(".tk-layer, .tk-switch")) return;
+          if (e.target.closest(".tk-layer, .tk-switch, .tk-allbadges")) return;
           const r = item.querySelector(".ww-card-img").getBoundingClientRect();
           const x = clamp01((e.clientX - r.left) / r.width) - 0.5;
           const y = clamp01((e.clientY - r.top) / r.height) - 0.5;
@@ -1484,6 +1528,7 @@ function playBoard() {
         });
       });
     }
+    if (w.play) item.dataset.play = w.play; // (its play on the wall's board)
     if (w.desc) item.dataset.desc = w.desc;
     if (w.stat) item.dataset.stat = w.stat;
     if (w.icon) item.dataset.icon = w.icon;
@@ -1529,6 +1574,12 @@ function playBoard() {
     block.appendChild(board);
     words.board = board;
     if (!block.classList.contains("lighting")) board.querySelectorAll(".play-step").forEach((step) => step.classList.add("on"));
+    // a word with a `play` calls it up on the board: hover on computers, tap
+    // on phones
+    words.querySelectorAll("[data-play]").forEach((item) => {
+      if (canHover) onHover(item, () => board.pick(item.dataset.play));
+      item.addEventListener("click", () => board.pick(item.dataset.play));
+    });
   }
 
   // 2K cards come in face down, like opening a MyTEAM pack in 2K26: each MT
@@ -1868,7 +1919,7 @@ const tagWatch = reduceMotion ? null : new IntersectionObserver((entries) => {
 // A craft with `game: true` (Malolos Rush) opens a tiny playable teaser:
 // rush.js, loaded the first time someone presses Play (bump its ?v= here
 // when it changes)
-const RUSH_JS = "rush.js?v=20260925-9";
+const RUSH_JS = "rush.js?v=20260925-10";
 function playRush() {
   if (window.openRush) return window.openRush();
   const script = el("script");
