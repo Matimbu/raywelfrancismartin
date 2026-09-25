@@ -44,7 +44,7 @@ Built with plain HTML, CSS and JavaScript, plus [Lenis](https://github.com/darkr
 - Type **sova** anywhere to launch the Owl Drone.
 - Click **LOCKED IN** under Sova's picture. It knows his real name.
 - **Take a shot** from the Basketball card: hold, release in the green, drag the ball back for a longer shot, and share your streak.
-- Press **Play** on Malolos Rush in Crafts: a tiny three-lane runner down a Malolos street at night, toward Barasoain Church. Swipe to change lanes and swipe up to jump the barriers (drag with the mouse on a computer, or use the arrows and Space), dodge the jeepneys and grab the coins. After a crash, **Share my run** makes a picture of the crash with your distance and a link back (the share sheet on a phone; copied on a computer, ready to paste into a chat). The link, `…/#malolos-rush`, opens the game straight away.
+- Press **Play** on Malolos Rush in Crafts: a tiny three-lane runner down a Malolos street at sunset, toward Barasoain Church. Swipe to change lanes and swipe up to jump the barriers (drag with the mouse on a computer, or use the arrows and Space), dodge the jeepneys (they honk when one's coming down your lane) and grab the coins. An ensaymada pulls the coins to you for a few seconds. Make it 500 m and you reach the church: its lights come on, the bells ring, and the sky keeps turning to night. Add `?fps` to the address to see the frame rate. After a crash, **Share my run** makes a picture of the crash with your distance and a link back (the share sheet on a phone; copied on a computer, ready to paste into a chat). The link, `…/#malolos-rush`, opens the game straight away.
 - Tap my **Discord** or **Valorant** name under Contact to copy it.
 - Flip between dark and light with the toggle at the top right.
 
@@ -52,7 +52,7 @@ Built with plain HTML, CSS and JavaScript, plus [Lenis](https://github.com/darkr
 
 Everything the site says is in `content.js`, grouped by section (`about`, `walls`, `story`, `crafts`, `hobbies`, `playlist`, `beliefs`, `youtube`, `gallery`, `links`). The comments in it explain each option. When something new goes up, add a line to `recent` so the New pill shows it.
 
-After changing `content.js`, `main.js` or `style.css`, bump the `?v=` number on them in `index.html` (and after changing `rush.js`, its `?v=` in `main.js`) so returning visitors don't get old cached copies (GitHub Pages caches files for 10 minutes). For the same reason, a replaced picture gets a new file name instead of overwriting the old one. Entries containing `TODO` show up (outlined in yellow) only when previewing locally; the live site skips them.
+After changing `content.js`, `main.js` or `style.css`, bump the `?v=` number on them in `index.html` (and after changing `rush.js`, its `?v=` in `main.js`) so returning visitors don't get old cached copies (GitHub Pages caches files for 10 minutes). For the same reason, a replaced picture gets a new file name instead of overwriting the old one. Entries containing `TODO` show up (outlined in yellow) only when previewing locally; the live site skips them. Old iPhones get new `color-mix()` and `cqw` styles rewritten for them by `legacy.js` automatically, as long as a mixed colour is a `--variable` set to a plain colour (hex or `rgb()`).
 
 To publish, commit and push to `main`. GitHub Pages redeploys in about a minute.
 
@@ -60,7 +60,8 @@ To publish, commit and push to `main`. GitHub Pages redeploys in about a minute.
 
 - `index.html` is the site.
 - `404.html` is Airball, the page GitHub Pages shows for any address that doesn't exist.
-- `rush.js` is the Malolos Rush teaser game, loaded only when someone presses Play (or opens the site with `#malolos-rush`).
+- `rush.js` is the Malolos Rush teaser game, loaded only when someone presses Play (or opens the site with `#malolos-rush`). Its leaderboard is a free Firebase project (Cloud Firestore); it stays hidden until the project's details are filled in at the top of the file.
+- `legacy.js` is for old iPhones (iOS 15 and older, like the iPhone 7): their Safari doesn't know `color-mix()` or container units (`cqw`), which the 2K cards and some glows use, so this file rewrites the styles for them. Only those browsers load it.
 - `watch/index.html` is a share page for the videos. It has its own preview card (`assets/og-watch.jpg`) and sends people on to Watch Me.
 
 ## Photos and other files

@@ -1,44 +1,101 @@
 // Malolos Rush, the teaser: a tiny three-lane runner in the spirit of my
-// capstone (the real one is 3D, in Unity). Run down a Malolos street at night
-// toward Barasoain Church: swipe or use the arrows to change lanes, swipe up
-// (or up / Space) to jump the barriers, don't run into the jeepneys, and grab
-// the coins. Loaded the first time someone presses Play on the Malolos Rush
-// row in Crafts (see main.js), and drawn on a canvas in fake 3D: everything
-// shrinks toward the church at the end of the road.
+// capstone (the real one is 3D, in Unity). Run down a Malolos street at
+// sunset toward Barasoain Church: swipe or use the arrows to change lanes,
+// swipe up (or up / Space) to jump the barriers, don't run into the jeepneys
+// (one honks when it's coming down your lane), and grab the coins. An
+// ensaymada pulls the coins in for a few seconds. At 500 m you reach the
+// church: its lights come on and the bells ring, and the farther you run the
+// more the sunset turns into night. Loaded the first time someone presses
+// Play on the Malolos Rush row in Crafts (see main.js), and drawn on a canvas
+// in fake 3D: everything shrinks toward the church at the end of the road.
 (function () {
   const LANES = [-0.7, 0, 0.7];
   const PZ = 3; // how far ahead of the camera the runner is
   const FAR = 58; // how far down the road things appear
   const GRAVITY = 16;
   const JUMP = 5.2; // up speed: about 0.85 high, 0.65 s in the air
+  const ARRIVE = 500; // metres to Barasoain Church
+  const MAGNET = 6; // seconds an ensaymada pulls the coins in
   const COLORS = { H: "#141414", S: "#c98a55", T: "#ff5a1f", P: "#26324f", K: "#f2f0eb" };
   // the runner from behind, two frames (the orange runner from my timeline)
   const RUNNER = [
     ["..HHHH..", "..HHHH..", "..HHHH..", "...SS...", ".TTTTTT.", "STTTTTTS", "S.TTTT.S", "..TTTT..", "..PPPP..", "..PPPP..", "..S..S..", "..S..K..", "..K....."],
     ["..HHHH..", "..HHHH..", "..HHHH..", "...SS...", ".TTTTTT.", "STTTTTTS", "S.TTTT.S", "..TTTT..", "..PPPP..", "..PPPP..", "..S..S..", "..K..S..", ".....K.."]
   ];
+  // The sky: a dim sunset (navy, plum and amber, after the colours of my
+  // capstone deck, with the church trimmed in its gold) that gives way to the
+  // night the farther you run. Each is drawn once per screen size.
+  const SUNSET = {
+    sky: [[0, "#1f1b3a"], [0.35, "#3b2a52"], [0.66, "#7a3f55"], [0.87, "#c46a45"], [1, "#e8a15e"]],
+    stars: 0.22,
+    sun: true,
+    roofs: "#2b1e35",
+    ground: ["#3a2835", "#16121a"]
+  };
+  const NIGHT = {
+    sky: [[0, "#060812"], [0.6, "#161129"], [1, "#4a2217"]],
+    stars: 0.7,
+    sun: false,
+    roofs: "#0a0c1a",
+    ground: ["#15121c", "#0d0d10"]
+  };
+  // The leaderboard: a Firebase project (Cloud Firestore, the free plan).
+  // Anyone can read the board and add a run; nobody can change or delete one
+  // (the project's Firestore rules say so). Until the project's details are
+  // filled in here, the board stays hidden.
+  const BOARD = { projectId: "", apiKey: "" };
+  const BOARD_HTML = '<div class="rush-board" hidden><p class="rush-board-title mono">Top runners</p><ol class="rush-board-list"></ol></div>';
+  const SHARE_URL = "https://matimbu.github.io/raywelfrancismartin/#malolos-rush";
+  // ?fps in the address shows the frame rate, to see how an old phone copes
+  const SHOW_FPS = /[?&]fps\b/.test(location.search);
 
-  let dialog, canvas, g, distLabel, coinLabel, startCard, overCard, overTitle, overScore, bestLabels, shareButton;
+  let dialog, canvas, g, distLabel, coinLabel, powerBar, fpsLabel, banner, startCard, overCard, overTitle, overScore, bestLabels, shareButton;
+  let postForm, nameInput, postButton, postNote;
   let box = { left: 0, top: 0, width: 0, height: 0 };
   let trail = []; // where the finger (or the mouse, held down) has just been
   let lastRun = null; // the run that just ended, for its share card
+  let cardBlob = null; // its share picture, made as soon as the run ends
   let carding = false; // drawing the share card (no streak on it)
-  const SHARE_URL = "https://matimbu.github.io/raywelfrancismartin/#malolos-rush";
-  let W = 0, H = 0, view = 0, DPR = 1, f = 1, horizon = 0, camH = 1.8;
+  let cardLayers = null; // the share card's own sky
+  let W = 0, H = 0, view = 0, DPR = 1, maxDPR = 2, f = 1, horizon = 0, camH = 1.8;
   let raf = 0, last = 0, state = "ready";
   let lane = 1, x = 0, y = 0, vy = 0, clock = 0, dist = 0, coins = 0, speed = 10, nextRow = 20, stride = 0;
+  let magnet = 0; // seconds of ensaymada left
+  let arrived = false, lit = 0; // made it to Barasoain; its lights coming on (0 to 1)
+  let honked = -9; // when a jeepney last honked
   let things = [];
+  let sparks = []; // fireworks over the church
+  let fireworks = []; // when the next ones go up
   let stars = [];
   let skyline = [];
-  let best = 0;
-  let counted = false;
+  let layers = null; // the sunset and the night, drawn for the current size
+  let glowSprite = null; // a street lamp's glow, drawn once
+  let frameAvg = 16.7, dropped = 0, fpsFrames = 0, fpsSince = 0;
+  let shown = "", powerShown = -1;
+  let best = 0, posted = 0, myName = "", boardAsked = -1e9;
+  let counted = false, reachedCounted = false;
   try {
     best = Number(localStorage.getItem("malolosBest")) || 0;
+    posted = Number(localStorage.getItem("malolosPosted")) || 0;
+    myName = localStorage.getItem("malolosName") || "";
   } catch (e) {}
+
+  const smooth = (t) => t * t * (3 - 2 * t);
+  const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const mix = (a, b, t) => {
+    const p = hex(a);
+    const q = hex(b);
+    return `rgb(${p.map((v, i) => Math.round(v + (q[i] - v) * t)).join(",")})`;
+  };
+  const mixA = (p, q, t) => `rgba(${p.map((v, i) => (i < 3 ? Math.round(v + (q[i] - v) * t) : (v + (q[i] - v) * t).toFixed(3))).join(",")})`;
+  // how far the sunset has gone: the sunset holds for 150 m, it's dusk by
+  // Barasoain and night by 1000 m
+  const duskAt = (d) => Math.min(1, Math.max(0, (d - 150) / 850));
 
   // sounds, made here (no files) through the site's mixer, so the sound
   // switch on Sova's wall mutes them too
   function sound(kind) {
+    if (window.rushTest) rushTest.sounds.push(kind);
     const ctx = typeof audio === "function" ? audio() : null;
     if (!ctx) return;
     const t = ctx.currentTime;
@@ -86,6 +143,34 @@
     } else if (kind === "crash") {
       tone("sine", 140, 45, t, 0.8, 0.45);
       hiss(t, 0.3, 900, 200, 0.5);
+    } else if (kind === "horn") {
+      // a jeepney's beep-beep: two short blasts, two notes each, a bit brassy
+      [0, 0.19].forEach((d) => [415, 523].forEach((hz) => {
+        const o = ctx.createOscillator();
+        const warm = ctx.createBiquadFilter();
+        const gain = ctx.createGain();
+        o.type = "sawtooth";
+        o.frequency.value = hz;
+        warm.type = "lowpass";
+        warm.frequency.value = 1700;
+        gain.gain.setValueAtTime(0.0001, t + d);
+        gain.gain.exponentialRampToValueAtTime(0.11, t + d + 0.015);
+        gain.gain.setValueAtTime(0.11, t + d + 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.14);
+        o.connect(warm).connect(gain).connect(out);
+        o.start(t + d);
+        o.stop(t + d + 0.16);
+      }));
+    } else if (kind === "magnet") {
+      [880, 1109, 1319, 1760].forEach((hz, i) => tone("triangle", hz, hz, t + i * 0.06, 0.14, 0.26));
+    } else if (kind === "bells") {
+      // Barasoain's bells: three strikes, each with a bell's ringing overtones
+      [[0, 392], [0.62, 330], [1.24, 392]].forEach(([d, hz]) => {
+        [[1, 0.3, 2.6], [2.76, 0.1, 1.5], [5.4, 0.05, 0.9], [0.5, 0.16, 3]].forEach(([ratio, peak, len]) => tone("sine", hz * ratio, hz * ratio * 0.998, t + d, peak, len));
+      });
+    } else if (kind === "pop") {
+      tone("sine", 160, 60, t, 0.18, 0.22);
+      hiss(t + 0.02, 0.5, 3200, 900, 0.06);
     }
   }
 
@@ -95,16 +180,18 @@
     dialog.setAttribute("aria-label", "Malolos Rush, a mini game");
     dialog.innerHTML = `
       <div class="rush-stage">
-        <canvas class="rush-canvas" tabindex="-1" role="img" aria-label="A runner on a three-lane street at night, running toward Barasoain Church, with jeepneys, barriers and coins coming"></canvas>
+        <canvas class="rush-canvas" tabindex="-1" role="img" aria-label="A runner on a three-lane street at sunset, running toward Barasoain Church, with jeepneys, barriers and coins coming"></canvas>
         <button class="rush-close mono" type="button" aria-label="Close the game">✕</button>
-        <div class="rush-hud mono" aria-hidden="true"><span class="rush-dist">0 m</span><span class="rush-coins">0</span></div>
+        <div class="rush-hud mono" aria-hidden="true">${SHOW_FPS ? '<span class="rush-fps"></span>' : ""}<span class="rush-power" hidden><b></b></span><span class="rush-dist">0 m</span><span class="rush-coins">0</span></div>
+        <div class="rush-banner" aria-live="polite"><p class="rush-banner-title"></p><p class="rush-banner-sub mono"></p></div>
         <div class="rush-card rush-start">
           <p class="rush-kicker mono">Crafts · a teaser</p>
           <h2 class="rush-title">Malolos <em>Rush</em></h2>
           <p class="rush-note">A tiny taste of my capstone game. The real one is 3D, in Unity.</p>
-          <p class="rush-keys mono">Swipe left or right to change lanes · swipe up to jump · dodge the jeepneys<br>(or ← → and ↑ / Space)</p>
+          <p class="rush-keys mono">Swipe left or right to change lanes · swipe up to jump · dodge the jeepneys (or ← → and ↑ / Space)<br>An ensaymada pulls the coins in · Barasoain is 500 m away</p>
           <button class="rush-go mono" type="button">Run</button>
           <p class="rush-best mono"></p>
+          ${BOARD_HTML}
         </div>
         <div class="rush-card rush-over" hidden>
           <p class="rush-kicker mono">Run over</p>
@@ -114,7 +201,13 @@
             <button class="rush-go mono" type="button">Run again</button>
             <button class="rush-share mono" type="button">Share my run</button>
           </div>
+          <form class="rush-post" hidden>
+            <input class="rush-name" name="name" maxlength="16" autocomplete="nickname" enterkeyhint="send" spellcheck="false" placeholder="Your name" aria-label="Your name on the leaderboard" required>
+            <button class="rush-post-go mono" type="submit">Post my run</button>
+          </form>
+          <p class="rush-post-note mono" hidden></p>
           <p class="rush-best mono"></p>
+          ${BOARD_HTML}
         </div>
       </div>`;
     document.body.appendChild(dialog);
@@ -122,12 +215,20 @@
     g = canvas.getContext("2d");
     distLabel = dialog.querySelector(".rush-dist");
     coinLabel = dialog.querySelector(".rush-coins");
+    powerBar = dialog.querySelector(".rush-power b");
+    fpsLabel = dialog.querySelector(".rush-fps");
+    banner = dialog.querySelector(".rush-banner");
     startCard = dialog.querySelector(".rush-start");
     overCard = dialog.querySelector(".rush-over");
     overTitle = dialog.querySelector(".rush-over-title");
     overScore = dialog.querySelector(".rush-score");
     bestLabels = dialog.querySelectorAll(".rush-best");
     shareButton = dialog.querySelector(".rush-share");
+    postForm = dialog.querySelector(".rush-post");
+    nameInput = dialog.querySelector(".rush-name");
+    postButton = dialog.querySelector(".rush-post-go");
+    postNote = dialog.querySelector(".rush-post-note");
+    postForm.addEventListener("submit", post);
     shareButton.addEventListener("click", (e) => {
       e.stopPropagation();
       shareRun();
@@ -181,12 +282,15 @@
   }
 
   function size() {
-    box = canvas.getBoundingClientRect();
-    DPR = Math.min(2, devicePixelRatio || 1);
-    canvas.width = Math.round(box.width * DPR);
-    canvas.height = Math.round(box.height * DPR);
+    const next = canvas.getBoundingClientRect();
+    DPR = Math.min(maxDPR, devicePixelRatio || 1);
+    canvas.width = Math.round(next.width * DPR);
+    canvas.height = Math.round(next.height * DPR);
     g.setTransform(DPR, 0, 0, DPR, 0, 0);
-    geometry(box.width, box.height);
+    // (a new sharpness alone keeps the same stars and roofs)
+    if (next.width !== box.width || next.height !== box.height || !W) geometry(next.width, next.height);
+    box = next;
+    layers = null;
     draw();
   }
 
@@ -221,6 +325,18 @@
     speed = 10;
     nextRow = 30; // (a gentle start: the first row is only coins)
     things = [];
+    magnet = 0;
+    arrived = false;
+    lit = 0;
+    honked = -9;
+    sparks = [];
+    fireworks = [];
+    cardBlob = null;
+    frameAvg = 16.7;
+    dropped = 0;
+    shown = "";
+    powerShown = -1;
+    if (banner) banner.classList.remove("on");
     hud();
   }
 
@@ -234,7 +350,7 @@
       counted = true;
       window.goatcounter.count({ path: "malolos-rush-play", title: "Played Malolos Rush", event: true });
     }
-    last = performance.now();
+    last = fpsSince = performance.now();
     cancelAnimationFrame(raf);
     raf = requestAnimationFrame(loop);
   }
@@ -257,14 +373,14 @@
     startCard.querySelector(".rush-go").textContent = "Run";
     state = "running";
     canvas.focus({ preventScroll: true });
-    last = performance.now();
+    last = fpsSince = performance.now();
     raf = requestAnimationFrame(loop);
   }
 
   function stop() {
     cancelAnimationFrame(raf);
     state = "ready";
-    if (typeof lenis !== "undefined" && lenis) lenis.start();
+    if (typeof holdPage === "function") holdPage(false);
     // came in by the shared link: drop it, so a reload doesn't open the game again
     if (location.hash === "#malolos-rush") history.replaceState(null, "", location.pathname + location.search);
   }
@@ -283,11 +399,61 @@
     }
     overTitle.textContent = why === "jeep" ? "Hit a jeepney!" : "Tripped!";
     overScore.textContent = `${meters} m · ${coins} ${coins === 1 ? "coin" : "coins"}${record ? " · new best" : ""}`;
-    lastRun = { meters, coins, record, why };
+    const run = (lastRun = { meters, coins, record, why, arrived });
     showBest();
     overCard.hidden = false;
     trail = [];
+    banner.classList.remove("on");
     draw();
+    // the share picture, made now so it's ready the moment Share is tapped (a
+    // phone's share sheet only opens straight from the tap)
+    setTimeout(() => shareCard().then((b) => {
+      if (lastRun === run) cardBlob = b;
+    }).catch(() => {}), 80);
+    offerPost();
+  }
+
+  // made it to Barasoain: bells, fireworks, its lights, and 25 coins
+  function arrive() {
+    arrived = true;
+    coins += 25;
+    sound("bells");
+    say("Barasoain Church", "You made it · +25 coins");
+    fireworks = [0.25, 0.6, 1, 1.45].map((d) => clock + d);
+    if (!reachedCounted && window.goatcounter && window.goatcounter.count) {
+      reachedCounted = true;
+      window.goatcounter.count({ path: "malolos-rush-barasoain", title: "Reached Barasoain in Malolos Rush", event: true });
+    }
+  }
+
+  function grab() {
+    magnet = MAGNET;
+    sound("magnet");
+    say("Ensaymada!", "The coins come to you for a while");
+  }
+
+  // a word across the sky for a moment
+  function say(title, sub) {
+    banner.querySelector(".rush-banner-title").textContent = title;
+    banner.querySelector(".rush-banner-sub").textContent = sub;
+    banner.classList.remove("on");
+    void banner.offsetWidth;
+    banner.classList.add("on");
+    clearTimeout(say.t);
+    say.t = setTimeout(() => banner.classList.remove("on"), 2600);
+  }
+
+  function burst() {
+    const colors = ["#f5b841", "#ff5a1f", "#fff4dc", "#ffd392"];
+    const bx = W * (0.28 + Math.random() * 0.44);
+    const by = horizon * (0.22 + Math.random() * 0.26);
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    for (let k = 0; k < 28; k++) {
+      const a = (k / 28) * Math.PI * 2;
+      const v = view * (0.1 + Math.random() * 0.12);
+      sparks.push({ x: bx, y: by, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1, color });
+    }
+    sound("pop");
   }
 
   // Share the run: a picture of how it ended (the street, the crash) with
@@ -301,6 +467,7 @@
   async function shareCard() {
     await Promise.all(["700 90px Geist", "italic 400 90px 'Instrument Serif'", "400 20px 'Geist Mono'"]
       .map((font) => document.fonts.load(font).catch(() => {})));
+    if (state === "running") return null;
     const CW = 1080;
     const CH = 1350;
     const scene = 1060; // the street's height on the card
@@ -319,9 +486,11 @@
     c.rect(0, 0, CW, scene);
     c.clip();
     geometry(CW, scene, 640, 0.4);
+    cardLayers = makeLayers(1);
     draw();
     c.restore();
     carding = false;
+    cardLayers = null;
     ({ g, W, H, view, f, horizon, camH, stars, skyline } = keep);
     // fade the street into the panel below
     const fade = c.createLinearGradient(0, scene - 280, 0, scene);
@@ -354,6 +523,12 @@
     c.fillStyle = "#b9b5ad";
     c.font = "400 28px 'Geist Mono', monospace";
     c.fillText(`${run.coins} ${run.coins === 1 ? "COIN" : "COINS"}   ·   BEST ${best} M`, 118, 1239);
+    if (run.arrived) {
+      c.fillStyle = "#f5b841";
+      c.textAlign = "right";
+      c.fillText("REACHED BARASOAIN", CW - 72, 1239);
+      c.textAlign = "left";
+    }
     c.fillStyle = "#8f8c86";
     c.font = "400 23px 'Geist Mono', monospace";
     c.fillText("BEAT IT  →  MATIMBU.GITHUB.IO/RAYWELFRANCISMARTIN/#MALOLOS-RUSH", 72, 1296);
@@ -363,7 +538,7 @@
   async function shareRun() {
     if (!lastRun) return;
     const label = shareButton;
-    const say = (text) => {
+    const tell = (text) => {
       label.textContent = text;
       clearTimeout(label.back);
       label.back = setTimeout(() => (label.textContent = "Share my run"), 1800);
@@ -372,7 +547,7 @@
       window.goatcounter.count({ path: "malolos-rush-share", title: "Shared a Malolos Rush run", event: true });
     }
     const text = `${shareText()} ${SHARE_URL}`;
-    const blob = await shareCard().catch(() => null);
+    const blob = cardBlob || (await shareCard().catch(() => null));
     // phones: the share sheet, with the picture when it takes files
     if (navigator.share && matchMedia("(pointer: coarse)").matches) {
       const file = blob && new File([blob], "malolos-rush.png", { type: "image/png" });
@@ -386,13 +561,126 @@
     try {
       if (!blob || !window.ClipboardItem) throw new Error("no picture");
       await navigator.clipboard.write([new ClipboardItem({ "image/png": blob, "text/plain": new Blob([text], { type: "text/plain" }) })]);
-      return say("Picture copied");
+      return tell("Picture copied");
     } catch (e) {}
     try {
       await navigator.clipboard.writeText(text);
-      say("Link copied");
+      tell("Link copied");
     } catch (e) {
-      say("Couldn't copy");
+      tell("Couldn't copy");
+    }
+  }
+
+  // ---- the leaderboard (Cloud Firestore, through its plain web address) ----
+  function boardUrl() {
+    return `https://firestore.googleapis.com/v1/projects/${BOARD.projectId}/databases/(default)/documents`;
+  }
+
+  // the ten best runners, each once (their best run)
+  async function loadBoard() {
+    const res = await fetch(`${boardUrl()}:runQuery?key=${BOARD.apiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ structuredQuery: { from: [{ collectionId: "malolosRush" }], orderBy: [{ field: { fieldPath: "meters" }, direction: "DESCENDING" }], limit: 40 } })
+    });
+    if (!res.ok) throw new Error(String(res.status));
+    const seen = {};
+    const top = [];
+    (await res.json()).forEach((row) => {
+      const fields = row.document && row.document.fields;
+      if (!fields || !fields.name || !fields.meters) return;
+      const name = String(fields.name.stringValue || "").slice(0, 16);
+      const key = name.toLowerCase();
+      if (!name || seen[key] || top.length >= 10) return;
+      seen[key] = true;
+      top.push({ name, meters: Number(fields.meters.integerValue) || 0 });
+    });
+    return top;
+  }
+
+  function refreshBoard(force) {
+    if (!BOARD.projectId || (!force && performance.now() - boardAsked < 20000)) return;
+    boardAsked = performance.now();
+    loadBoard().then(renderBoard).catch(() => {});
+  }
+
+  function renderBoard(top) {
+    dialog.querySelectorAll(".rush-board").forEach((board) => {
+      board.hidden = false;
+      const list = board.querySelector(".rush-board-list");
+      list.textContent = "";
+      if (!top.length) {
+        const li = document.createElement("li");
+        li.className = "rush-board-empty";
+        li.textContent = "No runs yet. Be the first.";
+        list.appendChild(li);
+        return;
+      }
+      top.slice(0, 5).forEach((r, i) => {
+        const li = document.createElement("li");
+        if (myName && r.name.toLowerCase() === myName.toLowerCase()) li.className = "me";
+        [String(i + 1), r.name, `${r.meters} m`].forEach((text) => {
+          const span = document.createElement("span");
+          span.textContent = text;
+          li.appendChild(span);
+        });
+        list.appendChild(li);
+      });
+    });
+  }
+
+  // after a run: a name box to post it, when it beats the best already posted
+  function offerPost() {
+    if (!BOARD.projectId) return;
+    const can = lastRun.meters >= 10 && lastRun.meters > posted;
+    postForm.hidden = !can;
+    postNote.hidden = can || !posted;
+    if (can) {
+      nameInput.value = myName;
+      postButton.disabled = false;
+      postButton.textContent = posted ? "Post my new best" : "Post my run";
+    } else if (posted) {
+      postNote.textContent = `Your best on the board: ${posted} m`;
+    }
+    refreshBoard();
+  }
+
+  async function post(e) {
+    e.preventDefault();
+    const name = nameInput.value.replace(/[\u0000-\u001f<>]/g, "").replace(/\s+/g, " ").trim().slice(0, 16);
+    if (!name || !lastRun) return nameInput.focus();
+    const run = lastRun;
+    postButton.disabled = true;
+    postButton.textContent = "Posting…";
+    try {
+      const res = await fetch(`${boardUrl()}/malolosRush?key=${BOARD.apiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fields: { name: { stringValue: name }, meters: { integerValue: String(run.meters) }, coins: { integerValue: String(Math.min(run.coins, run.meters)) } } })
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      myName = name;
+      posted = run.meters;
+      try {
+        localStorage.setItem("malolosName", name);
+        localStorage.setItem("malolosPosted", String(posted));
+      } catch (err) {}
+      if (window.goatcounter && window.goatcounter.count) {
+        window.goatcounter.count({ path: "malolos-rush-post", title: "Posted a Malolos Rush run", event: true });
+      }
+      postForm.hidden = true;
+      postNote.textContent = "Posted!";
+      postNote.hidden = false;
+      boardAsked = performance.now();
+      const top = await loadBoard();
+      renderBoard(top);
+      const rank = top.findIndex((r) => r.name.toLowerCase() === name.toLowerCase());
+      if (rank >= 0) postNote.textContent = `Posted. You're #${rank + 1} on the board`;
+    } catch (err) {
+      if (!postForm.hidden) {
+        postButton.disabled = false;
+        postButton.textContent = "Couldn't post · try again";
+      }
     }
   }
 
@@ -419,6 +707,7 @@
   }
 
   function onKey(e) {
+    if (e.target.tagName === "INPUT") return; // typing a name
     const k = e.key;
     if (k === "ArrowLeft" || k === "a" || k === "A") move(-1);
     else if (k === "ArrowRight" || k === "d" || k === "D") move(1);
@@ -432,7 +721,8 @@
   }
 
   // what comes down the road, a row at a time: jeepneys (go around them),
-  // barriers (jump them) and coins, always with a way through
+  // barriers (jump them) and coins, always with a way through; now and then
+  // an ensaymada in the open lane instead of the coins
   function row(z) {
     if (z < 40) {
       for (let k = 0; k < 5; k++) things.push({ type: "coin", x: LANES[1], z: z - 2 + k * 1.3, y: 0.45 });
@@ -455,13 +745,18 @@
     }
     if (Math.random() < 0.75) {
       const lx = LANES[order[blocked]];
-      for (let k = 0; k < 5; k++) things.push({ type: "coin", x: lx, z: z - 2 + k * 1.3, y: 0.45 });
+      if (dist > 90 && magnet <= 0 && Math.random() < 0.09 && !things.some((t) => t.type === "ensaymada")) {
+        things.push({ type: "ensaymada", x: lx, z, y: 0.5 });
+      } else {
+        for (let k = 0; k < 5; k++) things.push({ type: "coin", x: lx, z: z - 2 + k * 1.3, y: 0.45 });
+      }
     }
   }
 
   function loop(now) {
     // (the frame's time can be a hair before the run started: never go backwards)
-    const dt = Math.max(0, Math.min(0.05, (now - last) / 1000));
+    const gap = now - last;
+    const dt = Math.max(0, Math.min(0.05, gap / 1000));
     last = now;
     clock += dt;
     speed = 10 + Math.min(10, clock * 0.12);
@@ -478,31 +773,100 @@
       row(nextRow);
       nextRow += Math.max(7.5, 14 - clock * 0.08);
     }
-    // what reaches the runner
+    if (!arrived && dist >= ARRIVE) arrive();
+    if (arrived && lit < 1) lit = Math.min(1, lit + dt / 1.2);
+    if (fireworks.length && clock >= fireworks[0]) {
+      fireworks.shift();
+      burst();
+    }
+    if (sparks.length) {
+      sparks.forEach((s) => {
+        s.x += s.vx * dt;
+        s.y += s.vy * dt;
+        s.vy += view * 0.12 * dt;
+        s.vx *= 1 - dt * 0.8;
+        s.life -= dt / 1.5;
+      });
+      sparks = sparks.filter((s) => s.life > 0);
+    }
     const me = dist + PZ;
+    // an ensaymada: the coins nearby fly to the runner
+    if (magnet > 0) {
+      magnet = Math.max(0, magnet - dt);
+      const pull = Math.min(1, dt * 7);
+      for (const t of things) {
+        const dz = t.z - me;
+        if (t.type !== "coin" || t.gone || dz > 16 || dz < -0.5) continue;
+        t.x += (x - t.x) * pull;
+        t.y += (y + 0.45 - t.y) * pull;
+        t.z += (me - t.z) * Math.min(1, dt * 3.5);
+      }
+    }
+    // what reaches the runner
     for (const t of things) {
       if (t.gone) continue;
       const dz = t.z - me;
-      if (t.type === "coin") {
+      if (t.type === "coin" || t.type === "ensaymada") {
         if (Math.abs(dz) < 0.6 && Math.abs(t.x - x) < 0.45 && Math.abs(t.y - (y + 0.45)) < 0.7) {
           t.gone = true;
-          coins++;
-          sound("coin");
+          if (t.type === "ensaymada") grab();
+          else {
+            coins++;
+            sound("coin");
+          }
         }
-      } else if (Math.abs(dz) < t.d / 2 + 0.3 && Math.abs(t.x - x) < 0.5 && y < t.h - 0.05) {
+        continue;
+      }
+      // a jeepney coming down your lane honks, once
+      if (t.type === "jeep" && !t.honked && dz - t.d / 2 > 3 && dz - t.d / 2 < 13 && Math.abs(t.x - LANES[lane]) < 0.1) {
+        t.honked = true;
+        if (clock - honked > 0.8) {
+          honked = clock;
+          sound("horn");
+        }
+      }
+      if (Math.abs(dz) < t.d / 2 + 0.3 && Math.abs(t.x - x) < 0.5 && y < t.h - 0.05 && !(window.rushTest && rushTest.ghosting)) {
         hud();
         return over(t.type);
       }
     }
     things = things.filter((t) => !t.gone && t.z - dist > 0.6);
+    // A phone that can't keep up (under about 42 frames a second) draws fewer
+    // pixels: the picture gets a little softer and the run stays smooth
+    if (gap > 0 && gap < 250) frameAvg = frameAvg * 0.94 + gap * 0.06;
+    if (clock > 2.5 && frameAvg > 24 && DPR > 1 && clock - dropped > 3) {
+      dropped = clock;
+      maxDPR = Math.max(1, DPR - 0.5);
+      frameAvg = 16.7;
+      size();
+    }
+    if (fpsLabel) {
+      fpsFrames++;
+      if (now - fpsSince > 500) {
+        fpsLabel.textContent = `${Math.round((fpsFrames * 1000) / (now - fpsSince))} fps · ${DPR}x`;
+        fpsFrames = 0;
+        fpsSince = now;
+      }
+    }
     hud();
     draw();
     raf = requestAnimationFrame(loop);
   }
 
+  // the numbers at the top, touched only when they change
   function hud() {
-    distLabel.textContent = `${Math.floor(dist)} m`;
-    coinLabel.textContent = String(coins);
+    const key = `${Math.floor(dist)}|${coins}`;
+    if (key !== shown) {
+      shown = key;
+      distLabel.textContent = `${Math.floor(dist)} m`;
+      coinLabel.textContent = String(coins);
+    }
+    const left = magnet > 0 ? Math.ceil((magnet / MAGNET) * 40) / 40 : 0;
+    if (left !== powerShown) {
+      powerShown = left;
+      powerBar.parentNode.hidden = !left;
+      powerBar.style.transform = `scaleX(${left})`;
+    }
   }
 
   // A point down the road, on screen: x across (lanes at -0.7, 0, 0.7), y up
@@ -512,33 +876,75 @@
     return [W / 2 + wx * s, horizon + (camH - wy) * s, s];
   }
 
+  // the sky, the sun, the stars, the town's roofs and the ground, drawn
+  // once per size for the sunset and for the night
+  function makeLayers(scale) {
+    return [SUNSET, NIGHT].map((pal) => {
+      const c = document.createElement("canvas");
+      c.width = Math.max(1, Math.round(W * scale));
+      c.height = Math.max(1, Math.round(H * scale));
+      const k = c.getContext("2d");
+      k.setTransform(scale, 0, 0, scale, 0, 0);
+      const sky = k.createLinearGradient(0, 0, 0, horizon);
+      pal.sky.forEach(([stop, color]) => sky.addColorStop(stop, color));
+      k.fillStyle = sky;
+      k.fillRect(0, 0, W, horizon + 1);
+      k.fillStyle = `rgba(255,255,255,${pal.stars})`;
+      stars.forEach(([sx, sy, r]) => {
+        if (!pal.sun || sy < horizon * 0.45) k.fillRect(sx, sy, r, r);
+      });
+      if (pal.sun) {
+        // low and soft, off to the right of the church, half behind the roofs
+        const sx = W / 2 + view * 0.26;
+        const sy = horizon - view * 0.03;
+        const r = view * 0.055;
+        const halo = k.createRadialGradient(sx, sy, r * 0.5, sx, sy, r * 5);
+        halo.addColorStop(0, "rgba(255,196,120,0.45)");
+        halo.addColorStop(1, "rgba(255,160,90,0)");
+        k.fillStyle = halo;
+        k.fillRect(sx - r * 5, sy - r * 5, r * 10, r * 10);
+        k.fillStyle = "#ffd392";
+        k.beginPath();
+        k.arc(sx, sy, r, 0, Math.PI * 2);
+        k.fill();
+      }
+      k.fillStyle = pal.roofs;
+      skyline.forEach(([sx, w, h]) => k.fillRect(sx, horizon - h, w + 1, h));
+      const ground = k.createLinearGradient(0, horizon, 0, H);
+      ground.addColorStop(0, pal.ground[0]);
+      ground.addColorStop(1, pal.ground[1]);
+      k.fillStyle = ground;
+      k.fillRect(0, horizon, W, H - horizon);
+      return c;
+    });
+  }
+
   function draw() {
     if (!W) return;
-    // the sky: night, warm at the horizon, with stars
-    const sky = g.createLinearGradient(0, 0, 0, horizon);
-    sky.addColorStop(0, "#060812");
-    sky.addColorStop(0.6, "#161129");
-    sky.addColorStop(1, "#4a2217");
-    g.fillStyle = sky;
-    g.fillRect(0, 0, W, horizon + 1);
-    g.fillStyle = "rgba(255,255,255,0.7)";
-    stars.forEach(([sx, sy, r]) => g.fillRect(sx, sy, r, r));
-    // Barasoain Church at the end of the road, the town around it
-    g.fillStyle = "#0a0c1a";
-    skyline.forEach(([sx, w, h]) => g.fillRect(sx, horizon - h, w + 1, h));
-    church();
+    const dusk = duskAt(dist);
+    const sky = cardLayers || layers || (layers = makeLayers(DPR));
+    g.drawImage(sky[0], 0, 0, W, H);
+    if (dusk > 0.01) {
+      g.globalAlpha = dusk;
+      g.drawImage(sky[1], 0, 0, W, H);
+      g.globalAlpha = 1;
+    }
+    church(dusk);
+    if (!carding) {
+      sparks.forEach((s) => {
+        g.globalAlpha = Math.max(0, s.life);
+        g.fillStyle = s.color;
+        g.fillRect(s.x - 1.5, s.y - 1.5, 3, 3);
+      });
+      g.globalAlpha = 1;
+    }
     // the street
-    const ground = g.createLinearGradient(0, horizon, 0, H);
-    ground.addColorStop(0, "#15121c");
-    ground.addColorStop(1, "#0d0d10");
-    g.fillStyle = ground;
-    g.fillRect(0, horizon, W, H - horizon);
     const near = 0.8;
     const [lnx, lny] = at(-1.05, 0, near);
     const [rnx] = at(1.05, 0, near);
     const [lfx, lfy] = at(-1.05, 0, FAR);
     const [rfx] = at(1.05, 0, FAR);
-    g.fillStyle = "#1c1c22";
+    g.fillStyle = mix("#33282f", "#1c1c22", dusk);
     g.beginPath();
     g.moveTo(lnx, lny);
     g.lineTo(rnx, lny);
@@ -547,7 +953,7 @@
     g.closePath();
     g.fill();
     // curbs
-    g.strokeStyle = "rgba(255,190,120,0.35)";
+    g.strokeStyle = mixA([255, 205, 140, 0.45], [255, 190, 120, 0.35], dusk);
     g.lineWidth = 2;
     g.beginPath();
     g.moveTo(lnx, lny);
@@ -556,7 +962,7 @@
     g.lineTo(rfx, lfy);
     g.stroke();
     // lane dashes, moving with the run
-    g.fillStyle = "rgba(242,240,235,0.55)";
+    g.fillStyle = mixA([250, 232, 205, 0.6], [242, 240, 235, 0.55], dusk);
     for (let k = 0; k < 22; k++) {
       const z0 = k * 3 - (dist % 3) + 0.2;
       if (z0 < near) continue;
@@ -571,13 +977,14 @@
         g.fill();
       });
     }
-    // street lamps along the sidewalks, warm
+    // street lamps along the sidewalks, warm (only just on at sunset)
     const lamps = [];
     for (let k = 0; k < 8; k++) {
       const z = k * 9 - (dist % 9) + 2;
       if (z > near) lamps.push(z);
     }
-    lamps.sort((a, b) => b - a).forEach((z) => [-1.45, 1.45].forEach((lx) => lamp(lx, z)));
+    const bright = 0.55 + 0.45 * dusk;
+    lamps.sort((a, b) => b - a).forEach((z) => [-1.45, 1.45].forEach((lx) => lamp(lx, z, bright)));
     // things, far to near, and the runner among them
     const list = things.map((t) => ({ t, z: t.z - dist })).filter((o) => o.z > near && o.z < FAR + 2);
     list.sort((a, b) => b.z - a.z);
@@ -588,60 +995,74 @@
         drawn = true;
       }
       if (o.t.type === "coin") coin(o.t, o.z);
+      else if (o.t.type === "ensaymada") ensaymada(o.t, o.z);
       else if (o.t.type === "barrier") barrier(o.t, o.z);
-      else jeepney(o.t, o.z);
+      else jeepney(o.t, o.z, dusk);
     });
     if (!drawn) runner();
-    // a little fog over the far end
+    // a warm haze over the far end
     const fog = g.createLinearGradient(0, horizon, 0, horizon + H * 0.12);
-    fog.addColorStop(0, "rgba(74,34,23,0.55)");
-    fog.addColorStop(1, "rgba(74,34,23,0)");
+    fog.addColorStop(0, mixA([214, 120, 80, 0.35], [74, 34, 23, 0.55], dusk));
+    fog.addColorStop(1, mixA([214, 120, 80, 0], [74, 34, 23, 0], dusk));
     g.fillStyle = fog;
     g.fillRect(0, horizon, W, H * 0.12);
     if (!carding) streak();
   }
 
-  // the swipe's streak: an orange glow with a white core, thinning and
-  // fading out behind the finger in about a quarter of a second
-  // one ribbon along the finger's last quarter second: thick at the finger,
-  // thin at the tail, white with an orange glow
+  // the swipe's streak along the finger's last quarter second: thick at the
+  // finger, thin at the tail, white in an orange glow (flat layers rather
+  // than a blur, which old phones draw slowly)
   function streak() {
     const now = performance.now();
     const live = trail.filter((p) => now - p.t < 260);
     if (live.length < 2) return;
+    ribbon(live, now, 12, "rgba(255,110,40,0.13)");
+    ribbon(live, now, 7, "rgba(255,110,40,0.24)");
+    ribbon(live, now, 3.5, "rgba(255,255,255,0.92)");
+    const head = live[live.length - 1];
+    g.beginPath();
+    g.arc(head.x, head.y, 3.5 * (1 - (now - head.t) / 260), 0, Math.PI * 2);
+    g.fill();
+  }
+
+  function ribbon(live, now, width, color) {
     const left = [];
     const right = [];
     live.forEach((p, k) => {
       const q = live[Math.max(0, k - 1)];
       const r = live[Math.min(live.length - 1, k + 1)];
       const len = Math.hypot(r.x - q.x, r.y - q.y) || 1;
-      const half = 3.5 * (1 - (now - p.t) / 260);
+      const half = width * (1 - (now - p.t) / 260);
       const nx = (-(r.y - q.y) / len) * half;
       const ny = ((r.x - q.x) / len) * half;
       left.push([p.x + nx, p.y + ny]);
       right.push([p.x - nx, p.y - ny]);
     });
-    const head = live[live.length - 1];
-    g.save();
-    g.shadowColor = "rgba(255,90,31,0.95)";
-    g.shadowBlur = 16 * DPR;
-    g.fillStyle = "rgba(255,255,255,0.92)";
+    g.fillStyle = color;
     g.beginPath();
     left.forEach(([px, py], k) => (k ? g.lineTo(px, py) : g.moveTo(px, py)));
     right.reverse().forEach(([px, py]) => g.lineTo(px, py));
     g.closePath();
     g.fill();
-    g.beginPath();
-    g.arc(head.x, head.y, 3.5 * (1 - (now - head.t) / 260), 0, Math.PI * 2);
-    g.fill();
-    g.restore();
   }
 
-  function church() {
+  // Barasoain Church at the end of the road, a navy silhouette trimmed in
+  // gold. It grows as you close in, and at 500 m its lights come on.
+  function church(dusk) {
     const cx = W / 2;
-    const u = view * 0.0105; // one unit of the facade
+    let u = view * 0.0105 * (1 + 0.4 * smooth(Math.min(1, dist / ARRIVE))); // one unit of the facade
+    if (carding) u = Math.min(u, (horizon - 220) / 27); // (kept under the card's title)
     const base = horizon;
-    g.fillStyle = "#0e1022";
+    if (lit > 0) {
+      const r = 34 * u;
+      const cy = base - 10 * u;
+      const glow = g.createRadialGradient(cx, cy, 0, cx, cy, r);
+      glow.addColorStop(0, `rgba(255,190,110,${(0.4 * lit).toFixed(3)})`);
+      glow.addColorStop(1, "rgba(255,160,90,0)");
+      g.fillStyle = glow;
+      g.fillRect(cx - r, cy - r, r * 2, r * 2);
+    }
+    g.fillStyle = mix("#241e3f", "#0e1022", dusk);
     // the wings and the facade
     g.fillRect(cx - 17 * u, base - 7 * u, 34 * u, 7 * u);
     g.fillRect(cx - 11 * u, base - 13 * u, 22 * u, 13 * u);
@@ -663,10 +1084,28 @@
     // the cross
     g.fillRect(cx - 0.3 * u, base - 24.5 * u, 0.6 * u, 3.5 * u);
     g.fillRect(cx - 1.1 * u, base - 23.6 * u, 2.2 * u, 0.6 * u);
-    // lit windows and the door
-    g.fillStyle = "rgba(255,184,107,0.55)";
+    // the gold trim: caught by the low sun, then glowing once the lights are on
+    g.strokeStyle = `rgba(245,184,65,${Math.max(0.12, 0.34 - 0.2 * dusk + 0.6 * lit).toFixed(3)})`;
+    g.lineWidth = Math.max(1, 0.3 * u);
+    g.beginPath();
+    g.moveTo(cx - 11 * u, base);
+    g.lineTo(cx - 11 * u, base - 13 * u);
+    g.quadraticCurveTo(cx - 8 * u, base - 17 * u, cx - 3 * u, base - 18 * u);
+    g.lineTo(cx, base - 21 * u);
+    g.lineTo(cx + 3 * u, base - 18 * u);
+    g.quadraticCurveTo(cx + 8 * u, base - 17 * u, cx + 11 * u, base - 13 * u);
+    g.lineTo(cx + 11 * u, base);
+    g.moveTo(cx - 11 * u, base - 13 * u);
+    g.lineTo(cx + 11 * u, base - 13 * u);
+    g.moveTo(cx - 17 * u, base);
+    g.lineTo(cx - 17 * u, base - 22 * u);
+    g.moveTo(cx - 12 * u, base - 22 * u);
+    g.lineTo(cx - 12 * u, base - 7 * u);
+    g.stroke();
+    // lit windows and the door, brighter once the lights are on
+    g.fillStyle = `rgba(255,${Math.round(184 + 30 * lit)},${Math.round(107 + 50 * lit)},${(0.55 + 0.45 * lit).toFixed(3)})`;
     [[-6, -10], [-1, -10], [4, -10], [-15, -16], [-15, -10]].forEach(([wx, wy]) => g.fillRect(cx + wx * u, base + wy * u, 2 * u, 3 * u));
-    g.fillStyle = "rgba(255,184,107,0.35)";
+    g.fillStyle = `rgba(255,184,107,${(0.35 + 0.45 * lit).toFixed(3)})`;
     g.beginPath();
     g.moveTo(cx - 2 * u, base);
     g.lineTo(cx - 2 * u, base - 4 * u);
@@ -675,7 +1114,22 @@
     g.fill();
   }
 
-  function lamp(lx, z) {
+  // a lamp's glow, drawn once and stamped on every lamp
+  function lampGlow() {
+    if (glowSprite) return glowSprite;
+    glowSprite = document.createElement("canvas");
+    glowSprite.width = glowSprite.height = 64;
+    const k = glowSprite.getContext("2d");
+    const glow = k.createRadialGradient(32, 32, 0, 32, 32, 32);
+    glow.addColorStop(0, "rgba(255,196,120,0.9)");
+    glow.addColorStop(0.2, "rgba(255,160,80,0.35)");
+    glow.addColorStop(1, "rgba(255,140,60,0)");
+    k.fillStyle = glow;
+    k.fillRect(0, 0, 64, 64);
+    return glowSprite;
+  }
+
+  function lamp(lx, z, bright) {
     const [x0, y0, s] = at(lx, 0, z);
     const [, y1] = at(lx, 1.7, z);
     g.strokeStyle = "#2a2a33";
@@ -685,12 +1139,9 @@
     g.lineTo(x0, y1);
     g.stroke();
     const r = 0.4 * s;
-    const glow = g.createRadialGradient(x0, y1, 0, x0, y1, r);
-    glow.addColorStop(0, "rgba(255,196,120,0.9)");
-    glow.addColorStop(0.2, "rgba(255,160,80,0.35)");
-    glow.addColorStop(1, "rgba(255,140,60,0)");
-    g.fillStyle = glow;
-    g.fillRect(x0 - r, y1 - r, r * 2, r * 2);
+    g.globalAlpha = bright;
+    g.drawImage(lampGlow(), x0 - r, y1 - r, r * 2, r * 2);
+    g.globalAlpha = 1;
   }
 
   function coin(t, z) {
@@ -705,6 +1156,43 @@
     g.beginPath();
     g.ellipse(cx, cy, r * turn * 0.72, r * 0.72, 0, 0, Math.PI * 2);
     g.fill();
+  }
+
+  // an ensaymada, Malolos style: a swirled golden bun, butter and sugar on
+  // top and grated cheese, floating in a soft glow
+  function ensaymada(t, z) {
+    const [cx, cy, s] = at(t.x, t.y + Math.sin(clock * 3 + t.z) * 0.06, z);
+    const r = 0.2 * s;
+    g.fillStyle = `rgba(255,214,140,${(0.18 + 0.08 * Math.sin(clock * 6)).toFixed(3)})`;
+    g.beginPath();
+    g.arc(cx, cy, r * 1.7, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = "#b8742f";
+    g.beginPath();
+    g.ellipse(cx, cy + r * 0.16, r, r * 0.62, 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = "#e3a653";
+    g.beginPath();
+    g.ellipse(cx, cy, r * 0.94, r * 0.52, 0, 0, Math.PI * 2);
+    g.fill();
+    g.strokeStyle = "#a8692a";
+    g.lineWidth = Math.max(1, r * 0.08);
+    g.beginPath();
+    for (let k = 0; k <= 22; k++) {
+      const a = k * 0.6;
+      const rr = r * (0.12 + (k / 22) * 0.72);
+      const px = cx + Math.cos(a) * rr;
+      const py = cy + Math.sin(a) * rr * 0.5;
+      if (k) g.lineTo(px, py);
+      else g.moveTo(px, py);
+    }
+    g.stroke();
+    g.fillStyle = "rgba(255,246,226,0.9)";
+    g.beginPath();
+    g.ellipse(cx, cy - r * 0.08, r * 0.58, r * 0.26, 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = "#f7d774";
+    [[-0.3, -0.12], [0.05, -0.2], [0.28, -0.06], [-0.08, 0.02], [0.14, 0.06]].forEach(([dx, dy]) => g.fillRect(cx + dx * r, cy + dy * r, Math.max(1, r * 0.14), Math.max(1, r * 0.07)));
   }
 
   function barrier(t, z) {
@@ -725,7 +1213,7 @@
     }
   }
 
-  function jeepney(t, z) {
+  function jeepney(t, z, dusk) {
     const zn = z - t.d / 2; // its front
     if (zn < 0.8) return;
     const [lx, by, s] = at(t.x - t.w / 2, 0, zn);
@@ -736,7 +1224,7 @@
     const [frx, fty] = [at(t.x + t.w / 2, 0, zf)[0], at(t.x, t.h, zf)[1]];
     const paints = [["#d62839", "#f6c343"], ["#2b59c3", "#f6c343"], ["#1f8a4c", "#ff5a1f"]][t.paint || 0];
     // the roof and the side toward the middle of the road, for depth
-    g.fillStyle = "#8d939e";
+    g.fillStyle = mix("#a39386", "#8d939e", dusk);
     g.beginPath();
     g.moveTo(lx, ty);
     g.lineTo(rx, ty);
@@ -745,7 +1233,7 @@
     g.fill();
     const side = t.x < -0.1 ? [rx, frx] : t.x > 0.1 ? [lx, flx] : null;
     if (side) {
-      g.fillStyle = "#6d737e";
+      g.fillStyle = mix("#7d6f6b", "#6d737e", dusk);
       g.beginPath();
       g.moveTo(side[0], by);
       g.lineTo(side[0], ty);
@@ -762,13 +1250,15 @@
       g.lineTo(side[0], m0 + (by - ty) * 0.08);
       g.fill();
     }
-    // the front: chrome, a sign, the windshield, stripes, the grille and lights
+    // the front: chrome (warm in the sunset), a sign, the windshield,
+    // stripes, the grille and lights
     const w = rx - lx;
     const h = by - ty;
+    const edge = mix("#b9a18f", "#9aa1ab", dusk);
     const body = g.createLinearGradient(lx, 0, rx, 0);
-    body.addColorStop(0, "#9aa1ab");
-    body.addColorStop(0.5, "#e3e7ec");
-    body.addColorStop(1, "#9aa1ab");
+    body.addColorStop(0, edge);
+    body.addColorStop(0.5, mix("#f7e2cd", "#e3e7ec", dusk));
+    body.addColorStop(1, edge);
     g.fillStyle = body;
     g.fillRect(lx, ty, w, h);
     g.fillStyle = paints[0];
@@ -801,12 +1291,23 @@
   function runner() {
     const [fx, fy, s] = at(x, 0, PZ);
     const [, jy] = at(x, y, PZ);
+    const px = 0.06 * s; // one pixel of the runner (13 of them: about 0.8 tall)
     // shadow on the street, smaller up in the air
     g.fillStyle = "rgba(0,0,0,0.45)";
     g.beginPath();
     g.ellipse(fx, fy, 0.24 * s * (1 - Math.min(0.5, y * 0.5)), 0.06 * s, 0, 0, Math.PI * 2);
     g.fill();
-    const px = 0.06 * s; // one pixel of the runner (13 of them: about 0.8 tall)
+    // a golden ring, breathing, while an ensaymada is pulling the coins in
+    if (magnet > 0) {
+      const pulse = Math.sin(clock * 10);
+      g.beginPath();
+      g.arc(fx, jy - px * 6.5, px * (7.5 + 0.5 * pulse), 0, Math.PI * 2);
+      g.fillStyle = "rgba(245,184,65,0.07)";
+      g.fill();
+      g.strokeStyle = `rgba(245,184,65,${(0.42 + 0.18 * pulse).toFixed(3)})`;
+      g.lineWidth = Math.max(1.5, px * 0.45);
+      g.stroke();
+    }
     const frame = RUNNER[y > 0 ? 0 : Math.abs(Math.floor(stride)) % 2];
     const left = fx - px * 4;
     const top = jy - px * frame.length;
@@ -822,7 +1323,7 @@
 
   function open() {
     if (!dialog) build();
-    if (typeof lenis !== "undefined" && lenis) lenis.stop();
+    if (typeof holdPage === "function") holdPage(true);
     dialog.showModal();
     state = "ready";
     reset();
@@ -830,9 +1331,31 @@
     startCard.hidden = false;
     startCard.querySelector(".rush-go").textContent = "Run";
     showBest();
+    refreshBoard(true);
     requestAnimationFrame(size);
     startCard.querySelector(".rush-go").focus({ preventScroll: true });
   }
 
   window.openRush = open;
+
+  // ?rushtest in the address: handles for trying things from the console
+  // (jump ahead, put something in front of the runner, never crash)
+  if (/[?&]rushtest\b/.test(location.search)) {
+    window.rushTest = {
+      sounds: [],
+      info: () => ({ state, dist: Math.floor(dist), coins, lane, magnet: +magnet.toFixed(2), arrived, lit: +lit.toFixed(2), dpr: DPR, things: things.length }),
+      skipTo: (m) => {
+        dist = m;
+        nextRow = m + 14;
+        things = [];
+      },
+      ghost: (on) => (rushTest.ghosting = on),
+      put: (type, k, ahead) => {
+        const z = dist + PZ + ahead;
+        if (type === "jeep") things.push({ type, x: LANES[k], z, w: 0.62, h: 1, d: 1.8, paint: 0 });
+        else things.push({ type, x: LANES[k], z, y: type === "coin" ? 0.45 : 0.5 });
+      },
+      board: (projectId, apiKey) => Object.assign(BOARD, { projectId, apiKey })
+    };
+  }
 })();

@@ -15,6 +15,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;700&family=Geist+Mono:wght@400;500&family=Barlow+Condensed:wght@600;800&display=swap" rel="stylesheet">
   <script>
     try { var t = localStorage.getItem("theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+    // Old Safari (iOS 15 and older) gets its styles patched (see legacy.js)
+    if (!(window.CSS && CSS.supports && CSS.supports("color", "color-mix(in srgb, red 50%, blue)") && CSS.supports("width", "1cqw"))) {
+      document.write('<script src="/raywelfrancismartin/legacy.js?v=20260925-1"><\/script>');
+    }
   </script>
   <style>
     :root, [data-theme="dark"] {

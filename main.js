@@ -60,16 +60,26 @@ if (!isPreview) {
 }
 
 // ============================================================
-//  Smooth scrolling (Lenis). Falls back to normal scrolling.
+//  Smooth scrolling (Lenis). Falls back to normal scrolling. Not on touch
+//  screens: a finger scrolls natively there anyway, and Lenis checking the
+//  scroll every frame only slowed old phones down.
 // ============================================================
 let lenis = null;
-if (window.Lenis && !reduceMotion) {
+if (window.Lenis && !reduceMotion && !matchMedia("(pointer: coarse)").matches) {
   lenis = new Lenis({ lerp: 0.09 });
   const raf = (time) => {
     lenis.raf(time);
     requestAnimationFrame(raf);
   };
   requestAnimationFrame(raf);
+}
+
+// Hold the page still (under the opening curtain, behind the photo viewer and
+// the game) and let it go again: Lenis does it where it runs, the page's own
+// scrolling stops elsewhere
+function holdPage(on) {
+  if (lenis) return on ? lenis.stop() : lenis.start();
+  document.documentElement.classList.toggle("held", on);
 }
 
 document.addEventListener("click", (e) => {
@@ -102,6 +112,14 @@ const scenes = [];
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
 const smooth = (t) => t * t * (3 - 2 * t);
 
+// Measure first, change after: inside the per-frame loop (see frame()), the
+// changes wait until everything has been measured, so the page is laid out
+// once a frame instead of once per measurement (which old phones felt).
+// Outside the loop a change happens right away.
+const pageWrites = [];
+let batching = false;
+const later = (fn) => (batching ? pageWrites.push(fn) : fn());
+
 // `leave`: how high up the screen (share of its height) a scene's bottom
 // edge has to climb before the scene starts to dissolve
 function addScene(node, leave = 0.1) {
@@ -118,16 +136,18 @@ function updateScenes() {
     // "landed" once it's fully in; cleared once it's off screen (however far),
     // so whatever is keyed to it (medals, a photo thumb) plays again next time
     const onScreen = r.bottom > 0 && r.top < vh;
-    if (!onScreen) n.classList.toggle("landed", false);
+    if (!onScreen) later(() => n.classList.toggle("landed", false));
     if (r.bottom < -vh * 0.25 || r.top > vh * 1.25) return;
     const edge = vh * n.dataset.leave;
     const enter = smooth(clamp01((vh - r.top) / (vh * 0.4)));
     const leave = smooth(clamp01((edge - r.bottom) / (edge + r.height * 0.6)));
     const fill = smooth(clamp01((vh * 0.72 - r.top) / (vh * 0.3)));
-    n.style.setProperty("--in", enter.toFixed(3));
-    n.style.setProperty("--out", leave.toFixed(3));
-    n.style.setProperty("--fill", fill.toFixed(3));
-    if (onScreen && enter >= 1) n.classList.toggle("landed", true);
+    later(() => {
+      n.style.setProperty("--in", enter.toFixed(3));
+      n.style.setProperty("--out", leave.toFixed(3));
+      n.style.setProperty("--fill", fill.toFixed(3));
+      if (onScreen && enter >= 1) n.classList.toggle("landed", true);
+    });
   });
 }
 
@@ -151,10 +171,12 @@ function updateLightWalls() {
     if (r.bottom < 0 || r.top > vh) return;
     const items = words.children;
     const lit = Math.round(clamp01((vh * 0.85 - r.top) / (vh * 0.45)) * items.length);
-    [...items].forEach((item, i) => item.classList.toggle("lit", i < lit));
-    if (words.board && !words.board.dataset.replaying) {
-      words.board.querySelectorAll(".play-step").forEach((step, i) => step.classList.toggle("on", i < lit));
-    }
+    later(() => {
+      [...items].forEach((item, i) => item.classList.toggle("lit", i < lit));
+      if (words.board && !words.board.dataset.replaying) {
+        words.board.querySelectorAll(".play-step").forEach((step, i) => step.classList.toggle("on", i < lit));
+      }
+    });
   });
 }
 
@@ -573,12 +595,12 @@ const fontsReady = Promise.race([document.fonts.ready, new Promise((r) => setTim
 if (root.classList.contains("intro")) {
   // First visit this session: the monogram fades in, then the curtain lifts
   // and the hero plays underneath it
-  if (lenis) lenis.stop(); // no scrolling under the curtain
+  holdPage(true); // no scrolling under the curtain
   fontsReady.then(() => {
     root.classList.add("intro-show");
     setTimeout(() => {
       root.classList.add("intro-open");
-      if (lenis) lenis.start();
+      holdPage(false);
       startIntro();
       try { sessionStorage.setItem("introSeen", "1"); } catch (e) {}
       setTimeout(() => root.classList.remove("intro", "intro-show", "intro-open"), 1200);
@@ -1675,7 +1697,7 @@ const tagWatch = reduceMotion ? null : new IntersectionObserver((entries) => {
 // A craft with `game: true` (Malolos Rush) opens a tiny playable teaser:
 // rush.js, loaded the first time someone presses Play (bump its ?v= here
 // when it changes)
-const RUSH_JS = "rush.js?v=20260925-5";
+const RUSH_JS = "rush.js?v=20260925-6";
 function playRush() {
   if (window.openRush) return window.openRush();
   const script = el("script");
@@ -1685,16 +1707,23 @@ function playRush() {
 }
 // A shared run's link (…/#malolos-rush) opens the game once the page is in,
 // over the Crafts section, so a friend can go straight for the score
-if (location.hash === "#malolos-rush") {
-  const openShared = () => {
-    if (!document.body.classList.contains("ready")) return setTimeout(openShared, 250);
-    const crafts = $("crafts");
-    if (lenis) lenis.scrollTo(crafts, { immediate: true });
-    else crafts.scrollIntoView();
-    playRush();
-  };
-  openShared();
+function openShared() {
+  if (!document.body.classList.contains("ready")) return setTimeout(openShared, 250);
+  const crafts = $("crafts");
+  if (lenis) lenis.scrollTo(crafts, { immediate: true });
+  else {
+    // (straight there, not the page's smooth scroll)
+    document.documentElement.style.scrollBehavior = "auto";
+    crafts.scrollIntoView();
+    document.documentElement.style.scrollBehavior = "";
+  }
+  playRush();
 }
+if (location.hash === "#malolos-rush") openShared();
+// (and a link to it on the page, like the New pill's)
+addEventListener("hashchange", () => {
+  if (location.hash === "#malolos-rush") openShared();
+});
 
 SITE.crafts.forEach((craft, i) => {
   const li = el("li", "craft reveal");
@@ -1967,17 +1996,19 @@ function updateBeliefs() {
     const r = p.getBoundingClientRect();
     if (r.top > vh || r.bottom < 0) return;
     const progress = Math.min(1, Math.max(0, (vh * 0.9 - r.top) / (vh * 0.55)));
-    const words = p.querySelectorAll(".fw");
-    const lit = Math.round(progress * words.length);
-    words.forEach((w, i) => w.classList.toggle("lit", i < lit));
-    const side = p.previousElementSibling;
-    const num = side.querySelector(".belief-num");
-    const started = progress > 0.02;
-    if (started !== num.classList.contains("on")) {
-      num.classList.toggle("on", started);
-      side.querySelector(".odo-strip").style.transform = `translateY(${started ? -num.dataset.n : 0}em)`;
-    }
-    side.querySelector(".belief-bar").style.setProperty("--p", progress.toFixed(3));
+    later(() => {
+      const words = p.querySelectorAll(".fw");
+      const lit = Math.round(progress * words.length);
+      words.forEach((w, i) => w.classList.toggle("lit", i < lit));
+      const side = p.previousElementSibling;
+      const num = side.querySelector(".belief-num");
+      const started = progress > 0.02;
+      if (started !== num.classList.contains("on")) {
+        num.classList.toggle("on", started);
+        side.querySelector(".odo-strip").style.transform = `translateY(${started ? -num.dataset.n : 0}em)`;
+      }
+      side.querySelector(".belief-bar").style.setProperty("--p", progress.toFixed(3));
+    });
   });
 }
 
@@ -2729,7 +2760,7 @@ function revealShot(dir, instant = false) {
 function openShot(i) {
   showShot(i);
   lightbox.showModal();
-  if (lenis) lenis.stop();
+  holdPage(true);
 }
 
 // Closing fades the viewer out in 0.18 s, quicker than the 0.45 s it takes
@@ -2751,7 +2782,7 @@ lightbox.addEventListener("cancel", (e) => {
 
 lightbox.addEventListener("close", () => {
   stopShotVideo();
-  if (lenis) lenis.start();
+  holdPage(false);
 });
 $("lbClose").addEventListener("click", closeViewer);
 $("lbPrev").addEventListener("click", () => showShot(lbIndex - 1, -1));
@@ -2948,10 +2979,10 @@ function updateNav(y) {
   const pageEnd = document.documentElement.scrollHeight - innerHeight / 2;
   const end = Math.min(k + 1 < tops.length ? tops[k + 1] : pageEnd, pageEnd);
   const read = clamp01((mid - tops[k]) / Math.max(1, end - tops[k]));
-  navSections.forEach((n, i) => {
+  later(() => navSections.forEach((n, i) => {
     n.a.classList.toggle("active", i === k);
     n.a.style.setProperty("--read", i === k ? read.toFixed(3) : "0");
-  });
+  }));
 }
 if (reduceMotion) {
   // No per-frame loop with reduced motion: highlight on scroll instead
@@ -3012,21 +3043,23 @@ const narrowScreen = matchMedia("(max-width: 960px)");
 function updateMeter(y) {
   const max = document.documentElement.scrollHeight - innerHeight;
   const p = max > 0 ? Math.min(1, y / max) : 0;
-  meterFill.style.strokeDashoffset = (METER_LEN * (1 - p)).toFixed(2);
   // as the footer slides into view, its motto lights up word by word
-  if (!reduceMotion && mottoWords.length) {
-    const f = footer.getBoundingClientRect();
-    const lit = Math.round(clamp01((innerHeight - f.top) / f.height) * mottoWords.length);
-    mottoWords.forEach((w, i) => w.classList.toggle("lit", i < lit));
-  }
-  // while you scroll, the ring shows how far down you are instead of the arrow
-  meterPct.textContent = `${Math.round(p * 100)}%`;
-  meter.classList.add("scrolling");
-  clearTimeout(meterIdle);
-  meterIdle = setTimeout(() => meter.classList.remove("scrolling"), 900);
-  const reading = narrowScreen.matches && header.classList.contains("tucked");
-  meter.classList.toggle("on", y > heroH * 0.6 && !reading);
-  meter.classList.toggle("swish", p > 0.995);
+  const f = !reduceMotion && mottoWords.length ? footer.getBoundingClientRect() : null;
+  later(() => {
+    meterFill.style.strokeDashoffset = (METER_LEN * (1 - p)).toFixed(2);
+    if (f) {
+      const lit = Math.round(clamp01((innerHeight - f.top) / f.height) * mottoWords.length);
+      mottoWords.forEach((w, i) => w.classList.toggle("lit", i < lit));
+    }
+    // while you scroll, the ring shows how far down you are instead of the arrow
+    meterPct.textContent = `${Math.round(p * 100)}%`;
+    meter.classList.add("scrolling");
+    clearTimeout(meterIdle);
+    meterIdle = setTimeout(() => meter.classList.remove("scrolling"), 900);
+    const reading = narrowScreen.matches && header.classList.contains("tucked");
+    meter.classList.toggle("on", y > heroH * 0.6 && !reading);
+    meter.classList.toggle("swish", p > 0.995);
+  });
 }
 updateMeter(scrollY);
 
@@ -4544,7 +4577,7 @@ function driftGallery() {
     const r = img.parentElement.getBoundingClientRect();
     if (r.bottom < 0 || r.top > vh) return;
     const t = Math.max(-1, Math.min(1, (r.top + r.height / 2 - vh / 2) / (vh / 2 + r.height / 2)));
-    img.style.setProperty("--drift", (-t).toFixed(3));
+    later(() => img.style.setProperty("--drift", (-t).toFixed(3)));
   });
 }
 
@@ -4553,6 +4586,7 @@ function frame() {
   const y = scrollY;
   const scrolled = y !== frameY;
   frameY = y;
+  batching = true;
 
   updateMarquee(y);
   if (scrolled) driftGallery();
@@ -4568,17 +4602,23 @@ function frame() {
   if (scrolled) {
     // Header hides while scrolling down, comes back when scrolling up
     if (Math.abs(y - lastY) > 4) {
-      header.classList.toggle("tucked", y > lastY && y > 240);
+      const tuck = y > lastY && y > 240;
+      later(() => header.classList.toggle("tucked", tuck));
       lastY = y;
     }
-    header.classList.toggle("solid", y > 10);
-    hero.style.setProperty("--p", Math.min(1, y / (heroH * 0.75)).toFixed(3));
+    later(() => {
+      header.classList.toggle("solid", y > 10);
+      hero.style.setProperty("--p", Math.min(1, y / (heroH * 0.75)).toFixed(3));
+    });
     updateBeliefs();
     updateMeter(y);
     updateScenes();
     updateNav(y);
     updateLightWalls();
   }
+  // everything measured: now the changes, all at once
+  batching = false;
+  pageWrites.splice(0).forEach((fn) => fn());
 
   if ((scrolled || drifting) && y < heroH * 1.2) {
     floaterEls.forEach((f, i) => {
