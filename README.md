@@ -44,13 +44,15 @@ Built with plain HTML, CSS and JavaScript, plus [Lenis](https://github.com/darkr
 - Type **sova** anywhere to launch the Owl Drone.
 - Click **LOCKED IN** under Sova's picture. It knows his real name.
 - **Take a shot** from the Basketball card: hold, release in the green, drag the ball back for a longer shot, and share your streak.
+- Press **Play** on Malolos Rush in Crafts: a tiny three-lane runner down a Malolos street at night, toward Barasoain Church. Swipe (or use the arrows) to change lanes, swipe up or press Space to jump the barriers, dodge the jeepneys and grab the coins.
+- Tap my **Discord** or **Valorant** name under Contact to copy it.
 - Flip between dark and light with the toggle at the top right.
 
 ## Editing
 
 Everything the site says is in `content.js`, grouped by section (`about`, `walls`, `story`, `crafts`, `hobbies`, `playlist`, `beliefs`, `youtube`, `gallery`, `links`). The comments in it explain each option. When something new goes up, add a line to `recent` so the New pill shows it.
 
-After changing `content.js`, `main.js` or `style.css`, bump the `?v=` number on them in `index.html` so returning visitors don't get old cached copies (GitHub Pages caches files for 10 minutes). For the same reason, a replaced picture gets a new file name instead of overwriting the old one. Entries containing `TODO` show up (outlined in yellow) only when previewing locally; the live site skips them.
+After changing `content.js`, `main.js` or `style.css`, bump the `?v=` number on them in `index.html` (and after changing `rush.js`, its `?v=` in `main.js`) so returning visitors don't get old cached copies (GitHub Pages caches files for 10 minutes). For the same reason, a replaced picture gets a new file name instead of overwriting the old one. Entries containing `TODO` show up (outlined in yellow) only when previewing locally; the live site skips them.
 
 To publish, commit and push to `main`. GitHub Pages redeploys in about a minute.
 
@@ -58,13 +60,14 @@ To publish, commit and push to `main`. GitHub Pages redeploys in about a minute.
 
 - `index.html` is the site.
 - `404.html` is Airball, the page GitHub Pages shows for any address that doesn't exist.
+- `rush.js` is the Malolos Rush teaser game, loaded only when someone presses Play.
 - `watch/index.html` is a share page for the videos. It has its own preview card (`assets/og-watch.jpg`) and sends people on to Watch Me.
 
 ## Photos and other files
 
 - `images/` holds original, full-size photos. It's in `.gitignore`, so originals are never published.
 - `assets/` holds the web-ready copies the site uses: rule-of-thirds crops, lightly colour-graded, resized and stripped of metadata (no GPS). They're exported once, straight from the originals, as JPEG quality 97 with full colour detail (4:4:4); at top quality JPEG keeps more detail than lossy WebP, and PNG/BMP would be 3–25× heavier.
-- `assets/gallery/` holds the Snapshots gallery: each photo at 400, 800 and 1600 px (the page loads the small ones in the grid and the 1600 px one only when a photo is opened). Captions and order live in `gallery` in `content.js`.
+- `assets/gallery/` holds the Snapshots gallery: each photo at 400, 800 and 1600 px (the page loads the small ones in the grid and the 1600 px one only when a photo is opened), plus a lighter 600 px copy that only phones use in the grid (quality 90), so the gallery loads faster on mobile data. Captions and order live in `gallery` in `content.js`.
 - Edited a photo in Lightroom? Export a full-size JPEG into `images/` and re-crop it, or export straight to the matching file in `assets/` at the same size (`me-shop.jpg` 480×640, `me-cafe.jpg` 480×600, `me-camera.jpg` 480×480, `me-sofa.jpg` 640×480).
 - `assets/aka/` holds the photos on the Also known as wall.
 - `assets/five/` holds the starting-five photos (480×640), and mine for my own card (off the page for now). `assets/five/cut/` holds the players (and me) cut out for the 2K cards: 600×800 transparent WebP in the card's shape, framed so a head, a hand or the ball breaks over the card's top edge (`cut` in `content.js`).

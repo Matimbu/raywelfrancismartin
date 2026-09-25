@@ -25,6 +25,7 @@ const SITE = {
   // new since their last visit; anything older than 30 days never shows.
   // `href` is a spot on the page (#five, #court, #channels...) or a page.
   recent: [
+    { date: "2026-09-25", text: "Malolos Rush, a mini game", href: "#crafts" },
     { date: "2026-09-25", text: "2K26 cards for my starting five", href: "#five" },
     { date: "2026-09-24", text: "Airball, a basketball game", href: "airball" },
     { date: "2026-09-24", text: "Covers for my clips", href: "#channels" }
@@ -386,7 +387,8 @@ const SITE = {
       year: "2026",
       emoji: "🏃",
       image: "",
-      link: "" // repo is private
+      link: "", // repo is private
+      game: true // the row opens a tiny playable teaser (rush.js)
     }
   ],
 
@@ -569,7 +571,7 @@ const SITE = {
     { label: "Portfolio", value: "matimbu.github.io/portfolio", url: "https://matimbu.github.io/portfolio/" },
     { label: "GitHub", value: "Matimbu", url: "https://github.com/Matimbu" },
     { label: "LinkedIn", value: "Raywel Francis Martin", url: "https://www.linkedin.com/in/raywel-francis-martin-07a73b3b8/" },
-    { label: "Discord", value: "Matimbu", url: "https://discord.com/users/736265496479006811" },
+    { label: "Discord", value: "Matimbu", url: "https://discord.com/users/736265496479006811", copy: true }, // tap to copy, ↗ opens it
     { label: "Valorant", value: "Jenduks#Tent", url: "" }
   ]
 };

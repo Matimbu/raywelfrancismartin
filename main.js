@@ -1672,13 +1672,31 @@ const tagWatch = reduceMotion ? null : new IntersectionObserver((entries) => {
   });
 }, { threshold: 0.6 });
 
+// A craft with `game: true` (Malolos Rush) opens a tiny playable teaser:
+// rush.js, loaded the first time someone presses Play (bump its ?v= here
+// when it changes)
+const RUSH_JS = "rush.js?v=20260925-3";
+function playRush() {
+  if (window.openRush) return window.openRush();
+  const script = el("script");
+  script.src = RUSH_JS;
+  script.onload = () => window.openRush && window.openRush();
+  document.head.appendChild(script);
+}
+
 SITE.crafts.forEach((craft, i) => {
   const li = el("li", "craft reveal");
   li.style.setProperty("--d", i);
   if (isTodo(craft.title, craft.year)) li.classList.add("todo");
 
-  const row = el(craft.link ? "a" : "div", "craft-row");
+  const row = el(craft.link ? "a" : craft.game ? "button" : "div", "craft-row");
   linkify(row, craft.link);
+  if (craft.game) {
+    row.type = "button";
+    row.classList.add("craft-game");
+    row.setAttribute("aria-label", `Play ${craft.title}, a mini game`);
+    row.addEventListener("click", playRush);
+  }
   const tags = el("span", "craft-tags mono", craft.tags.join(" · "));
   if (tagWatch) {
     tags.classList.add("scramble");
@@ -1698,7 +1716,7 @@ SITE.crafts.forEach((craft, i) => {
     el("span", "craft-title", craft.title),
     tags,
     el("span", "craft-year mono", craft.year),
-    el("span", "craft-arrow", craft.link ? "↗" : "")
+    craft.game ? el("span", "craft-arrow craft-play mono", "Play") : el("span", "craft-arrow", craft.link ? "↗" : "")
   );
   if (canHover) {
     onHover(row, () => showPreview(craft));
@@ -2487,14 +2505,25 @@ gallery.forEach((p, i) => {
   tile.style.setProperty("--d", i % 3);
   tile.setAttribute("aria-label", p.video ? `Play the clip: ${p.caption}` : `View photo: ${p.caption}`);
   const img = el("img");
-  img.src = shotSrc(p, 800);
+  img.loading = "lazy";
+  img.decoding = "async";
+  // phones also get a lighter 600 px copy (plenty for the two-column grid,
+  // a third of the weight); computers keep choosing between 400 and 800
+  const picture = el("picture");
+  if (!p.cover) {
+    const phone = el("source");
+    phone.media = "(max-width: 760px)";
+    phone.srcset = `${shotSrc(p, 400)} 400w, ${shotSrc(p, 600)} 600w, ${shotSrc(p, 800)} 800w`;
+    phone.sizes = p.wide ? "100vw" : "50vw";
+    picture.appendChild(phone);
+  }
+  picture.appendChild(img);
   if (!p.cover) {
     img.srcset = `${shotSrc(p, 400)} 400w, ${shotSrc(p, 800)} 800w`;
     img.sizes = p.wide ? "(max-width: 760px) 100vw, 800px" : "(max-width: 760px) 50vw, 400px";
   }
+  img.src = shotSrc(p, 800);
   img.alt = p.alt || p.caption;
-  img.loading = "lazy";
-  img.decoding = "async";
   // A soft shimmer sweeps across the tile until the photo arrives
   if (!img.complete) {
     tile.classList.add("loading");
@@ -2503,7 +2532,7 @@ gallery.forEach((p, i) => {
     img.addEventListener("error", loaded, { once: true });
   }
   const caption = el("span", "shot-caption mono", p.caption);
-  tile.append(img, caption);
+  tile.append(picture, caption);
   if (p.video) {
     tile.classList.add("shot-clip");
     tile.appendChild(el("span", "shot-play"));
@@ -2782,9 +2811,32 @@ lightbox.addEventListener("click", (e) => {
 });
 
 // ============================================================
-//  Contact links (entries without a URL copy their value)
+//  Contact links (entries without a URL copy their value; `copy: true`
+//  copies it too, and keeps a small link to open it)
 // ============================================================
 SITE.links.forEach((l, i) => {
+  if (l.copy && l.url) {
+    // the whole row copies (a Discord name, to add me); ↗ opens the profile
+    const row = el("div", "link link-copy reveal");
+    row.style.setProperty("--d", i);
+    const hit = el("button", "link-hit");
+    hit.type = "button";
+    hit.setAttribute("aria-label", `Copy my ${l.label} name, ${l.value}`);
+    hit.dataset.goatcounterClick = `copy-${l.label.toLowerCase()}`;
+    hit.dataset.goatcounterTitle = `Copied: ${l.label}`;
+    const hint = el("span", "link-arrow mono", "Copy");
+    const open = el("a", "link-open icon", "↗");
+    linkify(open, l.url);
+    open.setAttribute("aria-label", `Open my ${l.label} profile`);
+    open.dataset.goatcounterClick = `contact-${l.label.toLowerCase()}`;
+    open.dataset.goatcounterTitle = `Contact: ${l.label}`;
+    const tail = el("span", "link-tail");
+    tail.append(hint, open);
+    row.append(hit, el("span", "link-label mono", l.label), el("span", "link-value", l.value), tail);
+    hit.addEventListener("click", () => copyText(l.value).then((ok) => flashCopied(hint, ok)));
+    $("linkList").appendChild(row);
+    return;
+  }
   const row = el(l.url ? "a" : "button", "link reveal");
   row.style.setProperty("--d", i);
   const arrow = el("span", l.url ? "link-arrow icon" : "link-arrow mono", l.url ? "↗" : "Copy");
@@ -2797,6 +2849,9 @@ SITE.links.forEach((l, i) => {
     row.dataset.goatcounterTitle = `Contact: ${l.label}`;
   } else {
     row.type = "button";
+    row.setAttribute("aria-label", `Copy my ${l.label} ID, ${l.value}`);
+    row.dataset.goatcounterClick = `copy-${l.label.toLowerCase()}`;
+    row.dataset.goatcounterTitle = `Copied: ${l.label}`;
     row.addEventListener("click", () => copyText(l.value).then((ok) => flashCopied(arrow, ok)));
   }
   $("linkList").appendChild(row);
