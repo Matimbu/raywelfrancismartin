@@ -25,7 +25,7 @@ const SITE = {
   // new since their last visit; anything older than 30 days never shows.
   // `href` is a spot on the page (#five, #court, #channels...) or a page.
   recent: [
-    { date: "2026-09-25", text: "My MyCAREER card, off the bench", href: "#five" },
+    { date: "2026-09-25", text: "My MyCAREER card, on the court", href: "#court" },
     { date: "2026-09-25", text: "Malolos Rush: outrun the guard to Casa Real", href: "#malolos-rush" },
     { date: "2026-09-25", text: "Malolos Rush, a mini game", href: "#crafts" },
     { date: "2026-09-25", text: "2K26 cards for my starting five", href: "#five" },
@@ -106,7 +106,11 @@ const SITE = {
   // (and `cut`) and a `short` name, and the names under the card choose which
   // one is in front. `creditLead` starts the wall's credit line.
   // `board: true` draws the words on a coach's play board beside the wall, one
-  // step for each word as it lights up (made for On the court with `lightUp`).
+  // step for each word as it lights up (made for On the court with `lightUp`);
+  // the board also has a Horns set to switch to.
+  // `player` puts one photo card of its own (a word with a `card`) under the
+  // wall's intro. A card with `style: "career"` is drawn like 2K26's MyCAREER
+  // builds card instead (`face`, `archetype`, `size`, `jumper`, `allBadges`).
   // `specs` lists small settings under the words; `copy: true` adds a Copy button.
   // `lightUp: true` lights the words one by one as you scroll through the wall.
   // Add more walls to the list and they show up in the same style.
@@ -151,6 +155,38 @@ const SITE = {
       lightUp: true, // the words light up one after another as you read, like a play being called
       board: true, // and a coach's board draws the move, one step per word
       intro: "Where I play and what I go to.",
+      // my player, under the intro: the photo holding my custom jacket;
+      // turned over, my NBA 2K26 MyCAREER build (the closest to how I really
+      // play) on a card like the game's builds screen, my player's face in
+      // the ring, in G.O.A.T. gold. `build` is its 21 ratings as they are
+      // now, `badges` its best three and `allBadges` all 35 by group (the
+      // card's third layer).
+      player: {
+        pos: "My player", text: "Me", note: "the Court's Coder",
+        image: "assets/five/raywel-jacket.jpg", alt: "Me in sunglasses, holding my custom RAYWEL jacket at a clothing shop",
+        card: {
+          style: "career", ovr: 95, tier: "G.O.A.T.", label: "G.O.A.T. Build", name: "Raywel Martin", pos: "PF",
+          face: "assets/five/raywel-mycareer.webp",
+          archetype: "2-Way Middy-Slashing Cleaner",
+          size: "HT 6'8\" · WT 239 lbs · WS 7'1\"",
+          jumper: "Ray Allen base · Beluba and Rudy Gay releases, 65 / 35",
+          badges: [["Pogo Stick", "Legend"], ["Posterizer", "HOF"], ["Aerial Wizard", "HOF"]],
+          stats: [["Driving Dunk", 96], ["Defensive Rebound", 90], ["Vertical", 88], ["Mid-Range Shot", 87]],
+          build: [43, 38, 96, 40, 70, 87, 83, 78, 66, 85, 75, 71, 85, 70, 71, 61, 90, 85, 80, 85, 88],
+          allBadges: [
+            ["Finishing", [["Posterizer", "HOF"], ["Aerial Wizard", "HOF"], ["Post Fade Phenom", "Gold"], ["Post Powerhouse", "Silver"],
+              ["Post-Up Poet", "Silver"], ["Float Game", "Bronze"], ["Hook Specialist", "Bronze"], ["Physical Finisher", "Bronze"]]],
+            ["Shooting", [["Slippery Off-Ball", "Gold"], ["Deadeye", "Silver"], ["Set Shot Specialist", "Silver"], ["Shifty Shooter", "Silver"],
+              ["Limitless Range", "Bronze"]]],
+            ["Playmaking", [["Strong Handle", "HOF"], ["Dimer", "Silver"], ["Handles for Days", "Silver"], ["Unpluckable", "Silver"],
+              ["Ankle Assassin", "Silver"], ["Lightning Launch", "Silver"], ["Break Starter", "Bronze"], ["Versatile Visionary", "Bronze"]]],
+            ["Defense", [["Pogo Stick", "Legend"], ["Off-Ball Pest", "HOF"], ["Pick Dodger", "Gold"], ["High-Flying Denier", "Gold"],
+              ["Post Lockdown", "Silver"], ["Challenger", "Silver"], ["Interceptor", "Silver"], ["On-Ball Menace", "Silver"],
+              ["Paint Patroller", "Silver"], ["Glove", "Bronze"]]],
+            ["Rebounding", [["Box-Out Beast", "Gold"], ["Rebound Chaser", "Gold"], ["Immovable Enforcer", "Gold"], ["Brick Wall", "Silver"]]]
+          ]
+        }
+      },
       words: [
         { text: "Power forward", note: "not the 5: I'd rather run the floor", top: true },
         { text: "6 ft", note: "easy fouls in the post" },
@@ -232,26 +268,6 @@ const SITE = {
             }
           ],
           credit: [{ subject: "Yao Ming", by: "Keith Allison", license: "CC BY-SA 2.0", licenseUrl: "https://creativecommons.org/licenses/by-sa/2.0/", source: "https://commons.wikimedia.org/wiki/File:Yao_Ming_(2310548923).jpg" }]
-        },
-        {
-          // me, off the bench: the photo holding my custom jacket; turned over,
-          // my NBA 2K26 MyCAREER build (the closest to how I really play: a
-          // power forward who runs the floor, cuts back door and posts up) on
-          // a card like the game's builds screen, my player's face in the
-          // ring, in G.O.A.T. gold. `build` is its 21 ratings as they are now;
-          // the badges are its best three of 35.
-          pos: "6th man", text: "Me", note: "the Court's Coder", link: "#court",
-          image: "assets/five/raywel-jacket.jpg", alt: "Me in sunglasses, holding my custom RAYWEL jacket at a clothing shop",
-          card: {
-            style: "career", ovr: 95, tier: "G.O.A.T.", label: "G.O.A.T. Build", name: "Raywel Martin", pos: "PF",
-            face: "assets/five/raywel-mycareer.webp",
-            archetype: "2-Way Middy-Slashing Cleaner",
-            size: "HT 6'8\" · WT 239 lbs · WS 7'1\"",
-            jumper: "Ray Allen base · Beluba and Rudy Gay releases, 65 / 35",
-            badges: [["Pogo Stick", "Legend"], ["Posterizer", "HOF"], ["Aerial Wizard", "HOF"]],
-            stats: [["Driving Dunk", 96], ["Defensive Rebound", 90], ["Vertical", 88], ["Mid-Range Shot", 87]],
-            build: [43, 38, 96, 40, 70, 87, 83, 78, 66, 85, 75, 71, 85, 70, 71, 61, 90, 85, 80, 85, 88]
-          }
         }
       ],
       notice: "The Rondo, Kobe, MJ, LeBron and Shaq photos belong to their photographers."

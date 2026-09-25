@@ -823,6 +823,7 @@ button { font: inherit; color: inherit; }
 .play-board .move { stroke: var(--accent); stroke-width: 2; }
 /* a teammate (the 1 with the ball) and a pass, dashed like a coach draws it */
 .play-board .mate { stroke: var(--muted); stroke-width: 1.4; }
+.play-board .mate-move { stroke: var(--muted); stroke-width: 1.5; }
 .play-board .num.mate-num { fill: var(--muted); }
 .play-board .pass { stroke: var(--fg); stroke-width: 1.5; stroke-dasharray: 4 4; }
 .play-board .pass-head { stroke-dasharray: none; }
@@ -837,8 +838,25 @@ button { font: inherit; color: inherit; }
 .play-board .note { fill: var(--muted); font-size: 14px; }
 .play-board .and-one { fill: var(--accent); font-size: 19px; }
 .play-board .made { stroke: var(--accent); stroke-width: 2.2; filter: drop-shadow(0 0 4px var(--accent)); }
-/* the drive's arrow goes once the spin carries on from it */
-.play-board svg:has(> .play-step:last-child.on) .drive-head { opacity: 0; transition-delay: 0s; }
+/* the cut's arrow goes once the spin carries on from it */
+.play-board .play-set:has(> .play-step:last-child.on) .drive-head { opacity: 0; transition-delay: 0s; }
+/* two plays on the board, one shown at a time; tabs under it pick one */
+.play-board .play-set:not(.active) { display: none; }
+.play-board { padding-bottom: 46px; }
+.play-tabs { position: absolute; left: 12px; bottom: 12px; display: flex; gap: 6px; }
+.play-tab {
+  padding: 5px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font-size: 10px;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.play-tab.on { color: var(--fg); border-color: var(--accent); }
+@media (hover: hover) and (pointer: fine) { .play-tab:hover { color: var(--fg); } }
+.play-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* Replay: tap the board (or this button) and the move draws again. The
    button shows on hover on computers and always on touch screens. */
 .play-board.resetting .ink, .play-board.resetting .fade { transition: none !important; }
@@ -1207,7 +1225,8 @@ button { font: inherit; color: inherit; }
   clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
   background: linear-gradient(160deg, var(--lv-hi), var(--lv-lo));
 }
-.tk-badge[data-level="hof"] { --lv-hi: #d6b6ff; --lv-lo: #7a3de0; }
+.tk-badge[data-level="hof"], .tk-chip[data-level="hof"] { --lv-hi: #d6b6ff; --lv-lo: #7a3de0; }
+.tk-chip[data-level="legend"] { --lv-hi: #ffc9a3; --lv-lo: #e2451f; }
 /* Legend, 2K26's level above Hall of Fame, in red-gold: its tags catch a
    slow shine one after another while the card shows (HOF and below don't) */
 .tk-badge[data-level="legend"] { --lv-hi: #ffc9a3; --lv-lo: #e2451f; position: relative; overflow: hidden; }
@@ -1224,9 +1243,9 @@ button { font: inherit; color: inherit; }
 .ww-card.flipped .tk-badge[data-level="legend"]::after { animation-play-state: running; }
 @keyframes legend-shine { 0% { translate: -105% 0; } 35%, 100% { translate: 105% 0; } }
 @media (prefers-reduced-motion: reduce) { .tk-badge[data-level="legend"]::after { display: none; } }
-.tk-badge[data-level="gold"] { --lv-hi: #ffe7a3; --lv-lo: #c8921a; }
-.tk-badge[data-level="silver"] { --lv-hi: #f1f4f6; --lv-lo: #8d98a1; }
-.tk-badge[data-level="bronze"] { --lv-hi: #f0b889; --lv-lo: #93502a; }
+.tk-badge[data-level="gold"], .tk-chip[data-level="gold"] { --lv-hi: #ffe7a3; --lv-lo: #c8921a; }
+.tk-badge[data-level="silver"], .tk-chip[data-level="silver"] { --lv-hi: #f1f4f6; --lv-lo: #8d98a1; }
+.tk-badge[data-level="bronze"], .tk-chip[data-level="bronze"] { --lv-hi: #f0b889; --lv-lo: #93502a; }
 .tk-badge-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tk-level { flex: none; margin-left: 1cqw; font-weight: 700; font-size: max(7px, 3.4cqw); letter-spacing: 0.08em; text-transform: uppercase; color: var(--lv-hi); }
 @container (max-width: 190px) { .tk-level { display: none; } }
@@ -1531,8 +1550,56 @@ button { font: inherit; color: inherit; }
 .tk-career-jumper { display: grid; gap: 0.8cqw; font-size: max(7px, 3.7cqw); line-height: 1.2; }
 .tk-career-jumper b { font-size: max(6px, 3.1cqw); letter-spacing: 0.12em; text-transform: uppercase; color: var(--m2); }
 .layer-stats .tk-career-face { opacity: 0; scale: 0.92; }
-/* (its tab sits by the face, clear of the overall) */
-.tk-side-career .tk-layer { top: 61cqw; right: 5cqw; }
+/* the third layer: every badge, grouped, each with its level's hexagon */
+.tk-career-arch, .tk-career-size, .tk-career-pos { transition: opacity 0.22s ease; }
+.tk-allbadges {
+  position: absolute;
+  top: 26cqw;
+  left: 7cqw;
+  right: 7cqw;
+  display: grid;
+  gap: 2.2cqw;
+  opacity: 0;
+  translate: 0 4px;
+  pointer-events: none;
+  transition: opacity 0.22s ease, translate 0.22s var(--ease-out);
+}
+.layer-all .tk-allbadges { opacity: 1; translate: 0 0; }
+.layer-all .tk-career-face, .layer-all .tk-career-arch, .layer-all .tk-career-size,
+.layer-all .tk-career-pos, .layer-all .tk-badges { opacity: 0; }
+.tk-allbadges-tiers { display: flex; flex-wrap: wrap; align-items: center; gap: 0.8cqw 2.2cqw; }
+.tk-allbadges-tiers > b { font-size: max(8px, 4.6cqw); font-weight: 800; letter-spacing: 0.02em; color: var(--m2); }
+.tk-allbadges-group { display: grid; gap: 0.8cqw; }
+.tk-allbadges-group > b {
+  font-size: max(6px, 2.9cqw);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--m4);
+}
+.tk-allbadges-list { display: flex; flex-wrap: wrap; gap: 0.6cqw 2cqw; }
+.tk-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9cqw;
+  font-weight: 600;
+  font-size: max(6.5px, 3.2cqw);
+  line-height: 1.15;
+  white-space: nowrap;
+}
+.tk-chip i {
+  flex: none;
+  width: max(5px, 2.6cqw);
+  aspect-ratio: 1 / 1.12;
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  background: linear-gradient(160deg, var(--lv-hi), var(--lv-lo));
+}
+/* On the court: my player's card, under the wall's intro */
+.ww-player { display: block; width: min(250px, 100%); margin-top: 32px; }
+.ww-player .ww-card-img { margin-bottom: 10px; }
+@media (max-width: 960px) { .ww-player { width: min(240px, 66%); margin-top: 24px; } }
+/* (its tab sits top middle, between MC and the overall, clear of every layer) */
+.tk-side-career .tk-layer { top: 10cqw; left: 50%; right: auto; translate: -50% 0; }
 
 /* Co-starters: two cards in one spot, the one behind out of sight. The
    switch (or the names under the card) shuffles them: the front card slides

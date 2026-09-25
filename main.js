@@ -174,7 +174,7 @@ function updateLightWalls() {
     later(() => {
       [...items].forEach((item, i) => item.classList.toggle("lit", i < lit));
       if (words.board && !words.board.dataset.replaying) {
-        words.board.querySelectorAll(".play-step").forEach((step, i) => step.classList.toggle("on", i < lit));
+        words.board.querySelectorAll(".play-set.active .play-step").forEach((step, i) => step.classList.toggle("on", i < lit));
       }
     });
   });
@@ -829,9 +829,41 @@ function careerCard(c, w, extra) {
     jumper.append(el("b", "", "Jumper"), el("span", "", c.jumper));
     stats.appendChild(jumper);
   }
+  // the third layer: every badge, by group, each in its level's colour, and
+  // how many of each level up top
+  const all = el("span", "tk-allbadges");
+  if (c.allBadges) {
+    const count = {};
+    c.allBadges.forEach(([, list]) => list.forEach(([, level]) => (count[level] = (count[level] || 0) + 1)));
+    const total = Object.values(count).reduce((a, b) => a + b, 0);
+    const tiers = el("span", "tk-allbadges-tiers");
+    tiers.appendChild(el("b", "", `${total} badges`));
+    ["Legend", "HOF", "Gold", "Silver", "Bronze"].forEach((level) => {
+      if (!count[level]) return;
+      const chip = el("span", "tk-chip");
+      chip.dataset.level = level.toLowerCase();
+      chip.append(el("i"), document.createTextNode(`${count[level]} ${level}`));
+      tiers.appendChild(chip);
+    });
+    all.appendChild(tiers);
+    c.allBadges.forEach(([group, list]) => {
+      const row = el("span", "tk-allbadges-group");
+      const chips = el("span", "tk-allbadges-list");
+      list.forEach(([name, level]) => {
+        const chip = el("span", "tk-chip");
+        chip.dataset.level = level.toLowerCase();
+        chip.title = `${name}, ${level}`;
+        chip.append(el("i"), document.createTextNode(name));
+        chips.appendChild(chip);
+      });
+      row.append(el("b", "", group), chips);
+      all.appendChild(row);
+    });
+  }
   const ui = el("span", "tk-ui");
   ui.append(top, ovr, face, el("span", "tk-career-arch", c.archetype || ""), el("span", "tk-career-size", c.size || ""),
     el("span", "tk-career-pos", POSITIONS[pos] || pos), cardBadges(c), stats);
+  if (c.allBadges) ui.appendChild(all);
   card.appendChild(ui);
   return card;
 }
@@ -1012,12 +1044,18 @@ function phoneTilt() {
 
 // On the court's play board: a coach's board with the half court around the
 // arc (the basket at the top) where the words are drawn as a play in marker,
-// one step for each word as it lights up. A power forward's go-to: the 4 on
-// the wing with the 1 up top holding the ball (Power forward), his defender
-// overplaying the pass (6 ft), a fake out toward the ball, then the cut
-// behind him along the baseline to the block, the 1's bounce pass meeting him
-// there (Back door), then the drop step spin to the rim for the and-one
-// (Drop step spin)
+// one step for each word as it lights up, and two power forward plays to
+// switch between (tabs under the board). Back door: the 4 on the wing with
+// the 1 up top holding the ball (Power forward), his defender overplaying the
+// pass (6 ft), a fake out toward the ball, then the cut behind him along the
+// baseline to the block, the 1's bounce pass meeting him there (Back door),
+// then the drop step spin to the rim for the and-one (Drop step spin).
+// Horns: the 4 and 5 at the elbows, the 1 up top, shooters in both corners;
+// the 4's man sags off; the 4 steps up to screen for the 1, who comes off it
+// dribbling; the 4 pops out beyond the arc, catches and knocks it down.
+// 5-out post: all five on the arc, the 4 on the wing; his man plays him
+// tight; the motion: the 4 dives to the block and seals, the 5 lifts from
+// the corner, the ball goes 1 to 5 to the 4; the drop step spin, and one.
 function playBoard() {
   const board = el("div", "play-board reveal");
   const f = (n) => n.toFixed(1);
@@ -1034,6 +1072,76 @@ function playBoard() {
   const cut = "M247 135 C259 108 247 76 208 62";
   const pass = { x0: 157, y0: 167, x1: 203, y1: 73 };
   const spin = "M208 62 C216 53 217 42 208 38 C199 34 191 43 197 50 C202 56 189 48 158 37";
+  // Horns: the screen, the 1's dribble off it, the pop and the shot
+  const dribble = "M157 175 L163 169 L169 175 L175 169 L181 175 L187 169 L193 173 L199 171";
+  const pop = "M178 152 C198 164 232 162 258 148";
+  const mates = [[150, 178, 1], [94, 116, 5], [12, 18, 2], [288, 18, 3]].map(([x, y, n], k) =>
+    `<circle class="fade mate" cx="${x}" cy="${y}" r="9" style="--at:${(0.35 + k * 0.08).toFixed(2)}s"/>` +
+    `<text class="fade num mate-num" x="${x}" y="${y + 4.5}" style="--at:${(0.4 + k * 0.08).toFixed(2)}s">${n}</text>`).join("");
+  const horns = `
+    <g class="play-set" data-play="horns">
+      <g class="play-step">
+        <circle class="ink me" pathLength="1" cx="206" cy="116" r="10" style="--at:0s;--t:0.5s"/>
+        <text class="fade num" x="206" y="120.5" style="--at:0.3s">4</text>
+        ${mates}
+      </g>
+      <g class="play-step">
+        ${ink("me", "M190 94 L202 106", 0, 0.18)}
+        ${ink("me", "M202 94 L190 106", 0.2, 0.18)}
+      </g>
+      <g class="play-step">
+        ${ink("move", "M200 124 L178 152", 0, 0.3)}
+        ${ink("move", "M171 146 L185 158", 0.3, 0.15)}
+        <text class="fade note" x="118" y="146" style="--at:0.35s">screen</text>
+        ${ink("move", dribble, 0.5, 0.6)}
+        ${later("move", head(199, 171, Math.atan2(171 - 173, 199 - 193), 6), 1.1)}
+      </g>
+      <g class="play-step">
+        ${ink("move", pop, 0, 0.5)}
+        ${later("move", head(258, 148, Math.atan2(148 - 162, 258 - 232), 6), 0.5)}
+        <text class="fade note" x="262" y="170" style="--at:0.5s">pop</text>
+        ${later("pass", "M201 168 L250 151", 0.55)}
+        ${later("pass pass-head", head(250, 151, Math.atan2(151 - 168, 250 - 201), 6), 0.65)}
+        ${later("pass", "M258 140 Q222 30 157 30", 0.9)}
+        <circle class="fade made" cx="150" cy="31.5" r="4.5" style="--at:1.25s"/>
+        <text class="fade and-one" x="96" y="66" style="--at:1.3s">splash!</text>
+      </g>
+    </g>`;
+  // 5-out into the post: everyone on the arc, the 4 dives from the wing to
+  // the block and seals, the 5 lifts out of the corner, the ball goes 1 to
+  // 5 to the 4, and the drop step spin finishes it
+  const five = [[150, 180, 1], [44, 140, 2], [6, 24, 3], [294, 24, 5]].map(([x, y, n], k) =>
+    `<circle class="fade mate" cx="${x}" cy="${y}" r="9" style="--at:${(0.35 + k * 0.08).toFixed(2)}s"/>` +
+    `<text class="fade num mate-num" x="${x}" y="${y + 4.5}" style="--at:${(0.4 + k * 0.08).toFixed(2)}s">${n}</text>`).join("");
+  const post = `
+    <g class="play-set" data-play="post">
+      <g class="play-step">
+        <circle class="ink me" pathLength="1" cx="256" cy="140" r="10" style="--at:0s;--t:0.5s"/>
+        <text class="fade num" x="256" y="144.5" style="--at:0.3s">4</text>
+        ${five}
+        <text class="fade note" x="168" y="199" style="--at:0.75s">5 out</text>
+      </g>
+      <g class="play-step">
+        ${ink("me", "M234 112 L246 124", 0, 0.18)}
+        ${ink("me", "M246 112 L234 124", 0.2, 0.18)}
+      </g>
+      <g class="play-step">
+        ${ink("move", "M249 132 C236 112 226 84 206 66", 0, 0.5)}
+        ${later("move drive-head", head(206, 66, Math.atan2(66 - 84, 206 - 226), 6), 0.5)}
+        ${ink("move", "M200 73 L211 61", 0.55, 0.15)}
+        <text class="fade note" x="216" y="58" style="--at:0.6s">seal</text>
+        ${ink("mate-move", "M294 34 C300 64 294 90 280 102", 0.3, 0.45)}
+        ${later("pass", "M158 175 L272 108", 0.85)}
+        ${later("pass pass-head", head(272, 108, Math.atan2(108 - 175, 272 - 158), 6), 0.95)}
+        ${later("pass", "M274 104 L216 72", 1.15)}
+        ${later("pass pass-head", head(216, 72, Math.atan2(72 - 104, 216 - 274), 6), 1.25)}
+      </g>
+      <g class="play-step">
+        ${ink("move", "M206 66 C214 57 215 46 206 42 C197 38 189 47 195 54 C200 60 187 52 158 37", 0, 0.7)}
+        <circle class="fade made" cx="150" cy="31.5" r="4.5" style="--at:0.7s"/>
+        <text class="fade and-one" x="96" y="66" style="--at:0.8s">and 1!</text>
+      </g>
+    </g>`;
   board.innerHTML = `<svg viewBox="-12 -12 324 214">
     <g class="court">
       <path d="M0 202 V0 H300 V202"/>
@@ -1046,6 +1154,7 @@ function playBoard() {
       <path class="board-glass" d="M132 24 H168"/>
       <circle class="rim" cx="150" cy="31.5" r="4.5"/>
     </g>
+    <g class="play-set active" data-play="back-door">
     <g class="play-step">
       <circle class="ink me" pathLength="1" cx="240" cy="108" r="10" style="--at:0s;--t:0.5s"/>
       <text class="fade num" x="240" y="112.5" style="--at:0.3s">4</text>
@@ -1070,6 +1179,9 @@ function playBoard() {
       <circle class="fade made" cx="150" cy="31.5" r="4.5" style="--at:0.7s"/>
       <text class="fade and-one" x="96" y="66" style="--at:0.8s">and 1!</text>
     </g>
+    </g>
+    ${horns}
+    ${post}
   </svg>`;
   board.querySelector("svg").setAttribute("aria-hidden", "true");
   // Replay: the board wipes and draws the whole move again, a step at a time
@@ -1082,7 +1194,7 @@ function playBoard() {
   let replaying = 0;
   const again = () => {
     const run = ++replaying;
-    const steps = [...board.querySelectorAll(".play-step")];
+    const steps = [...board.querySelectorAll(".play-set.active .play-step")];
     board.dataset.replaying = "1";
     board.classList.add("resetting");
     steps.forEach((step) => step.classList.remove("on"));
@@ -1093,6 +1205,24 @@ function playBoard() {
     setTimeout(() => run === replaying && delete board.dataset.replaying, 4600);
   };
   board.addEventListener("click", again);
+  // the plays, under the board: pick one and it draws from the start
+  const tabs = el("div", "play-tabs");
+  [["back-door", "Back door"], ["horns", "Horns"], ["post", "5-out post"]].forEach(([key, name], k) => {
+    const tab = el("button", `play-tab mono${k ? "" : " on"}`, name);
+    tab.type = "button";
+    tab.setAttribute("aria-pressed", String(!k));
+    tab.addEventListener("click", (e) => {
+      e.stopPropagation();
+      board.querySelectorAll(".play-set").forEach((p) => p.classList.toggle("active", p.dataset.play === key));
+      tabs.querySelectorAll(".play-tab").forEach((t) => {
+        t.classList.toggle("on", t === tab);
+        t.setAttribute("aria-pressed", String(t === tab));
+      });
+      again();
+    });
+    tabs.appendChild(tab);
+  });
+  board.appendChild(tabs);
   return board;
 }
 
@@ -1127,7 +1257,8 @@ function playBoard() {
   const words = el("div", "wordwall-words");
   const cards = wall.layout === "cards";
   if (cards) block.classList.add("cards");
-  wall.words.forEach((w, i) => {
+  // one word (or photo card) into `words`; also used for a wall's `player`
+  const addWord = (w, i, words, cards) => {
     if (w.hidden) return; // (kept in content.js, off the page for now)
     const kind = cards ? "ww-card" : w.top ? "ww ww-top" : "ww";
     const item = el(w.link ? "a" : "span", `${kind} reveal`);
@@ -1250,16 +1381,21 @@ function playBoard() {
     // follows the link).
     const has2K = Boolean(w.card || w.cards);
     const layers = has2K && item.querySelector(".tk-layer");
-    const firstLayer = () => {
-      item.classList.remove("layer-stats");
-      if (layers) layers.textContent = "Attributes";
+    // (my own card has a third layer: every badge of the build)
+    const LAYERS = item.querySelector(".tk-allbadges") ? ["", "layer-stats", "layer-all"] : ["", "layer-stats"];
+    const TABS = LAYERS.length > 2 ? ["Attributes", "All badges", "Card"] : ["Attributes", "Badges"];
+    const setLayer = (k) => {
+      item.classList.remove("layer-stats", "layer-all");
+      if (LAYERS[k]) item.classList.add(LAYERS[k]);
+      if (layers) layers.textContent = TABS[k];
     };
+    const firstLayer = () => setLayer(0);
     if (layers) {
       layers.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        const on = item.classList.toggle("layer-stats");
-        layers.textContent = on ? "Badges" : "Attributes";
+        const now = item.classList.contains("layer-all") ? 2 : item.classList.contains("layer-stats") ? 1 : 0;
+        setLayer((now + 1) % LAYERS.length);
         packSound("tab");
       });
     }
@@ -1298,7 +1434,7 @@ function playBoard() {
         if (words.classList.contains("packed")) return e.preventDefault();
         if (turned && w.link) return;
         e.preventDefault();
-        words.querySelectorAll(".flipped").forEach((c) => c.classList.remove("flipped", "layer-stats", "tilting"));
+        words.querySelectorAll(".flipped").forEach((c) => c.classList.remove("flipped", "layer-stats", "layer-all", "tilting"));
         item.classList.toggle("flipped", !turned);
         firstLayer();
         if (!turned) phoneTilt(); // the turned card leans as the phone tilts
@@ -1358,7 +1494,15 @@ function playBoard() {
       item.addEventListener("mouseleave", hidePreview);
     }
     words.appendChild(item);
-  });
+  };
+  wall.words.forEach((w, i) => addWord(w, i, words, cards));
+  // `player`: my own card under the wall's intro (On the court: my player),
+  // a card of its own that turns over like the starting five's
+  if (wall.player) {
+    const mine = el("div", "wordwall-words ww-player named");
+    addWord(wall.player, 0, mine, true);
+    head.appendChild(mine);
+  }
   block.append(head, words);
 
   // `shuffle`: once the wall arrives, each word's letters shuffle through the
