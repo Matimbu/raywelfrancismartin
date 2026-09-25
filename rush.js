@@ -1,27 +1,120 @@
 // Malolos Rush, the teaser: a tiny three-lane runner in the spirit of my
-// capstone (the real one is 3D, in Unity). Run down a Malolos street at
-// sunset toward Barasoain Church: swipe or use the arrows to change lanes,
-// swipe up (or up / Space) to jump the barriers, don't run into the jeepneys
-// (one honks when it's coming down your lane), and grab the coins. An
-// ensaymada pulls the coins in for a few seconds. At 500 m you reach the
-// church: its lights come on and the bells ring, and the farther you run the
-// more the sunset turns into night. Loaded the first time someone presses
-// Play on the Malolos Rush row in Crafts (see main.js), and drawn on a canvas
-// in fake 3D: everything shrinks toward the church at the end of the road.
+// capstone (the real one is 3D, in Unity). A student runs through Malolos at
+// sunset: swipe or use the arrows to change lanes, swipe up (or up / Space)
+// to jump the barriers, and grab the coins. Run into a jeepney (one honks
+// when it's coming down your lane) and the run is over; clip a barrier and a
+// guard gives chase, and clipping another before he drops back gets you
+// caught. An ensaymada pulls the coins in for a few seconds. On the way:
+// Barasoain Church at 500 m, the Malolos Cathedral at 1000 m and Casa Real
+// at 1500 m, each lighting up as you reach it, while the sunset turns into
+// night. Loaded the first time someone presses Play on the Malolos Rush row
+// in Crafts (see main.js), and drawn on a canvas in fake 3D: everything
+// shrinks toward the landmark at the end of the road.
 (function () {
   const LANES = [-0.7, 0, 0.7];
   const PZ = 3; // how far ahead of the camera the runner is
   const FAR = 58; // how far down the road things appear
   const GRAVITY = 16;
   const JUMP = 5.2; // up speed: about 0.85 high, 0.65 s in the air
-  const ARRIVE = 500; // metres to Barasoain Church
   const MAGNET = 6; // seconds an ensaymada pulls the coins in
-  const COLORS = { H: "#141414", S: "#c98a55", T: "#ff5a1f", P: "#26324f", K: "#f2f0eb" };
-  // the runner from behind, two frames (the orange runner from my timeline)
-  const RUNNER = [
-    ["..HHHH..", "..HHHH..", "..HHHH..", "...SS...", ".TTTTTT.", "STTTTTTS", "S.TTTT.S", "..TTTT..", "..PPPP..", "..PPPP..", "..S..S..", "..S..K..", "..K....."],
-    ["..HHHH..", "..HHHH..", "..HHHH..", "...SS...", ".TTTTTT.", "STTTTTTS", "S.TTTT.S", "..TTTT..", "..PPPP..", "..PPPP..", "..S..S..", "..K..S..", ".....K.."]
+  const CHASE = 8; // seconds the guard stays on your tail after a clipped barrier
+  // the landmarks on the way, like the zones in my capstone ("tall": how
+  // many facade units high each one is drawn)
+  const ZONES = [
+    { at: 500, name: "Barasoain Church", line: "You made it", bonus: 25, sound: "bells", event: "barasoain", tall: 27, draw: barasoain },
+    { at: 1000, name: "Malolos Cathedral", line: "On to the old town", bonus: 25, sound: "bells-low", event: "cathedral", tall: 29, draw: cathedral },
+    { at: 1500, name: "Casa Real", line: "All three landmarks", bonus: 50, sound: "fanfare", event: "casa-real", tall: 23, draw: casaReal }
   ];
+  // The runner: a student seen from behind, as in my capstone's character
+  // (black hair, a white shirt under a grey vest, a black backpack, the ID's
+  // blue lanyard round the neck, blue trousers, a watch), and the guard
+  // chasing him (a navy cap and uniform, a black belt). Pixel art, a letter
+  // a pixel.
+  const STUDENT = {
+    H: "#16161a", h: "#34343d", S: "#e2aa7c", s: "#c98f5f", W: "#eff0f3", w: "#c8ccd4", V: "#a4a8b0", v: "#868b94",
+    B: "#25262c", b: "#3d3f48", L: "#2f6fd6", P: "#2143a3", p: "#18327c", K: "#111114", T: "#0a0a0c"
+  };
+  const STUDENT_TOP = [
+    "...hHHh...",
+    "..HHHHHHH.",
+    ".HHHhHHHH.",
+    ".sHHHHHHs.",
+    "...sSSs...",
+    "..WLWWLW..",
+    ".WwBBBBwW.",
+    "SWvBbbBvWS",
+    "S.vBBBBv.S",
+    "s.vBBBBv.s",
+    "T.VVBBVV.s"
+  ];
+  const STUDENT_FRAMES = {
+    run1: [...STUDENT_TOP, "..PPPPPP..", "..PPPPpP..", "..PP..pP..", "..PP..KK..", "..KK......"],
+    run2: [...STUDENT_TOP, "..PPPPPP..", "..pPPPPP..", "..pP..PP..", "..KK..PP..", "......KK.."],
+    jump: [...STUDENT_TOP, "..PPPPPP..", "..PPPPPP..", "..KK..KK..", "..........", ".........."],
+    // arms flung up, clipping a barrier
+    stumble: [
+      "...hHHh...",
+      "..HHHHHHH.",
+      "S.HHhHHH.S",
+      "S.sHHHHs.S",
+      "s..sSSs..s",
+      "s.WLWWLW.s",
+      ".WwBBBBwW.",
+      ".WvBbbBvW.",
+      "..vBBBBv..",
+      "..vBBBBv..",
+      "..VVBBVV..",
+      "..PPPPPP..",
+      "..PPPPpP..",
+      "..PP..pP..",
+      "..PP..KK..",
+      "..KK......"
+    ]
+  };
+  const GUARD = {
+    C: "#2d4270", c: "#1a2644", H: "#3b2a20", S: "#c98f5e", s: "#b07a4c", N: "#263b67", n: "#1c2d52",
+    K: "#121215", k: "#2a2a30", P: "#1e3159", p: "#172747", F: "#0e0e11"
+  };
+  const GUARD_BODY = [
+    "..CCCCCC..",
+    ".CCCCCCCC.",
+    ".cccccccc.",
+    "..HHHHHH..",
+    "...sSSs...",
+    "..NNNNNN..",
+    ".NNNNNNNN.",
+    "NNNNnnNNNN",
+    "SnNNNNNNnS",
+    "S.NNNNNN.S",
+    "S.NNnnNN.S",
+    "s.NNNNNN.s",
+    ".kKKKKKKk."
+  ];
+  const GUARD_FRAMES = {
+    run1: [...GUARD_BODY, "..PPPPPP..", "..PPPPpP..", "..PP..pP..", "..PP..FF..", "..FF......"],
+    run2: [...GUARD_BODY, "..PPPPPP..", "..pPPPPP..", "..pP..PP..", "..FF..PP..", "......FF.."],
+    // both arms up, grabbing
+    grab: [
+      "..CCCCCC..",
+      ".CCCCCCCC.",
+      "S.cccccc.S",
+      "S.HHHHHH.S",
+      "s..sSSs..s",
+      "n.NNNNNN.n",
+      ".NNNNNNNN.",
+      ".NNNnnNNN.",
+      "..NNNNNN..",
+      "..NNNNNN..",
+      "..NNnnNN..",
+      "..NNNNNN..",
+      ".kKKKKKKk.",
+      "..PPPPPP..",
+      "..PPPPpP..",
+      "..PP..pP..",
+      "..PP..FF..",
+      "..FF......"
+    ]
+  };
   // The sky: a dim sunset (navy, plum and amber, after the colours of my
   // capstone deck, with the church trimmed in its gold) that gives way to the
   // night the farther you run. Each is drawn once per screen size.
@@ -61,7 +154,9 @@
   let raf = 0, last = 0, state = "ready";
   let lane = 1, x = 0, y = 0, vy = 0, clock = 0, dist = 0, coins = 0, speed = 10, nextRow = 20, stride = 0;
   let magnet = 0; // seconds of ensaymada left
-  let arrived = false, lit = 0; // made it to Barasoain; its lights coming on (0 to 1)
+  let reached = 0, lit = 0, swapT = 0; // landmarks reached; the last one's lights (0 to 1); time since they came on
+  let chase = 0, stumble = 0, caught = false; // seconds of guard left; of stumbling left; the guard got you
+  let guardX = 0, guardGap = 3, guardSide = 1, guardStride = 0; // where he runs: across, how far behind you, which shoulder
   let honked = -9; // when a jeepney last honked
   let things = [];
   let sparks = []; // fireworks over the church
@@ -73,7 +168,9 @@
   let frameAvg = 16.7, dropped = 0, fpsFrames = 0, fpsSince = 0;
   let shown = "", powerShown = -1;
   let best = 0, posted = 0, myName = "", boardAsked = -1e9;
-  let counted = false, reachedCounted = false;
+  let counted = false;
+  const countedZones = {};
+  const sprites = {}; // the pixel sprites, each drawn once
   try {
     best = Number(localStorage.getItem("malolosBest")) || 0;
     posted = Number(localStorage.getItem("malolosPosted")) || 0;
@@ -81,6 +178,7 @@
   } catch (e) {}
 
   const smooth = (t) => t * t * (3 - 2 * t);
+  const clamp01 = (v) => Math.min(1, Math.max(0, v));
   const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
   const mix = (a, b, t) => {
     const p = hex(a);
@@ -89,8 +187,8 @@
   };
   const mixA = (p, q, t) => `rgba(${p.map((v, i) => (i < 3 ? Math.round(v + (q[i] - v) * t) : (v + (q[i] - v) * t).toFixed(3))).join(",")})`;
   // how far the sunset has gone: the sunset holds for 150 m, it's dusk by
-  // Barasoain and night by 1000 m
-  const duskAt = (d) => Math.min(1, Math.max(0, (d - 150) / 850));
+  // Barasoain and night by 1200 m
+  const duskAt = (d) => clamp01((d - 150) / 1050);
 
   // sounds, made here (no files) through the site's mixer, so the sound
   // switch on Sova's wall mutes them too
@@ -163,11 +261,61 @@
       }));
     } else if (kind === "magnet") {
       [880, 1109, 1319, 1760].forEach((hz, i) => tone("triangle", hz, hz, t + i * 0.06, 0.14, 0.26));
-    } else if (kind === "bells") {
-      // Barasoain's bells: three strikes, each with a bell's ringing overtones
-      [[0, 392], [0.62, 330], [1.24, 392]].forEach(([d, hz]) => {
-        [[1, 0.3, 2.6], [2.76, 0.1, 1.5], [5.4, 0.05, 0.9], [0.5, 0.16, 3]].forEach(([ratio, peak, len]) => tone("sine", hz * ratio, hz * ratio * 0.998, t + d, peak, len));
+    } else if (kind === "bells" || kind === "bells-low") {
+      // church bells: three strikes, each with a bell's ringing overtones
+      // (the cathedral's lower than Barasoain's)
+      const notes = kind === "bells" ? [392, 330, 392] : [294, 247, 294];
+      notes.forEach((hz, i) => {
+        [[1, 0.3, 2.6], [2.76, 0.1, 1.5], [5.4, 0.05, 0.9], [0.5, 0.16, 3]].forEach(([ratio, peak, len]) => tone("sine", hz * ratio, hz * ratio * 0.998, t + i * 0.62, peak, len));
       });
+    } else if (kind === "fanfare") {
+      // Casa Real: a little brass fanfare, rising
+      [[0, 392, 0.16], [0.16, 523, 0.16], [0.32, 659, 0.16], [0.5, 784, 0.7]].forEach(([d, hz, len]) => {
+        const o = ctx.createOscillator();
+        const warm = ctx.createBiquadFilter();
+        const gain = ctx.createGain();
+        o.type = "sawtooth";
+        o.frequency.value = hz;
+        warm.type = "lowpass";
+        warm.frequency.value = 2200;
+        gain.gain.setValueAtTime(0.0001, t + d);
+        gain.gain.exponentialRampToValueAtTime(0.12, t + d + 0.03);
+        gain.gain.setValueAtTime(0.12, t + d + len * 0.6);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + d + len);
+        o.connect(warm).connect(gain).connect(out);
+        o.start(t + d);
+        o.stop(t + d + len + 0.05);
+      });
+    } else if (kind === "whistle" || kind === "caught") {
+      // the guard's whistle: a trilled blast or two (one long one when he
+      // gets you)
+      const blasts = kind === "whistle" ? [[0, 0.22], [0.3, 0.42]] : [[0, 0.9]];
+      blasts.forEach(([d, len]) => {
+        const o = ctx.createOscillator();
+        const trill = ctx.createOscillator();
+        const depth = ctx.createGain();
+        const gain = ctx.createGain();
+        o.type = "sine";
+        o.frequency.value = 2900;
+        trill.type = "square";
+        trill.frequency.value = 26;
+        depth.gain.value = 140;
+        trill.connect(depth).connect(o.frequency);
+        gain.gain.setValueAtTime(0.0001, t + d);
+        gain.gain.exponentialRampToValueAtTime(0.11, t + d + 0.02);
+        gain.gain.setValueAtTime(0.11, t + d + len - 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + d + len);
+        o.connect(gain).connect(out);
+        o.start(t + d);
+        trill.start(t + d);
+        o.stop(t + d + len + 0.05);
+        trill.stop(t + d + len + 0.05);
+      });
+      if (kind === "caught") tone("sine", 150, 50, t, 0.6, 0.4);
+    } else if (kind === "stumble") {
+      // a barrier knocked flat under your feet
+      tone("sine", 190, 70, t, 0.45, 0.25);
+      hiss(t, 0.28, 1600, 500, 0.3);
     } else if (kind === "pop") {
       tone("sine", 160, 60, t, 0.18, 0.22);
       hiss(t + 0.02, 0.5, 3200, 900, 0.06);
@@ -180,7 +328,7 @@
     dialog.setAttribute("aria-label", "Malolos Rush, a mini game");
     dialog.innerHTML = `
       <div class="rush-stage">
-        <canvas class="rush-canvas" tabindex="-1" role="img" aria-label="A runner on a three-lane street at sunset, running toward Barasoain Church, with jeepneys, barriers and coins coming"></canvas>
+        <canvas class="rush-canvas" tabindex="-1" role="img" aria-label="A student running down a three-lane street in Malolos at sunset, toward its landmarks, with jeepneys, barriers and coins coming"></canvas>
         <button class="rush-close mono" type="button" aria-label="Close the game">✕</button>
         <div class="rush-hud mono" aria-hidden="true">${SHOW_FPS ? '<span class="rush-fps"></span>' : ""}<span class="rush-power" hidden><b></b></span><span class="rush-dist">0 m</span><span class="rush-coins">0</span></div>
         <div class="rush-banner" aria-live="polite"><p class="rush-banner-title"></p><p class="rush-banner-sub mono"></p></div>
@@ -188,7 +336,7 @@
           <p class="rush-kicker mono">Crafts · a teaser</p>
           <h2 class="rush-title">Malolos <em>Rush</em></h2>
           <p class="rush-note">A tiny taste of my capstone game. The real one is 3D, in Unity.</p>
-          <p class="rush-keys mono">Swipe left or right to change lanes · swipe up to jump · dodge the jeepneys (or ← → and ↑ / Space)<br>An ensaymada pulls the coins in · Barasoain is 500 m away</p>
+          <p class="rush-keys mono">Swipe left or right to change lanes · swipe up to jump (or ← → and ↑ / Space)<br>A jeepney ends the run · clip a barrier and a guard gives chase<br>Barasoain 500 m · the cathedral 1000 m · Casa Real 1500 m</p>
           <button class="rush-go mono" type="button">Run</button>
           <p class="rush-best mono"></p>
           ${BOARD_HTML}
@@ -326,8 +474,14 @@
     nextRow = 30; // (a gentle start: the first row is only coins)
     things = [];
     magnet = 0;
-    arrived = false;
+    reached = 0;
     lit = 0;
+    swapT = 0;
+    chase = 0;
+    stumble = 0;
+    caught = false;
+    guardGap = 3;
+    guardStride = 0;
     honked = -9;
     sparks = [];
     fireworks = [];
@@ -388,7 +542,7 @@
   function over(why) {
     state = "over";
     cancelAnimationFrame(raf);
-    sound("crash");
+    sound(why === "guard" ? "caught" : "crash");
     const meters = Math.floor(dist);
     const record = meters > best;
     if (record) {
@@ -397,9 +551,9 @@
         localStorage.setItem("malolosBest", String(best));
       } catch (e) {}
     }
-    overTitle.textContent = why === "jeep" ? "Hit a jeepney!" : "Tripped!";
+    overTitle.textContent = why === "jeep" ? "Hit a jeepney!" : why === "guard" ? "Caught by the guard!" : "Tripped!";
     overScore.textContent = `${meters} m · ${coins} ${coins === 1 ? "coin" : "coins"}${record ? " · new best" : ""}`;
-    const run = (lastRun = { meters, coins, record, why, arrived });
+    const run = (lastRun = { meters, coins, record, why, reached });
     showBest();
     overCard.hidden = false;
     trail = [];
@@ -413,17 +567,41 @@
     offerPost();
   }
 
-  // made it to Barasoain: bells, fireworks, its lights, and 25 coins
-  function arrive() {
-    arrived = true;
-    coins += 25;
-    sound("bells");
-    say("Barasoain Church", "You made it · +25 coins");
+  // made it to a landmark: its lights, bells (or a fanfare), fireworks and coins
+  function arrive(k) {
+    const zone = ZONES[k];
+    reached = k + 1;
+    lit = 0;
+    swapT = 0;
+    coins += zone.bonus;
+    sound(zone.sound);
+    say(zone.name, `${zone.line} · +${zone.bonus} coins`);
     fireworks = [0.25, 0.6, 1, 1.45].map((d) => clock + d);
-    if (!reachedCounted && window.goatcounter && window.goatcounter.count) {
-      reachedCounted = true;
-      window.goatcounter.count({ path: "malolos-rush-barasoain", title: "Reached Barasoain in Malolos Rush", event: true });
+    if (!countedZones[zone.event] && window.goatcounter && window.goatcounter.count) {
+      countedZones[zone.event] = true;
+      window.goatcounter.count({ path: `malolos-rush-${zone.event}`, title: `Reached ${zone.name} in Malolos Rush`, event: true });
     }
+  }
+
+  // Clipped a barrier: it goes flat, you stumble, and a guard comes after
+  // you for a while. Clip another while he's there and he has you.
+  function clip() {
+    chase = CHASE;
+    stumble = 0.6;
+    guardSide = x > 0.1 ? -1 : 1;
+    guardX = x + guardSide * 0.42;
+    sound("stumble");
+    sound("whistle");
+    say("Guard!", "Clip one more barrier and he's got you");
+  }
+
+  // (he grabs from beside you, so you both stay in the picture)
+  function catchUp() {
+    caught = true;
+    guardGap = 0.5;
+    guardX = x + guardSide * 0.36;
+    hud();
+    over("guard");
   }
 
   function grab() {
@@ -523,10 +701,10 @@
     c.fillStyle = "#b9b5ad";
     c.font = "400 28px 'Geist Mono', monospace";
     c.fillText(`${run.coins} ${run.coins === 1 ? "COIN" : "COINS"}   ·   BEST ${best} M`, 118, 1239);
-    if (run.arrived) {
+    if (run.reached) {
       c.fillStyle = "#f5b841";
       c.textAlign = "right";
-      c.fillText("REACHED BARASOAIN", CW - 72, 1239);
+      c.fillText(`REACHED ${["BARASOAIN", "THE CATHEDRAL", "CASA REAL"][run.reached - 1]}`, CW - 72, 1239);
       c.textAlign = "left";
     }
     c.fillStyle = "#8f8c86";
@@ -759,7 +937,8 @@
     const dt = Math.max(0, Math.min(0.05, gap / 1000));
     last = now;
     clock += dt;
-    speed = 10 + Math.min(10, clock * 0.12);
+    // (a stumble costs a moment of speed)
+    speed = (10 + Math.min(10, clock * 0.12)) * (1 - 0.35 * (stumble / 0.6));
     dist += speed * dt;
     stride += dt * speed * 0.9;
     // the runner slides to its lane and falls back after a jump
@@ -773,8 +952,24 @@
       row(nextRow);
       nextRow += Math.max(7.5, 14 - clock * 0.08);
     }
-    if (!arrived && dist >= ARRIVE) arrive();
-    if (arrived && lit < 1) lit = Math.min(1, lit + dt / 1.2);
+    // the landmarks: the next one reached, the last one's lights coming on
+    if (reached < ZONES.length && dist >= ZONES[reached].at) arrive(reached);
+    if (reached) {
+      if (lit < 1) lit = Math.min(1, lit + dt / 1.2);
+      else swapT += dt;
+    }
+    // the guard: right behind you after a clipped barrier, dropping back
+    // (off the bottom of the screen) as the chase runs out, keeping to the
+    // shoulder nearer the middle of the road
+    if (stumble > 0) stumble = Math.max(0, stumble - dt);
+    if (chase > 0) {
+      chase = Math.max(0, chase - dt);
+      if (x > 0.1) guardSide = -1;
+      else if (x < -0.1) guardSide = 1;
+      guardX += (x + guardSide * 0.42 - guardX) * Math.min(1, dt * 4);
+      guardGap = 0.75 + 1.9 * (1 - chase / CHASE);
+      guardStride += dt * speed * 1.1;
+    }
     if (fireworks.length && clock >= fireworks[0]) {
       fireworks.shift();
       burst();
@@ -804,7 +999,7 @@
     }
     // what reaches the runner
     for (const t of things) {
-      if (t.gone) continue;
+      if (t.gone || t.hit) continue;
       const dz = t.z - me;
       if (t.type === "coin" || t.type === "ensaymada") {
         if (Math.abs(dz) < 0.6 && Math.abs(t.x - x) < 0.45 && Math.abs(t.y - (y + 0.45)) < 0.7) {
@@ -826,6 +1021,12 @@
         }
       }
       if (Math.abs(dz) < t.d / 2 + 0.3 && Math.abs(t.x - x) < 0.5 && y < t.h - 0.05 && !(window.rushTest && rushTest.ghosting)) {
+        if (t.type === "barrier") {
+          t.hit = true; // knocked flat: it won't trip anyone again
+          if (chase > 0) return catchUp();
+          clip();
+          continue;
+        }
         hud();
         return over(t.type);
       }
@@ -929,7 +1130,7 @@
       g.drawImage(sky[1], 0, 0, W, H);
       g.globalAlpha = 1;
     }
-    church(dusk);
+    landmarks(dusk);
     if (!carding) {
       sparks.forEach((s) => {
         g.globalAlpha = Math.max(0, s.life);
@@ -985,21 +1186,19 @@
     }
     const bright = 0.55 + 0.45 * dusk;
     lamps.sort((a, b) => b - a).forEach((z) => [-1.45, 1.45].forEach((lx) => lamp(lx, z, bright)));
-    // things, far to near, and the runner among them
+    // things, far to near, with the runner (and the guard behind him) among them
     const list = things.map((t) => ({ t, z: t.z - dist })).filter((o) => o.z > near && o.z < FAR + 2);
+    list.push({ who: "runner", z: PZ });
+    if ((chase > 0 || caught) && PZ - guardGap > near) list.push({ who: "guard", z: PZ - guardGap });
     list.sort((a, b) => b.z - a.z);
-    let drawn = false;
     list.forEach((o) => {
-      if (!drawn && o.z < PZ) {
-        runner();
-        drawn = true;
-      }
-      if (o.t.type === "coin") coin(o.t, o.z);
+      if (o.who === "runner") runner();
+      else if (o.who === "guard") guard(o.z);
+      else if (o.t.type === "coin") coin(o.t, o.z);
       else if (o.t.type === "ensaymada") ensaymada(o.t, o.z);
       else if (o.t.type === "barrier") barrier(o.t, o.z);
       else jeepney(o.t, o.z, dusk);
     });
-    if (!drawn) runner();
     // a warm haze over the far end
     const fog = g.createLinearGradient(0, horizon, 0, horizon + H * 0.12);
     fog.addColorStop(0, mixA([214, 120, 80, 0.35], [74, 34, 23, 0.55], dusk));
@@ -1046,22 +1245,170 @@
     g.fill();
   }
 
-  // Barasoain Church at the end of the road, a navy silhouette trimmed in
-  // gold. It grows as you close in, and at 500 m its lights come on.
-  function church(dusk) {
-    const cx = W / 2;
-    let u = view * 0.0105 * (1 + 0.4 * smooth(Math.min(1, dist / ARRIVE))); // one unit of the facade
-    if (carding) u = Math.min(u, (horizon - 220) / 27); // (kept under the card's title)
-    const base = horizon;
-    if (lit > 0) {
-      const r = 34 * u;
-      const cy = base - 10 * u;
-      const glow = g.createRadialGradient(cx, cy, 0, cx, cy, r);
-      glow.addColorStop(0, `rgba(255,190,110,${(0.4 * lit).toFixed(3)})`);
-      glow.addColorStop(1, "rgba(255,160,90,0)");
-      g.fillStyle = glow;
-      g.fillRect(cx - r, cy - r, r * 2, r * 2);
+  // The landmark at the end of the road, a navy silhouette trimmed in gold:
+  // it grows as you close in and its lights come on when you reach it; a
+  // moment later it passes out of sight as the next one comes into view.
+  function landmarks(dusk) {
+    const unit = (grow, zone) => {
+      const u = view * 0.0105 * grow; // one unit of the facade
+      return carding ? Math.min(u, (horizon - 220) / zone.tall) : u; // (kept under the card's title)
+    };
+    const swap = clamp01((swapT - 1.3) / 1.5);
+    const done = reached - 1; // the one reached last
+    const next = reached < ZONES.length ? reached : -1;
+    if (done >= 0 && (next < 0 || swap < 1)) {
+      const zone = ZONES[done];
+      // (the last one stays put, lit, at the end of the road)
+      zone.draw(W / 2, horizon, unit(next < 0 ? 1.4 : 1.4 + 0.5 * swap, zone), dusk, lit, next < 0 ? 1 : 1 - swap);
     }
+    if (next >= 0 && (done < 0 || swap > 0)) {
+      const zone = ZONES[next];
+      const from = next ? ZONES[next - 1].at : 0;
+      const grow = 1 + 0.4 * smooth(clamp01((dist - from) / (zone.at - from)));
+      zone.draw(W / 2, horizon, unit(grow, zone), dusk, 0, done < 0 ? 1 : swap);
+    }
+    g.globalAlpha = 1;
+  }
+
+  // what the landmarks share: a warm glow once lit, the gold trim, lit
+  // windows and an arched door
+  function glowBehind(cx, cy, r, lit) {
+    if (lit <= 0) return;
+    const glow = g.createRadialGradient(cx, cy, 0, cx, cy, r);
+    glow.addColorStop(0, `rgba(255,190,110,${(0.4 * lit).toFixed(3)})`);
+    glow.addColorStop(1, "rgba(255,160,90,0)");
+    g.fillStyle = glow;
+    g.fillRect(cx - r, cy - r, r * 2, r * 2);
+  }
+
+  // (caught by the low sun, then glowing once the lights are on)
+  function trim(u, dusk, lit, path) {
+    g.strokeStyle = `rgba(245,184,65,${Math.max(0.12, 0.34 - 0.2 * dusk + 0.6 * lit).toFixed(3)})`;
+    g.lineWidth = Math.max(1, 0.3 * u);
+    g.beginPath();
+    path();
+    g.stroke();
+  }
+
+  const windowLight = (lit) => `rgba(255,${Math.round(184 + 30 * lit)},${Math.round(107 + 50 * lit)},${(0.55 + 0.45 * lit).toFixed(3)})`;
+
+  function door(cx, base, u, lit) {
+    g.fillStyle = `rgba(255,184,107,${(0.35 + 0.45 * lit).toFixed(3)})`;
+    g.beginPath();
+    g.moveTo(cx - 2 * u, base);
+    g.lineTo(cx - 2 * u, base - 4 * u);
+    g.arc(cx, base - 4 * u, 2 * u, Math.PI, 0);
+    g.lineTo(cx + 2 * u, base);
+    g.fill();
+  }
+
+  // Malolos Cathedral: a broad front under a pointed gable, its dome behind,
+  // and a square bell tower with a pyramid roof on the right
+  function cathedral(cx, base, u, dusk, lit, alpha) {
+    g.globalAlpha = alpha;
+    glowBehind(cx + 3 * u, base - 12 * u, 34 * u, lit);
+    g.fillStyle = mix("#241e3f", "#0e1022", dusk);
+    g.beginPath();
+    g.arc(cx + 3 * u, base - 15 * u, 6 * u, Math.PI, 0);
+    g.fill();
+    g.fillRect(cx + 2.4 * u, base - 23 * u, 1.2 * u, 2.4 * u);
+    g.fillRect(cx - 12 * u, base - 15 * u, 24 * u, 15 * u);
+    g.beginPath();
+    g.moveTo(cx - 12.6 * u, base - 15 * u);
+    g.lineTo(cx, base - 21.5 * u);
+    g.lineTo(cx + 12.6 * u, base - 15 * u);
+    g.closePath();
+    g.fill();
+    g.fillRect(cx - 0.3 * u, base - 24.7 * u, 0.6 * u, 3.4 * u);
+    g.fillRect(cx - 1.1 * u, base - 23.8 * u, 2.2 * u, 0.6 * u);
+    g.fillRect(cx + 12 * u, base - 25 * u, 6 * u, 25 * u);
+    g.beginPath();
+    g.moveTo(cx + 11.6 * u, base - 25 * u);
+    g.lineTo(cx + 15 * u, base - 29 * u);
+    g.lineTo(cx + 18.4 * u, base - 25 * u);
+    g.closePath();
+    g.fill();
+    trim(u, dusk, lit, () => {
+      g.moveTo(cx - 12 * u, base);
+      g.lineTo(cx - 12 * u, base - 15 * u);
+      g.lineTo(cx, base - 21.5 * u);
+      g.lineTo(cx + 12 * u, base - 15 * u);
+      g.moveTo(cx - 12 * u, base - 15 * u);
+      g.lineTo(cx + 12 * u, base - 15 * u);
+      g.moveTo(cx + 12 * u, base - 25 * u);
+      g.lineTo(cx + 18 * u, base - 25 * u);
+      g.lineTo(cx + 18 * u, base);
+      g.moveTo(cx + 12 * u, base - 19 * u);
+      g.lineTo(cx + 18 * u, base - 19 * u);
+    });
+    // the round window in the gable, four more, the belfry's openings
+    g.fillStyle = windowLight(lit);
+    g.beginPath();
+    g.arc(cx, base - 17.4 * u, 1.5 * u, 0, Math.PI * 2);
+    g.fill();
+    [[-8, -11], [6, -11], [-8, -6], [6, -6]].forEach(([wx, wy]) => g.fillRect(cx + wx * u, base + wy * u, 2 * u, 3 * u));
+    [13.3, 15.8].forEach((wx) => g.fillRect(cx + wx * u, base - 23.6 * u, 0.9 * u, 3 * u));
+    door(cx, base, u, lit);
+  }
+
+  // Casa Real: a two-storey house of stone and wood, a hipped roof, a row of
+  // capiz windows upstairs, and the flag on top
+  function casaReal(cx, base, u, dusk, lit, alpha) {
+    g.globalAlpha = alpha;
+    glowBehind(cx, base - 8 * u, 32 * u, lit);
+    g.fillStyle = mix("#241e3f", "#0e1022", dusk);
+    g.fillRect(cx - 17 * u, base - 11 * u, 34 * u, 11 * u);
+    g.beginPath();
+    g.moveTo(cx - 18.5 * u, base - 11 * u);
+    g.lineTo(cx - 13 * u, base - 15.5 * u);
+    g.lineTo(cx + 13 * u, base - 15.5 * u);
+    g.lineTo(cx + 18.5 * u, base - 11 * u);
+    g.closePath();
+    g.fill();
+    g.fillRect(cx - 0.2 * u, base - 22.5 * u, 0.4 * u, 7 * u);
+    // the flag: blue over red, the white triangle with its sun
+    const fy = base - 22.5 * u;
+    g.fillStyle = "#1d3f9c";
+    g.fillRect(cx + 0.2 * u, fy, 4.6 * u, 1.3 * u);
+    g.fillStyle = "#c8243a";
+    g.fillRect(cx + 0.2 * u, fy + 1.3 * u, 4.6 * u, 1.3 * u);
+    g.fillStyle = "#f2f0eb";
+    g.beginPath();
+    g.moveTo(cx + 0.2 * u, fy);
+    g.lineTo(cx + 2.4 * u, fy + 1.3 * u);
+    g.lineTo(cx + 0.2 * u, fy + 2.6 * u);
+    g.closePath();
+    g.fill();
+    g.fillStyle = "#f5c542";
+    g.beginPath();
+    g.arc(cx + 0.95 * u, fy + 1.3 * u, 0.35 * u, 0, Math.PI * 2);
+    g.fill();
+    trim(u, dusk, lit, () => {
+      g.moveTo(cx - 18.5 * u, base - 11 * u);
+      g.lineTo(cx - 13 * u, base - 15.5 * u);
+      g.lineTo(cx + 13 * u, base - 15.5 * u);
+      g.lineTo(cx + 18.5 * u, base - 11 * u);
+      g.closePath();
+      g.moveTo(cx - 17 * u, base - 5 * u);
+      g.lineTo(cx + 17 * u, base - 5 * u);
+      g.moveTo(cx - 5 * u, base - 6.2 * u);
+      g.lineTo(cx + 5 * u, base - 6.2 * u);
+      g.moveTo(cx - 17 * u, base);
+      g.lineTo(cx - 17 * u, base - 11 * u);
+      g.moveTo(cx + 17 * u, base);
+      g.lineTo(cx + 17 * u, base - 11 * u);
+    });
+    g.fillStyle = windowLight(lit);
+    for (let k = 0; k < 7; k++) g.fillRect(cx + (-15 + k * 4.6) * u, base - 10 * u, 2.4 * u, 3.4 * u);
+    [-11, 8.6].forEach((wx) => g.fillRect(cx + wx * u, base - 3.8 * u, 2.2 * u, 2.2 * u));
+    door(cx, base, u, lit);
+  }
+
+  // Barasoain Church: the curved pediment, and the bell tower with its dome
+  // on the left
+  function barasoain(cx, base, u, dusk, lit, alpha) {
+    g.globalAlpha = alpha;
+    glowBehind(cx, base - 10 * u, 34 * u, lit);
     g.fillStyle = mix("#241e3f", "#0e1022", dusk);
     // the wings and the facade
     g.fillRect(cx - 17 * u, base - 7 * u, 34 * u, 7 * u);
@@ -1084,34 +1431,24 @@
     // the cross
     g.fillRect(cx - 0.3 * u, base - 24.5 * u, 0.6 * u, 3.5 * u);
     g.fillRect(cx - 1.1 * u, base - 23.6 * u, 2.2 * u, 0.6 * u);
-    // the gold trim: caught by the low sun, then glowing once the lights are on
-    g.strokeStyle = `rgba(245,184,65,${Math.max(0.12, 0.34 - 0.2 * dusk + 0.6 * lit).toFixed(3)})`;
-    g.lineWidth = Math.max(1, 0.3 * u);
-    g.beginPath();
-    g.moveTo(cx - 11 * u, base);
-    g.lineTo(cx - 11 * u, base - 13 * u);
-    g.quadraticCurveTo(cx - 8 * u, base - 17 * u, cx - 3 * u, base - 18 * u);
-    g.lineTo(cx, base - 21 * u);
-    g.lineTo(cx + 3 * u, base - 18 * u);
-    g.quadraticCurveTo(cx + 8 * u, base - 17 * u, cx + 11 * u, base - 13 * u);
-    g.lineTo(cx + 11 * u, base);
-    g.moveTo(cx - 11 * u, base - 13 * u);
-    g.lineTo(cx + 11 * u, base - 13 * u);
-    g.moveTo(cx - 17 * u, base);
-    g.lineTo(cx - 17 * u, base - 22 * u);
-    g.moveTo(cx - 12 * u, base - 22 * u);
-    g.lineTo(cx - 12 * u, base - 7 * u);
-    g.stroke();
-    // lit windows and the door, brighter once the lights are on
-    g.fillStyle = `rgba(255,${Math.round(184 + 30 * lit)},${Math.round(107 + 50 * lit)},${(0.55 + 0.45 * lit).toFixed(3)})`;
+    trim(u, dusk, lit, () => {
+      g.moveTo(cx - 11 * u, base);
+      g.lineTo(cx - 11 * u, base - 13 * u);
+      g.quadraticCurveTo(cx - 8 * u, base - 17 * u, cx - 3 * u, base - 18 * u);
+      g.lineTo(cx, base - 21 * u);
+      g.lineTo(cx + 3 * u, base - 18 * u);
+      g.quadraticCurveTo(cx + 8 * u, base - 17 * u, cx + 11 * u, base - 13 * u);
+      g.lineTo(cx + 11 * u, base);
+      g.moveTo(cx - 11 * u, base - 13 * u);
+      g.lineTo(cx + 11 * u, base - 13 * u);
+      g.moveTo(cx - 17 * u, base);
+      g.lineTo(cx - 17 * u, base - 22 * u);
+      g.moveTo(cx - 12 * u, base - 22 * u);
+      g.lineTo(cx - 12 * u, base - 7 * u);
+    });
+    g.fillStyle = windowLight(lit);
     [[-6, -10], [-1, -10], [4, -10], [-15, -16], [-15, -10]].forEach(([wx, wy]) => g.fillRect(cx + wx * u, base + wy * u, 2 * u, 3 * u));
-    g.fillStyle = `rgba(255,184,107,${(0.35 + 0.45 * lit).toFixed(3)})`;
-    g.beginPath();
-    g.moveTo(cx - 2 * u, base);
-    g.lineTo(cx - 2 * u, base - 4 * u);
-    g.arc(cx, base - 4 * u, 2 * u, Math.PI, 0);
-    g.lineTo(cx + 2 * u, base);
-    g.fill();
+    door(cx, base, u, lit);
   }
 
   // a lamp's glow, drawn once and stamped on every lamp
@@ -1196,6 +1533,24 @@
   }
 
   function barrier(t, z) {
+    // one that's been clipped lies flat on the road
+    if (t.hit) {
+      for (let k = 0; k < 6; k++) {
+        const a = t.x - t.w / 2 + (t.w * k) / 6;
+        const [n0x, n0y] = at(a, 0.02, z);
+        const [n1x] = at(a + t.w / 6, 0.02, z);
+        const [f0x, f0y] = at(a, 0.02, z + 0.4);
+        const [f1x] = at(a + t.w / 6, 0.02, z + 0.4);
+        g.fillStyle = k % 2 ? "#f2f0eb" : "#ff5a1f";
+        g.beginPath();
+        g.moveTo(n0x, n0y);
+        g.lineTo(n1x, n0y);
+        g.lineTo(f1x, f0y);
+        g.lineTo(f0x, f0y);
+        g.fill();
+      }
+      return;
+    }
     const [x0, y0, s] = at(t.x - t.w / 2, 0, z);
     const [x1] = at(t.x + t.w / 2, 0, z);
     const [, top] = at(t.x, t.h, z);
@@ -1291,7 +1646,7 @@
   function runner() {
     const [fx, fy, s] = at(x, 0, PZ);
     const [, jy] = at(x, y, PZ);
-    const px = 0.06 * s; // one pixel of the runner (13 of them: about 0.8 tall)
+    const px = 0.05 * s; // one pixel of the student (16 of them: about 0.8 tall)
     // shadow on the street, smaller up in the air
     g.fillStyle = "rgba(0,0,0,0.45)";
     g.beginPath();
@@ -1301,24 +1656,53 @@
     if (magnet > 0) {
       const pulse = Math.sin(clock * 10);
       g.beginPath();
-      g.arc(fx, jy - px * 6.5, px * (7.5 + 0.5 * pulse), 0, Math.PI * 2);
+      g.arc(fx, jy - px * 8, px * (9 + 0.6 * pulse), 0, Math.PI * 2);
       g.fillStyle = "rgba(245,184,65,0.07)";
       g.fill();
       g.strokeStyle = `rgba(245,184,65,${(0.42 + 0.18 * pulse).toFixed(3)})`;
-      g.lineWidth = Math.max(1.5, px * 0.45);
+      g.lineWidth = Math.max(1.5, px * 0.55);
       g.stroke();
     }
-    const frame = RUNNER[y > 0 ? 0 : Math.abs(Math.floor(stride)) % 2];
-    const left = fx - px * 4;
-    const top = jy - px * frame.length;
-    frame.forEach((line, r) => {
-      for (let c = 0; c < line.length; c++) {
-        const k = line[c];
-        if (k === ".") continue;
-        g.fillStyle = COLORS[k];
-        g.fillRect(Math.floor(left + c * px), Math.floor(top + r * px), Math.ceil(px), Math.ceil(px));
+    // (a stumble shakes him, arms flung up)
+    const shake = stumble > 0 ? Math.sin(clock * 55) * px * 0.9 * (stumble / 0.6) : 0;
+    const frame = stumble > 0.2 ? "stumble" : y > 0 ? "jump" : Math.abs(Math.floor(stride)) % 2 ? "run2" : "run1";
+    stamp(sprite(`student-${frame}`, STUDENT_FRAMES[frame], STUDENT), fx - px * 5 + shake, jy - px * 16, px);
+  }
+
+  // the guard, bigger and closer to the camera than the student
+  function guard(z) {
+    const [fx, fy, s] = at(guardX, 0, z);
+    const px = 0.057 * s; // (18 of them: a head taller than the student)
+    g.fillStyle = "rgba(0,0,0,0.4)";
+    g.beginPath();
+    g.ellipse(fx, fy, 0.3 * s, 0.07 * s, 0, 0, Math.PI * 2);
+    g.fill();
+    const frame = caught ? "grab" : Math.abs(Math.floor(guardStride)) % 2 ? "run2" : "run1";
+    stamp(sprite(`guard-${frame}`, GUARD_FRAMES[frame], GUARD), fx - px * 5, fy - px * 18, px);
+  }
+
+  // a pixel sprite, drawn once at one canvas pixel per pixel...
+  function sprite(name, rows, colors) {
+    if (sprites[name]) return sprites[name];
+    const c = document.createElement("canvas");
+    c.width = rows[0].length;
+    c.height = rows.length;
+    const k = c.getContext("2d");
+    rows.forEach((line, r) => {
+      for (let col = 0; col < line.length; col++) {
+        if (line[col] === ".") continue;
+        k.fillStyle = colors[line[col]];
+        k.fillRect(col, r, 1, 1);
       }
     });
+    return (sprites[name] = c);
+  }
+
+  // ...then stamped big, with crisp square pixels
+  function stamp(img, left, top, px) {
+    g.imageSmoothingEnabled = false;
+    g.drawImage(img, Math.round(left), Math.round(top), Math.round(img.width * px), Math.round(img.height * px));
+    g.imageSmoothingEnabled = true;
   }
 
   function open() {
@@ -1343,16 +1727,18 @@
   if (/[?&]rushtest\b/.test(location.search)) {
     window.rushTest = {
       sounds: [],
-      info: () => ({ state, dist: Math.floor(dist), coins, lane, magnet: +magnet.toFixed(2), arrived, lit: +lit.toFixed(2), dpr: DPR, things: things.length }),
+      info: () => ({ state, dist: Math.floor(dist), coins, lane, magnet: +magnet.toFixed(2), reached, lit: +lit.toFixed(2), chase: +chase.toFixed(1), caught, dpr: DPR, things: things.length }),
       skipTo: (m) => {
         dist = m;
         nextRow = m + 14;
         things = [];
       },
       ghost: (on) => (rushTest.ghosting = on),
+      clip: () => clip(),
       put: (type, k, ahead) => {
         const z = dist + PZ + ahead;
         if (type === "jeep") things.push({ type, x: LANES[k], z, w: 0.62, h: 1, d: 1.8, paint: 0 });
+        else if (type === "barrier") things.push({ type, x: LANES[k], z, w: 0.6, h: 0.34, d: 0.25 });
         else things.push({ type, x: LANES[k], z, y: type === "coin" ? 0.45 : 0.5 });
       },
       board: (projectId, apiKey) => Object.assign(BOARD, { projectId, apiKey })

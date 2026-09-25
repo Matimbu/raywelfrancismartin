@@ -25,7 +25,7 @@ const SITE = {
   // new since their last visit; anything older than 30 days never shows.
   // `href` is a spot on the page (#five, #court, #channels...) or a page.
   recent: [
-    { date: "2026-09-25", text: "Malolos Rush at sunset: reach Barasoain", href: "#malolos-rush" },
+    { date: "2026-09-25", text: "Malolos Rush: outrun the guard to Casa Real", href: "#malolos-rush" },
     { date: "2026-09-25", text: "Malolos Rush, a mini game", href: "#crafts" },
     { date: "2026-09-25", text: "2K26 cards for my starting five", href: "#five" },
     { date: "2026-09-24", text: "Airball, a basketball game", href: "airball" },
