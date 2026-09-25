@@ -757,7 +757,7 @@ const BUILD_GROUPS = [
 const POSITIONS = { PG: "Point Guard", SG: "Shooting Guard", SF: "Small Forward", PF: "Power Forward", C: "Center" };
 
 // My own icons for the badge groups (drawn here, not 2K's art), set in the
-// level's hexagon: a ball over the rim, a target, a dribble, a shield, a
+// level's shield: a ball over the rim, a target, a dribble, a shield, a
 // ball going up for the board, a star
 const BADGE_ICONS = {
   Finishing: '<circle cx="12" cy="7.5" r="4"/><path d="M4 14h16M7 14l2 6M17 14l-2 6M12 14v6"/>',
@@ -1049,94 +1049,161 @@ function cardSides(host, tab) {
 // of the screen, so the small print reads without zooming, every side, badge
 // and switch working as on the page. My own card also gets a button that
 // saves it as a picture (the share sheet on phones, a download on
-// computers). Each card's is made the first time it's opened.
+// computers). A wall's cards share one view: the arrows under the card (or
+// the arrow keys, or a swipe) go on to the next one. Each card's is made the
+// first time it shows.
 const cardViews = new Map();
 const MAX_ICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.5 2.5h4v4M6.5 13.5h-4v-4M13.5 2.5 9 7M2.5 13.5 7 9"/></svg>';
-// the Full view button under a card
-function fullViewButton(w) {
+const STEP_ICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg>';
+// the Full view button under a card (`ring`: the cards it can go on to)
+function fullViewButton(w, ring = [w]) {
   const max = el("button", "card-max mono");
   max.type = "button";
   max.innerHTML = `${MAX_ICON}<span>Full view</span>`;
   max.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
-    openCardView(w);
+    openCardView(w, ring);
   });
   return max;
 }
-function openCardView(w) {
-  let cardView = cardViews.get(w);
-  if (!cardView) {
-    const list = w.cards || [w.card];
-    const dialog = el("dialog", "card-view");
-    dialog.setAttribute("aria-label", `${list[0].name || w.text}'s card, up close`);
-    const host = el("div", "card-view-card");
-    const side = twoKSide(w);
-    side.removeAttribute("aria-hidden");
-    host.appendChild(side);
-    const bar = el("div", "card-view-bar");
-    const career = list[0].style === "career";
-    const save = el("button", "card-view-btn card-view-save mono", "Save as picture");
-    const close = el("button", "card-view-btn mono", "Close");
-    save.type = close.type = "button";
-    if (career) bar.appendChild(save);
-    bar.appendChild(close);
-    dialog.append(host, bar);
-    document.body.appendChild(dialog);
-    const first = cardSides(host, side.querySelector(".tk-layer"));
-    // co-starters: the switch brings the other card in front, as on the page
-    const toggle = side.querySelector(".tk-switch");
-    if (toggle) {
-      toggle.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const swap = side.classList.toggle("swap");
-        side.dataset.tier = tierKey(list[swap ? 1 : 0].tier);
-        toggle.lastChild.textContent = list[swap ? 0 : 1].short || "";
-        packSound("tab");
-      });
-    }
-    let picture = null;
-    dialog.draw = () => {
-      first();
-      if (career) picture = careerPicture(list[0]).catch(() => null); // (ready before the tap, for the share sheet)
-    };
-    close.addEventListener("click", () => dialog.close());
-    dialog.addEventListener("click", (e) => e.target === dialog && dialog.close()); // (the dark around it)
-    dialog.addEventListener("close", () => holdPage(false));
-    save.addEventListener("click", async () => {
-      const blob = await picture;
-      const say = (text) => {
-        save.textContent = text;
-        clearTimeout(save.back);
-        save.back = setTimeout(() => (save.textContent = "Save as picture"), 1800);
-      };
-      if (!blob) return say("Couldn't make it");
-      if (window.goatcounter && window.goatcounter.count) {
-        window.goatcounter.count({ path: "mycareer-card-save", title: "Saved my MyCAREER card", event: true });
-      }
-      const file = new File([blob], "raywel-mycareer-card.png", { type: "image/png" });
-      if (navigator.share && !canHover && navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({ files: [file], text: "My NBA 2K26 MyCAREER build, on raywel's site: https://matimbu.github.io/raywelfrancismartin/#court" });
-        } catch (e) {}
-        return;
-      }
-      const url = URL.createObjectURL(blob);
-      const link = el("a");
-      link.href = url;
-      link.download = file.name;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 4000);
-      say("Saved");
-    });
-    cardView = dialog;
-    cardViews.set(w, dialog);
+function openCardView(w, ring = [w]) {
+  let view = cardViews.get(w);
+  if (!view) {
+    view = cardView(ring);
+    ring.forEach((x) => cardViews.set(x, view));
   }
-  cardView.draw();
-  holdPage(true);
-  cardView.showModal();
+  view.go(ring.indexOf(w), 0);
+  if (!view.open) {
+    holdPage(true);
+    view.showModal();
+  }
+}
+// one card in the view: its 2K side, its sides on the tab and its switch
+function cardViewPiece(w) {
+  const list = w.cards || [w.card];
+  const host = el("div", "card-view-card");
+  const side = twoKSide(w);
+  side.removeAttribute("aria-hidden");
+  host.appendChild(side);
+  const first = cardSides(host, side.querySelector(".tk-layer"));
+  // co-starters: the switch brings the other card in front, as on the page
+  const toggle = side.querySelector(".tk-switch");
+  if (toggle) {
+    toggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const swap = side.classList.toggle("swap");
+      side.dataset.tier = tierKey(list[swap ? 1 : 0].tier);
+      toggle.lastChild.textContent = list[swap ? 0 : 1].short || "";
+      packSound("tab");
+    });
+  }
+  return { host, first, list, name: list[0].name || w.text, career: list[0].style === "career" };
+}
+function cardView(ring) {
+  const dialog = el("dialog", "card-view");
+  const bar = el("div", "card-view-bar");
+  const save = el("button", "card-view-btn card-view-save mono", "Save as picture");
+  const close = el("button", "card-view-btn mono", "Close");
+  save.type = close.type = "button";
+  const pieces = new Map();
+  let at = 0;
+  let shown = null;
+  let picture = null;
+  let count = null;
+  if (ring.length > 1) {
+    const step = (dir, label) => {
+      const button = el("button", `card-view-btn card-view-step${dir < 0 ? " back" : ""}`);
+      button.type = "button";
+      button.innerHTML = STEP_ICON;
+      button.setAttribute("aria-label", label);
+      button.addEventListener("click", () => dialog.go(at + dir, dir));
+      return button;
+    };
+    count = el("span", "card-view-count mono");
+    bar.append(step(-1, "Previous card"), count, step(1, "Next card"));
+  }
+  bar.append(save, close);
+  dialog.appendChild(bar);
+  document.body.appendChild(dialog);
+  // show the k-th card (dir: which way it slides in from, 0 for none)
+  dialog.go = (k, dir) => {
+    at = (k + ring.length) % ring.length;
+    const w = ring[at];
+    if (!pieces.has(w)) pieces.set(w, cardViewPiece(w));
+    const piece = pieces.get(w);
+    piece.first();
+    if (shown !== piece) {
+      if (shown) shown.host.remove();
+      dialog.insertBefore(piece.host, bar);
+      piece.host.classList.remove("from-next", "from-back");
+      if (dir) {
+        void piece.host.offsetWidth; // (so it slides in again on a second visit)
+        piece.host.classList.add(dir > 0 ? "from-next" : "from-back");
+        packSound("tab");
+      }
+      shown = piece;
+    }
+    dialog.setAttribute("aria-label", `${piece.name}'s card, up close`);
+    if (count) count.textContent = `${at + 1} / ${ring.length}`;
+    save.hidden = !piece.career;
+    picture = piece.career ? careerPicture(piece.list[0]).catch(() => null) : null; // (ready before the tap, for the share sheet)
+  };
+  if (ring.length > 1) {
+    dialog.addEventListener("keydown", (e) => {
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      e.preventDefault();
+      const dir = e.key === "ArrowRight" ? 1 : -1;
+      dialog.go(at + dir, dir);
+    });
+    // a swipe across the card goes on to the next one (or back)
+    let touch = null;
+    dialog.addEventListener("touchstart", (e) => {
+      touch = e.touches.length === 1 ? [e.touches[0].clientX, e.touches[0].clientY] : null;
+    }, { passive: true });
+    dialog.addEventListener("touchend", (e) => {
+      if (!touch) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - touch[0];
+      const dy = t.clientY - touch[1];
+      touch = null;
+      if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      const dir = dx < 0 ? 1 : -1;
+      dialog.go(at + dir, dir);
+    });
+  }
+  close.addEventListener("click", () => dialog.close());
+  dialog.addEventListener("click", (e) => e.target === dialog && dialog.close()); // (the dark around it)
+  dialog.addEventListener("close", () => holdPage(false));
+  save.addEventListener("click", async () => {
+    const blob = await picture;
+    const say = (text) => {
+      save.textContent = text;
+      clearTimeout(save.back);
+      save.back = setTimeout(() => (save.textContent = "Save as picture"), 1800);
+    };
+    if (!blob) return say("Couldn't make it");
+    if (window.goatcounter && window.goatcounter.count) {
+      window.goatcounter.count({ path: "mycareer-card-save", title: "Saved my MyCAREER card", event: true });
+    }
+    const file = new File([blob], "raywel-mycareer-card.png", { type: "image/png" });
+    if (navigator.share && !canHover && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], text: "My NBA 2K26 MyCAREER build, on raywel's site: https://matimbu.github.io/raywelfrancismartin/#court" });
+      } catch (e) {}
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const link = el("a");
+    link.href = url;
+    link.download = file.name;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    say("Saved");
+  });
+  return dialog;
 }
 
 // The card as a picture, 1080 x 1350 (a portrait post): the card drawn big in
@@ -1162,12 +1229,13 @@ async function careerPicture(c) {
     [0, 0.3, 0.54, 0.72, 1].forEach((at, i) => grad.addColorStop(at, METAL[i]));
     return grad;
   };
-  const hexagon = (cx, cy, size) => {
+  // 2K26's badge shield: flat on top, a point below
+  const shield = (cx, cy, size) => {
     g.beginPath();
-    [[0, -1], [0.87, -0.5], [0.87, 0.5], [0, 1], [-0.87, 0.5], [-0.87, -0.5]].forEach(([dx, dy], k) => (k ? g.lineTo : g.moveTo).call(g, cx + dx * size, cy + dy * size * 1.12));
+    [[-0.88, -1], [0.88, -1], [1, -0.88], [1, 0.28], [0, 1], [-1, 0.28], [-1, -0.88]].forEach(([dx, dy], k) => (k ? g.lineTo : g.moveTo).call(g, cx + dx * size, cy + dy * size * 1.18));
     g.closePath();
   };
-  const LEVEL = { legend: ["#ffc9a3", "#e2451f"], hof: ["#d6b6ff", "#7a3de0"], gold: ["#ffe7a3", "#c8921a"], silver: ["#f1f4f6", "#8d98a1"], bronze: ["#f0b889", "#93502a"] };
+  const LEVEL = { legend: ["#ffaba6", "#d21f2e"], hof: ["#d6b6ff", "#7a3de0"], gold: ["#ffe7a3", "#c8921a"], silver: ["#f1f4f6", "#8d98a1"], bronze: ["#f0b889", "#93502a"] };
   // the page: dark, a gold light behind the card
   g.fillStyle = "#0b0906";
   g.fillRect(0, 0, 1080, 1350);
@@ -1294,7 +1362,7 @@ async function careerPicture(c) {
     const grad = g.createLinearGradient(at, chipY - size, at + size, chipY);
     grad.addColorStop(0, hi);
     grad.addColorStop(1, lo);
-    hexagon(at + size * 0.5, chipY - size * 0.35, size * 0.5);
+    shield(at + size * 0.5, chipY - size * 0.35, size * 0.5);
     g.fillStyle = grad;
     g.fill();
     at += size * 1.3;
@@ -1433,6 +1501,7 @@ function phoneTilt() {
 // pass (6 ft), a fake out toward the ball, then the cut behind him along the
 // baseline to the block, the 1's bounce pass meeting him there (Back door),
 // then straight up for an easy layup.
+// Draw a play (Coach mode) draws my own, on the big board.
 // Horns: the 4 and 5 at the elbows, the 1 up top, shooters in both corners;
 // the 4's man sags off; the 4 steps up to screen for the 1, who comes off it
 // dribbling; the 4 pops out beyond the arc, catches and knocks it down.
@@ -1620,7 +1689,11 @@ function playBoard() {
       board.classList.remove("slow");
     }, 4600 * pace);
   };
-  board.addEventListener("click", () => again());
+  // (in Coach mode only its Replay button replays: the board is for drawing)
+  board.addEventListener("click", (e) => {
+    if (!coach) return again();
+    if (e.target.closest(".play-replay")) coachReplay();
+  });
   // the plays, under the board: pick one and it draws from the start
   const tabs = el("div", "play-tabs");
   const select = (key) => {
@@ -1693,6 +1766,7 @@ function playBoard() {
       view.setAttribute("aria-label", "The play board, up close");
       view.addEventListener("click", (ev) => ev.target === view && view.close());
       view.addEventListener("close", () => {
+        leaveCoach(); // (Coach mode ends with the big board)
         spot.replaceWith(board);
         board.classList.remove("big");
         max.setAttribute("aria-label", "Full view of the board");
@@ -1710,11 +1784,338 @@ function playBoard() {
     view.showModal();
     if (!quiz) again();
   });
-  tabs.append(slow, guess, max);
+  // Coach mode (Draw a play): my own play, drawn on the big board. Five
+  // players start 5 out, the 1 up top with the ball. Drag a player and they
+  // cut there, or onto a teammate to set a screen; drag whoever has the ball
+  // to dribble, to the rim to drive, or onto a teammate to pass; tap them to
+  // shoot. Undo, Clear, and Replay draws it again a step at a time. (The play
+  // is kept in this browser for next time.)
+  const NS = "http://www.w3.org/2000/svg";
+  const RIM = [150, 31.5];
+  const START = { 1: [150, 178], 2: [44, 140], 3: [6, 24], 4: [256, 140], 5: [294, 24] };
+  const CREW = [1, 2, 3, 4, 5];
+  const HINT = "Drag a player to cut, or onto a teammate to screen. With the ball: drag to dribble, drive or pass; tap to shoot.";
+  const svg = board.querySelector("svg");
+  const mine = document.createElementNS(NS, "g");
+  mine.setAttribute("class", "play-set coach-set");
+  mine.setAttribute("data-play", "mine");
+  const lines = document.createElementNS(NS, "g");
+  const crew = document.createElementNS(NS, "g");
+  const dot = {};
+  CREW.forEach((n) => {
+    const player = document.createElementNS(NS, "g");
+    player.setAttribute("class", `coach-player${n === 4 ? " coach-me" : ""}`);
+    player.innerHTML = `<circle r="10"/><text class="num" y="4.5">${n}</text>`;
+    crew.appendChild(player);
+    dot[n] = player;
+  });
+  const ball = document.createElementNS(NS, "circle");
+  ball.setAttribute("class", "coach-ball");
+  ball.setAttribute("r", "3.4");
+  crew.appendChild(ball);
+  const live = document.createElementNS(NS, "path"); // (the line while it's dragged)
+  live.setAttribute("class", "coach-live");
+  mine.append(lines, crew);
+  svg.appendChild(mine);
+  let plan = [];
+  try {
+    plan = JSON.parse(localStorage.getItem("myPlay") || "[]");
+    if (!Array.isArray(plan)) plan = [];
+  } catch (e) {
+    plan = [];
+  }
+  const keep = () => {
+    try {
+      localStorage.setItem("myPlay", JSON.stringify(plan));
+    } catch (e) {}
+  };
+  // where everyone stands (and who has the ball) after the first k steps
+  const stateAt = (k) => {
+    const s = { at: { ...START }, ball: 1 };
+    plan.slice(0, k).forEach((m) => {
+      if (m.kind === "pass") s.ball = m.to;
+      else if (m.kind === "shot") s.ball = 0;
+      else {
+        s.at[m.n] = m.end;
+        if (m.kind === "drive") s.ball = 0;
+      }
+    });
+    return s;
+  };
+  const place = (s) => {
+    CREW.forEach((n) => (dot[n].style.transform = `translate(${s.at[n][0]}px, ${s.at[n][1]}px)`));
+    const holder = s.ball && s.at[s.ball];
+    ball.style.opacity = holder ? "1" : "0";
+    if (holder) ball.style.transform = `translate(${holder[0] + 8}px, ${holder[1] - 8}px)`;
+  };
+  // the marks: a marker line through the dragged points (a zigzag while
+  // dribbling), an arrowhead or a screen's bar at the end, dashed passes
+  const pathOf = (pts) => pts.map(([x, y], i) => `${i ? "L" : "M"}${f(x)} ${f(y)}`).join(" ");
+  const smooth = (pts) => {
+    if (pts.length < 3) return pathOf(pts);
+    let d = `M${f(pts[0][0])} ${f(pts[0][1])}`;
+    for (let i = 1; i < pts.length - 1; i++) {
+      d += ` Q${f(pts[i][0])} ${f(pts[i][1])} ${f((pts[i][0] + pts[i + 1][0]) / 2)} ${f((pts[i][1] + pts[i + 1][1]) / 2)}`;
+    }
+    const [x, y] = pts[pts.length - 1];
+    return `${d} L${f(x)} ${f(y)}`;
+  };
+  const zigzag = (pts) => {
+    const out = [pts[0]];
+    let side = 1;
+    let carry = 0;
+    for (let i = 1; i < pts.length; i++) {
+      const [x0, y0] = pts[i - 1];
+      const [x1, y1] = pts[i];
+      const len = Math.hypot(x1 - x0, y1 - y0);
+      if (!len) continue;
+      const ux = (x1 - x0) / len;
+      const uy = (y1 - y0) / len;
+      let t = 6 - carry;
+      for (; t <= len; t += 6, side = -side) out.push([x0 + ux * t - uy * 3.5 * side, y0 + uy * t + ux * 3.5 * side]);
+      carry = len - (t - 6);
+    }
+    out.push(pts[pts.length - 1]);
+    return pathOf(out);
+  };
+  // where a line meets the circle of the player standing at its end (the
+  // arrow goes there, in front of them), and which way it's heading
+  const tip = (pts, gap = 12) => {
+    let [x, y] = pts[pts.length - 1];
+    let left = gap;
+    for (let i = pts.length - 2; i >= 0; i--) {
+      const [px, py] = pts[i];
+      const len = Math.hypot(x - px, y - py);
+      if (len >= left) return [x + ((px - x) * left) / len, y + ((py - y) * left) / len, Math.atan2(y - py, x - px)];
+      left -= len;
+      [x, y] = [px, py];
+    }
+    const [x0, y0] = pts[0];
+    const [x1, y1] = pts[pts.length - 1];
+    return [x0, y0, Math.atan2(y1 - y0, x1 - x0)];
+  };
+  const three = ([x, y]) => Math.hypot(x - RIM[0], y - RIM[1]) > 142 || x < 18 || x > 282;
+  const made = (at, word) => `<circle class="fade made" cx="${RIM[0]}" cy="${RIM[1]}" r="4.5" style="--at:${at}s"/>` +
+    `<text class="fade and-one" x="96" y="66" style="--at:${at + 0.1}s">${word}</text>`;
+  const marks = (m, s) => {
+    if (m.kind === "pass" || m.kind === "shot") {
+      const [x0, y0] = s.at[m.n];
+      if (m.kind === "shot") {
+        const dx = RIM[0] - x0;
+        const dy = RIM[1] - y0;
+        return later("pass", `M${f(x0)} ${f(y0)} Q${f(x0 + dx / 2 - dy * 0.3)} ${f(y0 + dy / 2 + dx * 0.3)} ${RIM[0]} ${RIM[1]}`, 0) + made(0.45, m.three ? "splash!" : "bucket!");
+      }
+      const [x1, y1] = s.at[m.to];
+      const a = Math.atan2(y1 - y0, x1 - x0);
+      const [ax, ay] = [x0 + Math.cos(a) * 12, y0 + Math.sin(a) * 12];
+      const [bx, by] = [x1 - Math.cos(a) * 12, y1 - Math.sin(a) * 12];
+      return later("pass", `M${f(ax)} ${f(ay)} L${f(bx)} ${f(by)}`, 0) + later("pass pass-head", head(bx, by, a, 6), 0.15);
+    }
+    const [ex, ey] = m.end;
+    const [hx, hy, a] = tip(m.pts);
+    if (m.kind === "screen") {
+      // the bar, square to the teammate, just in front of the screener
+      const [mx, my] = s.at[m.to];
+      const b = Math.atan2(my - ey, mx - ex);
+      const [bx, by] = [ex + Math.cos(b) * 12, ey + Math.sin(b) * 12];
+      const [px, py] = [Math.cos(b + Math.PI / 2) * 7, Math.sin(b + Math.PI / 2) * 7];
+      return ink("move", smooth(m.pts), 0, 0.5) + ink("move", `M${f(bx - px)} ${f(by - py)} L${f(bx + px)} ${f(by + py)}`, 0.5, 0.15) +
+        `<text class="fade note" x="${f(ex + 13)}" y="${f(ey + 20)}" style="--at:0.6s">screen</text>`;
+    }
+    if (m.kind === "dribble") return ink("move", zigzag(m.pts), 0, 0.6) + later("move", head(hx, hy, a, 6), 0.6);
+    if (m.kind === "drive") return ink("move", zigzag(m.pts), 0, 0.6) + made(0.6, "bucket!");
+    return ink("move", smooth(m.pts), 0, 0.5) + later("move", head(hx, hy, a, 6), 0.5);
+  };
+  const say = (m) => ({
+    cut: `The ${m.n} cuts`,
+    screen: `The ${m.n} screens for the ${m.to}`,
+    dribble: `The ${m.n} puts it on the floor`,
+    drive: `The ${m.n} drives: bucket!`,
+    pass: `The ${m.n} swings it to the ${m.to}`,
+    shot: `The ${m.n} lets it fly: ${m.three ? "splash!" : "bucket!"}`
+  })[m.kind];
+  const stepOf = (m, s, on) => {
+    const step = document.createElementNS(NS, "g");
+    step.setAttribute("class", `play-step${on ? " on" : ""}`);
+    step.innerHTML = marks(m, s);
+    return step;
+  };
+  const draw = () => {
+    lines.textContent = "";
+    plan.forEach((m, i) => lines.appendChild(stepOf(m, stateAt(i), true)));
+    place(stateAt(plan.length));
+  };
+  const add = (m) => {
+    const step = stepOf(m, stateAt(plan.length), false);
+    plan.push(m);
+    keep();
+    lines.appendChild(step);
+    void step.getBoundingClientRect(); // (so it draws in)
+    step.classList.add("on");
+    place(stateAt(plan.length));
+    caption.textContent = `${plan.length}. ${say(m)}`;
+    packSound("tab");
+  };
+  const coachReplay = () => {
+    const run = ++replaying;
+    const steps = [...lines.children];
+    board.classList.add("resetting");
+    steps.forEach((step) => step.classList.remove("on"));
+    place(stateAt(0));
+    void board.offsetWidth;
+    board.classList.remove("resetting");
+    caption.textContent = steps.length ? "" : HINT;
+    steps.forEach((step, i) => setTimeout(() => {
+      if (run !== replaying || !coach) return;
+      step.classList.add("on");
+      place(stateAt(i + 1));
+      caption.textContent = `${i + 1}/${steps.length}  ${say(plan[i])}`;
+    }, 400 + i * 1000));
+  };
+  // dragging on the court (a finger or the mouse), in the court's units
+  const toCourt = (e) => {
+    const m = svg.getScreenCTM();
+    if (!m) return null;
+    const p = svg.createSVGPoint();
+    p.x = e.clientX;
+    p.y = e.clientY;
+    const q = p.matrixTransform(m.inverse());
+    return [Math.max(-6, Math.min(306, q.x)), Math.max(-6, Math.min(196, q.y))];
+  };
+  const nearest = (pt, s, skip) => {
+    let best = 0;
+    let gap = 18;
+    CREW.forEach((n) => {
+      const d = Math.hypot(pt[0] - s.at[n][0], pt[1] - s.at[n][1]);
+      if (n !== skip && d < gap) [best, gap] = [n, d];
+    });
+    return best;
+  };
+  const thin = (pts) => {
+    const out = [pts[0]];
+    pts.forEach((p, i) => {
+      const q = out[out.length - 1];
+      if (i && (i === pts.length - 1 || Math.hypot(p[0] - q[0], p[1] - q[1]) >= 6)) out.push(p);
+    });
+    return out.map(([x, y]) => [Math.round(x * 10) / 10, Math.round(y * 10) / 10]);
+  };
+  let coach = false;
+  let drag = null;
+  svg.addEventListener("pointerdown", (e) => {
+    if (!coach || drag) return;
+    const pt = toCourt(e);
+    const s = stateAt(plan.length);
+    const n = pt && nearest(pt, s, 0);
+    if (!n) return;
+    e.preventDefault();
+    try {
+      svg.setPointerCapture(e.pointerId);
+    } catch (err) {}
+    drag = { n, s, id: e.pointerId, pts: [s.at[n]], far: 0 };
+    live.setAttribute("d", "");
+    mine.appendChild(live);
+  });
+  svg.addEventListener("pointermove", (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const pt = toCourt(e);
+    const last = drag.pts[drag.pts.length - 1];
+    if (!pt || Math.hypot(pt[0] - last[0], pt[1] - last[1]) < 3) return;
+    drag.pts.push(pt);
+    drag.far = Math.max(drag.far, Math.hypot(pt[0] - drag.pts[0][0], pt[1] - drag.pts[0][1]));
+    live.setAttribute("d", smooth(drag.pts));
+  });
+  const drop = (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const { n, s, pts, far } = drag;
+    drag = null;
+    live.remove();
+    if (e.type === "pointercancel") return;
+    const hasBall = s.ball === n;
+    if (far < 8) {
+      if (hasBall) add({ kind: "shot", n, three: three(s.at[n]) });
+      else caption.textContent = HINT;
+      return;
+    }
+    const end = pts[pts.length - 1];
+    const mate = nearest(end, s, n);
+    if (hasBall && mate) return add({ kind: "pass", n, to: mate });
+    if (hasBall) {
+      const drive = Math.hypot(end[0] - RIM[0], end[1] - RIM[1]) < 24;
+      const path = thin(pts);
+      return add({ kind: drive ? "drive" : "dribble", n, pts: path, end: path[path.length - 1] });
+    }
+    if (mate) {
+      // a screen: stop beside the teammate, on the side the screener came from
+      const [mx, my] = s.at[mate];
+      const from = pts.slice(0, -1).reverse().find(([x, y]) => Math.hypot(x - mx, y - my) > 24) || pts[0];
+      const len = Math.hypot(from[0] - mx, from[1] - my) || 1;
+      const spot = [mx + ((from[0] - mx) / len) * 24, my + ((from[1] - my) / len) * 24];
+      const path = thin([...pts.filter(([x, y]) => Math.hypot(x - mx, y - my) > 24), spot]);
+      return add({ kind: "screen", n, to: mate, pts: path, end: path[path.length - 1] });
+    }
+    const path = thin(pts);
+    add({ kind: "cut", n, pts: path, end: path[path.length - 1] });
+  };
+  svg.addEventListener("pointerup", drop);
+  svg.addEventListener("pointercancel", drop);
+  let before = "back-door";
+  const enterCoach = () => {
+    if (!board.classList.contains("big")) max.click(); // (drawn on the big board)
+    const current = board.querySelector(".play-set.active");
+    if (current && current !== mine) before = current.dataset.play;
+    coach = true;
+    replaying++;
+    quiz = null;
+    board.classList.remove("quiz", "slow", "resetting");
+    board.classList.add("coach");
+    board.dataset.replaying = "coach"; // (the words lighting up leave it alone)
+    board.querySelectorAll(".play-set").forEach((p) => p.classList.toggle("active", p === mine));
+    draw();
+    caption.textContent = plan.length ? `Your play: ${plan.length} step${plan.length > 1 ? "s" : ""}. Keep drawing, or Replay it.` : HINT;
+  };
+  const leaveCoach = () => {
+    if (!coach) return;
+    coach = false;
+    board.classList.remove("coach");
+    delete board.dataset.replaying;
+    select(before);
+  };
+  const drawTab = el("button", "play-tab play-draw mono", "Draw a play");
+  drawTab.type = "button";
+  drawTab.addEventListener("click", (e) => {
+    e.stopPropagation();
+    enterCoach();
+  });
+  const tools = [
+    ["Undo", () => {
+      if (!plan.length) return;
+      plan.pop();
+      keep();
+      draw();
+      caption.textContent = plan.length ? `${plan.length}. ${say(plan[plan.length - 1])}` : HINT;
+    }],
+    ["Clear", () => {
+      plan = [];
+      keep();
+      draw();
+      caption.textContent = HINT;
+    }],
+    ["Replay", () => coachReplay()],
+    ["Done", () => leaveCoach()]
+  ].map(([name, act]) => {
+    const tool = el("button", `play-tab coach-tool mono${name === "Done" ? " coach-done" : ""}`, name);
+    tool.type = "button";
+    tool.addEventListener("click", (e) => {
+      e.stopPropagation();
+      act();
+    });
+    return tool;
+  });
+  tabs.append(slow, guess, drawTab, ...tools, max);
   board.append(caption, tabs);
   // (a word on the wall calls up its play; the one already up stays put)
   board.pick = (key) => {
-    if (quiz) return; // (no giving the answer away)
+    if (quiz || coach) return; // (no giving the answer away, or wiping my play)
     const current = board.querySelector(".play-set.active");
     if (!current || current.dataset.play !== key) select(key);
   };
@@ -1973,7 +2374,8 @@ function playBoard() {
       item.addEventListener("mouseleave", hidePreview);
     }
     // every 2K card: a Full view button under it, to read it big
-    if (has2K && cards) item.appendChild(fullViewButton(w));
+    // (the Full view goes on through the wall's other cards)
+    if (has2K && cards) item.appendChild(fullViewButton(w, wall.words.includes(w) ? wall.words.filter((x) => x.card || x.cards) : [w]));
     words.appendChild(item);
   };
   wall.words.forEach((w, i) => addWord(w, i, words, cards));
@@ -2277,7 +2679,7 @@ if (SITE.story && SITE.story.items && SITE.story.items.length) {
       open.type = "button";
       const frame = el("span", "story-photo-thumb");
       const thumb = el("img");
-      thumb.src = `assets/gallery/${s.photo}-400.jpg`;
+      thumb.src = `assets/gallery/${s.photo}-400.webp`;
       thumb.alt = "";
       thumb.loading = "lazy";
       frame.appendChild(thumb);
@@ -2375,7 +2777,7 @@ const tagWatch = reduceMotion ? null : new IntersectionObserver((entries) => {
 // A craft with `game: true` (Malolos Rush) opens a tiny playable teaser:
 // rush.js, loaded the first time someone presses Play (bump its ?v= here
 // when it changes)
-const RUSH_JS = "rush.js?v=20260925-10";
+const RUSH_JS = "rush.js?v=20260926-1";
 function playRush() {
   if (window.openRush) return window.openRush();
   const script = el("script");
@@ -2741,7 +3143,7 @@ function tiktokThumb(v) {
   const img = el("img");
   img.alt = "";
   img.loading = "lazy";
-  img.src = v.cover || `assets/tiktok/${v.id}.jpg`;
+  img.src = v.cover || `assets/tiktok/${v.id}.webp`;
   return img;
 }
 
@@ -3100,7 +3502,7 @@ addEventListener("resize", () => stageFits.forEach((fit) => fit()));
     c.setAttribute("aria-label", "Watch " + v.title);
     const img = el("img");
     // the fan shows covers small, so it gets their light 480px copies
-    img.src = v.cover.replace(/\.jpg$/, "-480.jpg");
+    img.src = v.cover.replace(/\.(jpg|webp)$/, "-480.$1");
     img.alt = "";
     img.loading = "lazy";
     img.decoding = "async";
@@ -3218,7 +3620,7 @@ const captionWatch = new IntersectionObserver((entries) => {
     setTimeout(() => typeCaption(caption, text), delay);
   });
 }, { threshold: 0.3 });
-const shotSrc = (p, width) => p.cover || `assets/gallery/${p.file}-${width}.jpg`;
+const shotSrc = (p, width) => p.cover || `assets/gallery/${p.file}-${width}.webp`;
 
 gallery.forEach((p, i) => {
   const tile = el("button", ["shot", p.wide && "wide", p.fit === "contain" && "contain", "shot-reveal"].filter(Boolean).join(" "));

@@ -365,28 +365,6 @@
         </div>
       </div>`;
     document.body.appendChild(dialog);
-    // my player on the start card: the MyCAREER card from On the court (its
-    // face, name, overall, position and build), as the one you run as
-    // (content.js's SITE is a top-level const, not a property of window)
-    const walls = typeof SITE !== "undefined" && SITE.walls ? SITE.walls : [];
-    const me = walls.map((wall) => wall.player && wall.player.card).find((c) => c && c.face);
-    if (me) {
-      const chip = document.createElement("div");
-      chip.className = "rush-me";
-      const face = document.createElement("img");
-      face.src = me.face;
-      face.alt = "";
-      const text = document.createElement("span");
-      const name = document.createElement("b");
-      name.textContent = `Running as ${me.player || me.name}`;
-      const line = document.createElement("span");
-      line.className = "mono";
-      line.textContent = `${me.ovr} OVR · ${me.pos} · ${me.archetype || ""}`;
-      text.append(name, line);
-      chip.append(face, text);
-      const start = dialog.querySelector(".rush-start");
-      start.insertBefore(chip, start.firstChild);
-    }
     canvas = dialog.querySelector(".rush-canvas");
     g = canvas.getContext("2d");
     distLabel = dialog.querySelector(".rush-dist");

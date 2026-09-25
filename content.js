@@ -48,10 +48,10 @@ const SITE = {
   // Order = position: 1 top-left (tall), 2 top-right, 3 bottom-left (small
   // square), 4 bottom-right (wide). Photos face toward the name.
   floaters: [
-    { emoji: "🎨", photo: "assets/me-shop.jpg", badge: "🎨" },
-    { emoji: "🎮", photo: "assets/me-cafe.jpg", badge: "🎮" },
-    { emoji: "📷", photo: "assets/me-camera.jpg", badge: "📷" },
-    { emoji: "🏀", photo: "assets/me-sofa.jpg", badge: "🏀" }
+    { emoji: "🎨", photo: "assets/me-shop.webp", badge: "🎨" },
+    { emoji: "🎮", photo: "assets/me-cafe.webp", badge: "🎮" },
+    { emoji: "📷", photo: "assets/me-camera.webp", badge: "📷" },
+    { emoji: "🏀", photo: "assets/me-sofa.webp", badge: "🏀" }
   ],
 
   marquee: ["C#", "Graphic design", "Basketball", "Valorant", "WinForms", "Photoshop", "Video editing", "Unity", "The Court's Coder"],
@@ -125,8 +125,8 @@ const SITE = {
           text: "Yao Ming",
           note: "on the court, after the NBA legend",
           link: "https://en.wikipedia.org/wiki/Yao_Ming",
-          face: "assets/aka/yao-ming-rockets-face.jpg",
-          image: "assets/aka/yao-ming-rockets.jpg",
+          face: "assets/aka/yao-ming-rockets-face.webp",
+          image: "assets/aka/yao-ming-rockets.webp",
           credit: {
             subject: "Yao Ming",
             by: "Keith Allison",
@@ -139,8 +139,8 @@ const SITE = {
           text: "Wemby",
           note: "after the Spurs' Victor Wembanyama",
           link: "https://en.wikipedia.org/wiki/Victor_Wembanyama",
-          face: "assets/aka/wemby-tall-face.jpg",
-          image: "assets/aka/wemby-tall.jpg"
+          face: "assets/aka/wemby-tall-face.webp",
+          image: "assets/aka/wemby-tall.webp"
         },
         { text: "Jenduks", note: "Valorant · YouTube" },
         { text: "Wel", note: "from Raywel" },
@@ -166,7 +166,7 @@ const SITE = {
       // badge there to read it).
       player: {
         pos: "My player", text: "Me", note: "the Court's Coder",
-        image: "assets/five/raywel-jacket.jpg", alt: "Me in sunglasses, holding my custom RAYWEL jacket at a clothing shop",
+        image: "assets/five/raywel-jacket.webp", alt: "Me in sunglasses, holding my custom RAYWEL jacket at a clothing shop",
         card: {
           style: "career", ovr: 95, tier: "G.O.A.T.", label: "G.O.A.T. Build", name: "Raywel Martin", pos: "PF",
           player: "Yao Ming", // my MyPLAYER's name (and what they call me on the court)
@@ -259,7 +259,7 @@ const SITE = {
         {
           pos: "PG", text: "Rondo", note: "the passer",
           link: "https://en.wikipedia.org/wiki/Rajon_Rondo",
-          image: "assets/five/rondo-celtics.jpg", alt: "Rajon Rondo calling a play as he brings the ball up for the Celtics",
+          image: "assets/five/rondo-celtics.webp", alt: "Rajon Rondo calling a play as he brings the ball up for the Celtics",
           card: {
             ovr: 99, tier: "Dark Matter", label: "Certified", name: "Rajon Rondo", num: 9, cut: "assets/five/cut/rondo-ball.webp",
             badges: [["Dimer", "HOF"], ["Versatile Visionary", "HOF"], ["Interceptor", "HOF"]],
@@ -270,7 +270,7 @@ const SITE = {
         {
           pos: "SG", text: "Kobe", note: "Mamba mentality",
           link: "https://en.wikipedia.org/wiki/Kobe_Bryant",
-          image: "assets/five/kobe-lakers.jpg", alt: "Kobe Bryant driving to the basket for the Lakers",
+          image: "assets/five/kobe-lakers.webp", alt: "Kobe Bryant driving to the basket for the Lakers",
           card: {
             ovr: 99, tier: "Dark Matter", label: "G.O.A.T.", name: "Kobe Bryant", num: 24, cut: "assets/five/cut/kobe-center.webp",
             badges: [["Clutch Shooter", "HOF"], ["Space Creator", "HOF"], ["Difficult Shots", "HOF"]],
@@ -281,7 +281,7 @@ const SITE = {
         {
           pos: "SF", text: "MJ", note: "six rings",
           link: "https://en.wikipedia.org/wiki/Michael_Jordan",
-          image: "assets/five/mj-bulls.jpg", alt: "Michael Jordan rising for a jump shot for the Bulls",
+          image: "assets/five/mj-bulls.webp", alt: "Michael Jordan rising for a jump shot for the Bulls",
           // the GOAT gets the G.O.A.T. card itself, in gold (was 99 Dark Matter)
           card: {
             ovr: 100, tier: "G.O.A.T.", name: "Michael Jordan", num: 23, cut: "assets/five/cut/mj.webp",
@@ -292,7 +292,7 @@ const SITE = {
         {
           pos: "PF", text: "LeBron", note: "the King",
           link: "https://en.wikipedia.org/wiki/LeBron_James",
-          image: "assets/five/lebron-heat.jpg", alt: "LeBron James cocking the ball back for a dunk with the Heat",
+          image: "assets/five/lebron-heat.webp", alt: "LeBron James cocking the ball back for a dunk with the Heat",
           card: {
             ovr: 99, tier: "G.O.A.T.", name: "LeBron James", num: 6, cut: "assets/five/cut/lebron-center.webp",
             badges: [["Posterizer", "Legend"], ["Versatile Visionary", "Legend"], ["High-Flying Denier", "Legend"]],
@@ -302,19 +302,19 @@ const SITE = {
         },
         {
           pos: "C", text: "Yao / Shaq", note: "co-starters",
-          image: "assets/five/yao-shaq-gold.jpg", alt: "Yao Ming calling for the ball for the Rockets, and Shaquille O'Neal roaring in the Lakers' gold #34",
+          image: "assets/five/yao-shaq-gold.webp", alt: "Yao Ming calling for the ball for the Rockets, and Shaquille O'Neal roaring in the Lakers' gold #34",
           // co-starters: two cards stacked, pick one with the names under it
           cards: [
             {
               short: "Yao", ovr: 99, tier: "G.O.A.T.", name: "Yao Ming", num: 11,
-              image: "assets/five/yao-rockets.jpg", cut: "assets/five/cut/yao.webp",
+              image: "assets/five/yao-rockets.webp", cut: "assets/five/cut/yao.webp",
               badges: [["Hook Specialist", "Legend"], ["Paint Patroller", "Legend"], ["Post Up Poet", "Legend"]],
               stats: [["Post Hook", 99], ["Block", 99], ["Mid-Range Shot", 99], ["Free Throw", 99]],
               build: 99
             },
             {
               short: "Shaq", ovr: 99, tier: "Invincible", name: "Shaquille O'Neal", num: 34,
-              image: "assets/five/shaq-gold.jpg", cut: "assets/five/cut/shaq-gold.webp",
+              image: "assets/five/shaq-gold.webp", cut: "assets/five/cut/shaq-gold.webp",
               badges: [["Post Powerhouse", "Legend"], ["Posterizer", "Legend"], ["Brick Wall", "Legend"]],
               stats: [["Standing Dunk", 99], ["Strength", 99], ["Post Control", 99], ["Offensive Rebound", 99]],
               build: 99
@@ -517,10 +517,10 @@ const SITE = {
       videos: [
         { title: "BNF BTG PNM", note: "15:54", id: "IrMJpBgpFjY" },
         { title: "batugans 22 - 23", note: "4:06", id: "wZsDlJYYQDI" },
-        { title: "BAIT MY TEAMMATE", note: "Short", id: "1QQ4ncdYBoA", short: true, cover: "assets/youtube/bait-my-teammate.jpg" },
-        { title: "NEVER BACK DOWN NEVER WHAT?", note: "Short", id: "lXQqb-qdOAg", short: true, cover: "assets/youtube/sova-clutch.jpg" },
+        { title: "BAIT MY TEAMMATE", note: "Short", id: "1QQ4ncdYBoA", short: true, cover: "assets/youtube/bait-my-teammate.webp" },
+        { title: "NEVER BACK DOWN NEVER WHAT?", note: "Short", id: "lXQqb-qdOAg", short: true, cover: "assets/youtube/sova-clutch.webp" },
         // the ace: called by what it is, with its real title as the note
-        { title: "RAZE ACE", note: "calmado", id: "WWy2S5vndPk", short: true, cover: "assets/youtube/raze-ace-glitchpop.jpg" }
+        { title: "RAZE ACE", note: "calmado", id: "WWy2S5vndPk", short: true, cover: "assets/youtube/raze-ace-glitchpop.webp" }
       ]
     },
     {
@@ -533,14 +533,14 @@ const SITE = {
       about: "Valorant clips, mostly Sova.",
       featuredVideo: "7121951680408669442",
       videos: [
-        { title: "Owl Drone", note: "Clip", id: "7121951680408669442", cover: "assets/tiktok/owl-drone.jpg" },
-        { title: "Hunter's Fury", note: "Clip", id: "7032101516244782337", cover: "assets/tiktok/hunters-fury.jpg" }
+        { title: "Owl Drone", note: "Clip", id: "7121951680408669442", cover: "assets/tiktok/owl-drone.webp" },
+        { title: "Hunter's Fury", note: "Clip", id: "7032101516244782337", cover: "assets/tiktok/hunters-fury.webp" }
       ]
     }
   ],
 
   // "Snapshots" gallery. `file` is the name in assets/gallery/ (each photo
-  // has -400, -800 and -1600 versions). `wide` photos span two columns.
+  // has -400, -600, -800 and -1600 WebP copies). `wide` photos span two columns.
   // `story` (optional) shows under the caption when the photo is opened.
   // `fit: "contain"` shows the whole image (for screenshots and notes).
   // An item with `video` (a YouTube id) is a clip: `cover` is its picture and
@@ -629,7 +629,7 @@ const SITE = {
       story: "All-time favourite, whatever the OOTD."
     },
     {
-      cover: "assets/youtube/raze-ace-glitchpop.jpg",
+      cover: "assets/youtube/raze-ace-glitchpop.webp",
       video: "WWy2S5vndPk",
       caption: "Raze ace",
       alt: "The last kill of the ace with the Glitchpop Vandal, five down in one round",
