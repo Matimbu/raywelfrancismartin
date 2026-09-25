@@ -181,6 +181,15 @@ const SITE = {
           badges: [["Pogo Stick", "Legend"], ["Posterizer", "HOF"], ["Aerial Wizard", "HOF"]],
           stats: [["Driving Dunk", 96], ["Defensive Rebound", 90], ["Vertical", 88], ["Mid-Range Shot", 87]],
           build: [43, 38, 96, 40, 70, 87, 83, 78, 66, 85, 75, 71, 85, 70, 71, 61, 90, 85, 80, 85, 88],
+          // my animations (the card's Moves side)
+          moves: [
+            ["Dribble", [["Dribble style", "Zach LaVine"], ["Size-up", "Jayson Tatum"], ["Breakdown combos", "Michael Jordan"],
+              ["Escape moves", "Jimmy Butler"], ["Combo moves", "Jayson Tatum"], ["Crossover", "Lonzo Ball"],
+              ["Behind the back", "Paul George"], ["Spin", "Terry Rozier III"], ["Hesitation", "Paul George"],
+              ["Stepback", "Devin Booker"], ["Triple threat", "Zach LaVine"], ["Park flashy pass", "Wizard"]]],
+            ["Post", [["Post fade", "Michael Jordan"], ["Post hook", "Bam Adebayo"], ["Hop shot", "DeMar DeRozan"],
+              ["Go-to shot", "Pro"], ["Motion style", "Ausar Thompson"]]]
+          ],
           allBadges: [
             ["Finishing", [
               ["Posterizer", "HOF", "Better odds of dunking right over a defender."],

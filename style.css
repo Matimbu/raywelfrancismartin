@@ -842,8 +842,22 @@ button { font: inherit; color: inherit; }
 .play-board .play-set:has(> .play-step:last-child.on) .drive-head { opacity: 0; transition-delay: 0s; }
 /* two plays on the board, one shown at a time; tabs under it pick one */
 .play-board .play-set:not(.active) { display: none; }
-.play-board { padding-bottom: 46px; }
-.play-tabs { position: absolute; left: 12px; bottom: 12px; display: flex; gap: 6px; }
+.play-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.play-slow { margin-left: auto; }
+/* the caption under the court, saying what the step just drawn is */
+.play-caption {
+  min-height: 2.6em;
+  margin-top: 8px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 15px;
+  line-height: 1.3;
+  color: var(--muted);
+  white-space: pre-wrap;
+}
+/* slow motion: every mark takes longer to draw and waits longer to start */
+.play-board.slow .play-step.on .ink { transition-duration: calc(var(--t) * 2.4); transition-delay: calc(var(--at) * 2.4); }
+.play-board.slow .play-step.on .fade { transition-delay: calc(var(--at) * 2.4); }
 .play-tab {
   padding: 5px 11px;
   border: 1px solid var(--line);
@@ -1594,6 +1608,50 @@ button { font: inherit; color: inherit; }
 .tk-badge-info > b span { font-size: 0.7em; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.85; }
 .tk-badge-info > b + span { font-size: max(7px, 3.5cqw); line-height: 1.25; }
 .tk-chip.has-info { cursor: pointer; }
+/* the picked badge's emblem: its group's icon on the level's hexagon */
+.tk-badge-info.on { grid-template-columns: auto 1fr; column-gap: 2.4cqw; align-items: center; }
+.tk-badge-emblem {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: max(22px, 10cqw);
+  aspect-ratio: 1 / 1.12;
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  background: linear-gradient(160deg, var(--lv-hi), var(--lv-lo));
+}
+.tk-badge i:has(svg) { display: grid; place-items: center; }
+.tk-badge-emblem svg, .tk-badge i svg {
+  width: 62%;
+  height: 62%;
+  fill: none;
+  stroke: rgb(20 12 4 / 0.85);
+  stroke-width: 2.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* the fourth side: my moves, two to a row, the move and whose it is */
+.tk-moves {
+  position: absolute;
+  top: 25cqw;
+  left: 7cqw;
+  right: 7cqw;
+  display: grid;
+  gap: 2.6cqw;
+  opacity: 0;
+  translate: 0 4px;
+  pointer-events: none;
+  transition: opacity 0.22s ease, translate 0.22s var(--ease-out);
+}
+.layer-moves .tk-moves { opacity: 1; translate: 0 0; }
+.layer-moves .tk-career-face, .layer-moves .tk-career-name, .layer-moves .tk-career-arch, .layer-moves .tk-career-size,
+.layer-moves .tk-career-pos, .layer-moves .tk-badges { opacity: 0; }
+.layer-moves .tk-career .tk-sparks { opacity: 0.28; }
+.tk-moves-group { display: grid; gap: 1cqw; }
+.tk-moves-group > b { font-size: max(6px, 2.9cqw); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--m4); }
+.tk-moves-list { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2cqw 3cqw; }
+.tk-move { display: grid; min-width: 0; line-height: 1.15; }
+.tk-move span { font-size: max(6px, 2.8cqw); color: rgb(255 255 255 / 0.62); }
+.tk-move b { overflow: hidden; font-size: max(7px, 3.5cqw); white-space: nowrap; text-overflow: ellipsis; }
 .tk-chip.picked { text-decoration: underline; text-underline-offset: 0.25em; color: #fff; }
 .tk-chip[data-level="personality"], .tk-badge-info[data-level="personality"] { --lv-hi: #a6ecff; --lv-lo: #2a7fa6; }
 .tk-allbadges-tiers { display: flex; flex-wrap: wrap; align-items: center; gap: 0.8cqw 2.2cqw; }

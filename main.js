@@ -175,6 +175,7 @@ function updateLightWalls() {
       [...items].forEach((item, i) => item.classList.toggle("lit", i < lit));
       if (words.board && !words.board.dataset.replaying) {
         words.board.querySelectorAll(".play-set.active .play-step").forEach((step, i) => step.classList.toggle("on", i < lit));
+        if (words.board.narrate) words.board.narrate(lit - 1);
       }
     });
   });
@@ -755,15 +756,31 @@ const BUILD_GROUPS = [
 // first name sitting on top of the banner, and the position.
 const POSITIONS = { PG: "Point Guard", SG: "Shooting Guard", SF: "Small Forward", PF: "Power Forward", C: "Center" };
 
-// badges on slanted tags (three at most)
-function cardBadges(c) {
+// My own icons for the badge groups (drawn here, not 2K's art), set in the
+// level's hexagon: a ball over the rim, a target, a dribble, a shield, a
+// ball going up for the board, a star
+const BADGE_ICONS = {
+  Finishing: '<circle cx="12" cy="7.5" r="4"/><path d="M4 14h16M7 14l2 6M17 14l-2 6M12 14v6"/>',
+  Shooting: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.6"/><path d="M12 12h.01"/>',
+  Playmaking: '<path d="M3 18l4.5-9 4.5 9 4.5-9"/><path d="M14.5 6H19v4.5"/>',
+  Defense: '<path d="M12 3l7 3v5c0 4.6-3 8-7 10-4-2-7-5.4-7-10V6z"/>',
+  Rebounding: '<circle cx="12" cy="15.5" r="5"/><path d="M12 10.5V3M8.5 6.5 12 3l3.5 3.5"/>',
+  Personality: '<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4l-5.3 3 1.2-6-4.5-4.1 6-.7z"/>'
+};
+const badgeIcon = (group) => (BADGE_ICONS[group] ? `<svg viewBox="0 0 24 24" aria-hidden="true">${BADGE_ICONS[group]}</svg>` : "");
+
+// badges on slanted tags (three at most); with `groups` (a badge's name to
+// its group), each gets its group's icon
+function cardBadges(c, groups = {}) {
   const badges = el("span", "tk-badges");
   (c.badges || []).slice(0, 3).forEach(([name, level], i) => {
     const badge = el("span", "tk-badge");
     badge.dataset.level = String(level).toLowerCase();
     badge.style.setProperty("--b", i); // (Legend badges shine one after another)
     const label = el("span", "tk-badge-label");
-    label.append(el("i"), el("span", "tk-badge-name", name), el("span", "tk-level", level));
+    const icon = el("i");
+    icon.innerHTML = badgeIcon(groups[name]);
+    label.append(icon, el("span", "tk-badge-name", name), el("span", "tk-level", level));
     badge.appendChild(label);
     badges.appendChild(badge);
   });
@@ -863,15 +880,17 @@ function careerCard(c, w, extra) {
     const info = el("span", "tk-badge-info");
     info.append(tiers, el("span", "tk-badge-info-hint", canHover ? "Point at a badge for what it does" : "Tap a badge for what it does"));
     all.appendChild(info);
-    const show = (chip, name, level, what) => {
+    const show = (chip, name, level, what, group) => {
       all.querySelectorAll(".tk-chip.picked").forEach((c) => c.classList.remove("picked"));
       chip.classList.add("picked");
       info.textContent = "";
       info.classList.add("on");
+      const emblem = el("span", "tk-badge-emblem");
+      emblem.innerHTML = badgeIcon(group);
       const title = el("b", "", name);
       title.appendChild(el("span", "", level));
       info.dataset.level = level.toLowerCase();
-      info.append(title, el("span", "", what || ""));
+      info.append(emblem, title, el("span", "", what || ""));
     };
     c.allBadges.forEach(([group, list]) => {
       const row = el("span", "tk-allbadges-group");
@@ -882,11 +901,11 @@ function careerCard(c, w, extra) {
         chip.append(el("i"), document.createTextNode(name));
         if (what) {
           chip.classList.add("has-info");
-          if (canHover) onHover(chip, () => show(chip, name, level, what));
+          if (canHover) onHover(chip, () => show(chip, name, level, what, group));
           chip.addEventListener("click", (e) => {
             e.preventDefault();
             e.stopPropagation();
-            show(chip, name, level, what);
+            show(chip, name, level, what, group);
           });
         }
         chips.appendChild(chip);
@@ -895,10 +914,27 @@ function careerCard(c, w, extra) {
       all.appendChild(row);
     });
   }
+  // the fourth: my moves, the animations picked in MyCAREER, by group
+  const moves = el("span", "tk-moves");
+  (c.moves || []).forEach(([group, list]) => {
+    const block = el("span", "tk-moves-group");
+    const grid = el("span", "tk-moves-list");
+    list.forEach(([what, who]) => {
+      const move = el("span", "tk-move");
+      move.append(el("span", "", what), el("b", "", who));
+      grid.appendChild(move);
+    });
+    block.append(el("b", "", group), grid);
+    moves.appendChild(block);
+  });
+  // (each of the three badges up front gets its group's icon)
+  const groups = {};
+  (c.allBadges || []).forEach(([group, list]) => list.forEach(([name]) => (groups[name] = group)));
   const ui = el("span", "tk-ui");
   ui.append(top, ovr, face, el("span", "tk-career-name", c.player || ""), el("span", "tk-career-arch", c.archetype || ""), el("span", "tk-career-size", c.size || ""),
-    el("span", "tk-career-pos", POSITIONS[pos] || pos), cardBadges(c), stats);
+    el("span", "tk-career-pos", POSITIONS[pos] || pos), cardBadges(c, groups), stats);
   if (c.allBadges) ui.appendChild(all);
+  if (c.moves) ui.appendChild(moves);
   card.appendChild(ui);
   return card;
 }
@@ -1226,20 +1262,45 @@ function playBoard() {
   replay.setAttribute("aria-label", "Replay the play");
   replay.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.2 8.6A5.3 5.3 0 1 1 11.6 4.4"/><path d="M12.4 1.6v3.3H9.1"/></svg><span>Replay</span>';
   board.appendChild(replay);
+  // a line under the court saying what the step just drawn is
+  const CAPTIONS = {
+    "back-door": ["The 4 on the wing, the 1 up top with the ball", "His man overplays the pass", "A fake out, then the cut behind him; the 1 bounces it in", "Drop step, spin to the rim: and one"],
+    horns: ["Horns: the 4 and 5 at the elbows, shooters in the corners", "The 4's man sags off into the paint", "The 4 steps up and screens; the 1 comes off it", "The 4 pops behind the arc, catches and lets it fly"],
+    post: ["Five out: everyone on the arc, the 4 on the wing", "His man plays him tight", "The 4 dives and seals, the 5 lifts; 1 to 5 to the post", "Drop step spin: and one"]
+  };
+  const caption = el("p", "play-caption");
+  caption.setAttribute("aria-live", "polite");
+  board.narrate = (k) => {
+    const play = board.querySelector(".play-set.active");
+    const lines = CAPTIONS[play && play.dataset.play] || [];
+    caption.textContent = k >= 0 && lines[k] ? `${k + 1}/${lines.length}  ${lines[k]}` : "";
+  };
   let replaying = 0;
-  const again = () => {
+  // `slow`: the same, at well under half speed, so each step can be read
+  const again = (slow = false) => {
     const run = ++replaying;
+    const pace = slow === true ? 2.4 : 1;
     const steps = [...board.querySelectorAll(".play-set.active .play-step")];
     board.dataset.replaying = "1";
     board.classList.add("resetting");
+    board.classList.toggle("slow", pace > 1);
     steps.forEach((step) => step.classList.remove("on"));
+    board.narrate(-1);
     void board.offsetWidth; // the wipe is instant, then it draws again
     board.classList.remove("resetting");
     const at = [250, 950, 1650, 3300];
-    steps.forEach((step, i) => setTimeout(() => run === replaying && step.classList.add("on"), at[i] ?? 250 + i * 900));
-    setTimeout(() => run === replaying && delete board.dataset.replaying, 4600);
+    steps.forEach((step, i) => setTimeout(() => {
+      if (run !== replaying) return;
+      step.classList.add("on");
+      board.narrate(i);
+    }, (at[i] ?? 250 + i * 900) * pace));
+    setTimeout(() => {
+      if (run !== replaying) return;
+      delete board.dataset.replaying;
+      board.classList.remove("slow");
+    }, 4600 * pace);
   };
-  board.addEventListener("click", again);
+  board.addEventListener("click", () => again());
   // the plays, under the board: pick one and it draws from the start
   const tabs = el("div", "play-tabs");
   const select = (key) => {
@@ -1261,7 +1322,15 @@ function playBoard() {
     });
     tabs.appendChild(tab);
   });
-  board.appendChild(tabs);
+  // slow motion: the play again at a walk, a caption for each step
+  const slow = el("button", "play-tab play-slow mono", "Slow-mo");
+  slow.type = "button";
+  slow.addEventListener("click", (e) => {
+    e.stopPropagation();
+    again(true);
+  });
+  tabs.appendChild(slow);
+  board.append(caption, tabs);
   // (a word on the wall calls up its play; the one already up stays put)
   board.pick = (key) => {
     const current = board.querySelector(".play-set.active");
@@ -1425,21 +1494,24 @@ function playBoard() {
     // follows the link).
     const has2K = Boolean(w.card || w.cards);
     const layers = has2K && item.querySelector(".tk-layer");
-    // (my own card has a third layer: every badge of the build)
-    const LAYERS = item.querySelector(".tk-allbadges") ? ["", "layer-stats", "layer-all"] : ["", "layer-stats"];
-    const TABS = LAYERS.length > 2 ? ["Attributes", "All badges", "Card"] : ["Attributes", "Badges"];
+    // the card's sides, one after another on the tab: the card, attributes,
+    // and on my own card every badge and my moves. The tab names the next.
+    const SIDES = [["", "Badges"], ["layer-stats", "Attributes"]];
+    if (item.querySelector(".tk-allbadges")) SIDES.push(["layer-all", "All badges"]);
+    if (item.querySelector(".tk-moves")) SIDES.push(["layer-moves", "Moves"]);
+    if (SIDES.length > 2) SIDES[0][1] = "Card";
     const setLayer = (k) => {
-      item.classList.remove("layer-stats", "layer-all");
-      if (LAYERS[k]) item.classList.add(LAYERS[k]);
-      if (layers) layers.textContent = TABS[k];
+      SIDES.forEach(([cls]) => cls && item.classList.remove(cls));
+      if (SIDES[k][0]) item.classList.add(SIDES[k][0]);
+      if (layers) layers.textContent = SIDES[(k + 1) % SIDES.length][1];
     };
     const firstLayer = () => setLayer(0);
     if (layers) {
       layers.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        const now = item.classList.contains("layer-all") ? 2 : item.classList.contains("layer-stats") ? 1 : 0;
-        setLayer((now + 1) % LAYERS.length);
+        const now = Math.max(0, SIDES.findIndex(([cls]) => cls && item.classList.contains(cls)));
+        setLayer((now + 1) % SIDES.length);
         packSound("tab");
       });
     }
@@ -1478,7 +1550,7 @@ function playBoard() {
         if (words.classList.contains("packed")) return e.preventDefault();
         if (turned && w.link) return;
         e.preventDefault();
-        words.querySelectorAll(".flipped").forEach((c) => c.classList.remove("flipped", "layer-stats", "layer-all", "tilting"));
+        words.querySelectorAll(".flipped").forEach((c) => c.classList.remove("flipped", "layer-stats", "layer-all", "layer-moves", "tilting"));
         item.classList.toggle("flipped", !turned);
         firstLayer();
         if (!turned) phoneTilt(); // the turned card leans as the phone tilts
