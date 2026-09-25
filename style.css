@@ -1127,6 +1127,10 @@ button { font: inherit; color: inherit; }
 }
 .tk-emblem b {
   position: relative;
+  /* (room for the italic's lean: the metal is only painted inside the box,
+     so the last 9 lost its right edge; the margins keep it centred) */
+  padding: 0 0.14em;
+  margin: 0 -0.14em;
   font-weight: 800;
   font-style: italic;
   font-size: 12cqw;
@@ -1240,6 +1244,38 @@ button { font: inherit; color: inherit; }
   border-radius: 1px;
   background: linear-gradient(90deg, var(--m3), var(--m1)) 0 0 / calc(var(--v, 0) * 100%) 100% no-repeat, rgb(255 255 255 / 0.14);
 }
+/* the whole build (a card's `build`), over the key numbers: a bar for every
+   rating, in 2K26's attribute groups and colours, rising one after another
+   as the tab turns to Attributes (hover a bar for its name and rating) */
+.tk-build { display: flex; gap: 1.6cqw; margin-bottom: 0.6cqw; }
+.tk-build-group { flex: var(--n) 1 0; display: grid; gap: 0.8cqw; min-width: 0; }
+.tk-build-bars { display: flex; align-items: flex-end; gap: 0.5cqw; height: 16cqw; }
+.tk-build-bars i {
+  flex: 1;
+  height: calc(var(--v) * 100%);
+  border-radius: 0.4cqw 0.4cqw 0 0;
+  background: linear-gradient(var(--c), color-mix(in srgb, var(--c) 50%, #000));
+  box-shadow: 0 0 0.9cqw color-mix(in srgb, var(--c) 45%, transparent);
+  transform: scaleY(0);
+  transform-origin: bottom;
+  transition: transform 0.5s var(--ease-out) calc(var(--k) * 16ms);
+}
+.layer-stats .tk-build-bars i { transform: none; pointer-events: auto; }
+.tk-build-group b {
+  font-size: max(6px, 2.6cqw);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--c);
+}
+/* (on small cards the numbers under it take more room: shorter bars, no
+   group names, and it stays clear of the switch) */
+@container (max-width: 190px) {
+  .tk-build-group b { display: none; }
+  .tk-build-bars { height: 11cqw; }
+}
+@media (prefers-reduced-motion: reduce) { .tk-build-bars i { transition: none; } }
 /* the name: a black banner across the bottom, running past the frame, with
    the jersey number, the last name big in the tier's metal and the
    position; the first name sits on top of it */
@@ -1281,7 +1317,7 @@ button { font: inherit; color: inherit; }
 }
 .tk-last {
   min-width: 0;
-  padding-right: 1cqw;
+  padding-right: 0.14em; /* (the italic's lean, as on the overall) */
   font-weight: 800;
   font-style: italic;
   font-size: 15.5cqw;
@@ -1309,6 +1345,7 @@ button { font: inherit; color: inherit; }
   left: 5cqw;
   bottom: 24.6cqw;
   z-index: 4;
+  padding-right: 0.14em;
   font-weight: 800;
   font-style: italic;
   font-size: 9.4cqw;
@@ -1368,10 +1405,7 @@ button { font: inherit; color: inherit; }
 /* (the tab lifts with them; the nudge in cancels the drift its depth adds
    away from the card's middle) */
 .ww-card.flipped.tilting .tk-layer { transform: translate3d(-1.4cqw, 1.65cqw, 40px) scale(0.96); }
-/* (in a stack the card behind sits a little further back, or it would draw
-   over the front one: z-index doesn't count in 3D) */
-.ww-card.flipped.tilting .tk-stack:not(.swap) .tk-alt,
-.ww-card.flipped.tilting .tk-stack.swap .tk:not(.tk-alt) { translate: 0 0 -10px; }
+.ww-card.flipped.tilting .tk-switch { transform: translate3d(-1.4cqw, 1.22cqw, 40px) scale(0.96); }
 
 /* The tab switching badges and attributes: it looks small, but it takes
    clicks from a good way around it */
@@ -1392,16 +1426,59 @@ button { font: inherit; color: inherit; }
   cursor: pointer;
   transition: background-color 0.2s ease, transform 0.5s var(--ease-out);
 }
-.tk-layer::after { content: ""; position: absolute; inset: -12px -14px; }
+.tk-layer::after { content: ""; position: absolute; inset: -12px -14px -5px; }
 @media (hover: hover) and (pointer: fine) { .tk-layer:hover { background: color-mix(in srgb, var(--glow) 35%, rgb(6 7 10)); } }
 
-/* Co-starters: two cards stacked, the one behind peeking out at the top
-   right (a little darker); the names under them choose which is in front */
-.tk-stack .tk { inset: 4cqw 5cqw 0 0; }
+/* Co-starters: two cards in one spot, the one behind out of sight. The
+   switch (or the names under the card) shuffles them: the front card slides
+   out to the right and tucks in behind as the other comes forward. (The
+   depth in the keyframes keeps the order right while the card leans in 3D.) */
 .tk-stack .tk-alt,
-.tk-stack.swap .tk:not(.tk-alt) { z-index: 0; transform: translate(5cqw, -4cqw) rotate(3.5deg); filter: brightness(0.6) saturate(0.85); cursor: pointer; }
+.tk-stack.swap .tk:not(.tk-alt) { z-index: 0; visibility: hidden; }
 .tk-stack .tk:not(.tk-alt),
-.tk-stack.swap .tk-alt { z-index: 1; transform: none; filter: none; cursor: auto; }
+.tk-stack.swap .tk-alt { z-index: 1; visibility: visible; }
+.tk-stack.shuffle .tk,
+.tk-stack.shuffle.swap .tk:not(.tk-alt) { visibility: visible; }
+.tk-stack.shuffle.swap .tk:not(.tk-alt),
+.tk-stack.shuffle:not(.swap) .tk-alt { animation: stack-out 0.55s var(--ease-in-out) both; }
+.tk-stack.shuffle.swap .tk-alt,
+.tk-stack.shuffle:not(.swap) .tk:not(.tk-alt) { animation: stack-in 0.55s var(--ease-out) both; }
+@keyframes stack-out {
+  0% { z-index: 1; transform: translateZ(1px); }
+  45% { z-index: 1; transform: translate3d(28cqw, -3cqw, 1px) rotate(8deg); }
+  55% { z-index: 0; transform: translate3d(28cqw, -3cqw, -2px) rotate(8deg); filter: brightness(0.6); }
+  100% { z-index: 0; transform: translateZ(-2px); filter: brightness(0.6); }
+}
+@keyframes stack-in {
+  from { transform: scale(0.94); filter: brightness(0.6); }
+  to { transform: none; filter: none; }
+}
+/* the switch between them, under the tab: it names the card behind */
+.tk-switch {
+  position: absolute;
+  top: 35cqw;
+  right: 6.5cqw;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 1.2cqw;
+  padding: 0.6cqw 2.2cqw 0.6cqw 1.6cqw;
+  border: 1px solid color-mix(in srgb, var(--glow) 70%, transparent);
+  border-radius: 999px;
+  background: rgb(6 7 10 / 0.75);
+  font-family: var(--cond);
+  font-weight: 700;
+  font-size: max(7px, 3.6cqw);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.5s var(--ease-out);
+}
+.tk-switch svg { width: 1.25em; height: 1.25em; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.tk-switch::after { content: ""; position: absolute; inset: -5px -14px -10px; } /* (not over the tab's) */
+@media (hover: hover) and (pointer: fine) { .tk-switch:hover { background: color-mix(in srgb, var(--glow) 35%, rgb(6 7 10)); } }
+.packed .tk-side > .tk-switch { visibility: hidden; }
+@media (prefers-reduced-motion: reduce) { .tk-stack.shuffle .tk { animation: none; } }
 .ww-choose { cursor: pointer; transition: color 0.2s ease; }
 .ww-choose.chosen { color: var(--fg); }
 

@@ -27,7 +27,7 @@ Built with plain HTML, CSS and JavaScript, plus [Lenis](https://github.com/darkr
 - **Intro**: my name with four of my photos around it, what I do, and where I'm based, with a small **New** pill over my name for what's just been added. The first visit in a session opens on an "RM." curtain.
 - **01 About**: who I am, what I'm up to right now, the names people call me, and the story so far, from the pandemic days to Malolos Rush.
 - **02 Crafts**: things I've made, from my memory videos and the Cheesy Potato Balls poster to The Hive Kiosk and Malolos Rush. Hover a row for a preview.
-- **03 Off the clock**: my hobbies; my IM BUSY playlist and current pick, spinning on a record; how I play (On the court, drawn on a coach's board); my all-time starting five as NBA 2K26 MyTEAM cards, plus my own card off the bench; and Sova, the agent I main.
+- **03 Off the clock**: my hobbies; my IM BUSY playlist and current pick, spinning on a record; how I play (On the court, drawn on a coach's board); my all-time starting five as NBA 2K26 MyTEAM cards; and Sova, the agent I main.
 - **04 What I believe**: the things I live by, and my motto: focus on what I can control.
 - **05 Watch Me**: my YouTube and TikTok clips, opening on a fan of their covers.
 - **06 Snapshots**: photos I kept, each with a caption and a story, in a full-screen viewer.
@@ -35,9 +35,9 @@ Built with plain HTML, CSS and JavaScript, plus [Lenis](https://github.com/darkr
 
 ## Things to try
 
-![My starting five as NBA 2K26 cards, Rondo, Kobe, Jordan, LeBron and Yao, plus my own Sixth Man card](assets/readme/cards.jpg)
+![My starting five as NBA 2K26 cards: Rondo, Kobe, Jordan, LeBron and Yao](assets/readme/cards.jpg)
 
-- Hover a starting-five photo (tap it on a phone) to turn it into its 2K card. The first time, the cards open like a pack, walkouts and all; **Open the pack again** replays it. The tab on a card switches its badges and attributes, and the names under Yao / Shaq pick who's in front.
+- Hover a starting-five photo (tap it on a phone) to turn it into its 2K card. The first time, the cards open like a pack, walkouts and all; **Open the pack again** replays it. The tab on a card switches its badges and its attributes (the whole build, like 2K26's upgrade screen), and the switch on Yao's card brings Shaq in front. The biggest pulls bring the crowd up.
 - Move the mouse around a turned card (or tilt your phone) and its layers come apart like a holo card.
 - Click **Sova**, then **LOCK IN**.
 - With Sova's wall on screen, press **Q**, **E**, **C** and **X** for his abilities, like in the game. Hunter's Fury needs its ult points first.
@@ -67,7 +67,7 @@ To publish, commit and push to `main`. GitHub Pages redeploys in about a minute.
 - `assets/gallery/` holds the Snapshots gallery: each photo at 400, 800 and 1600 px (the page loads the small ones in the grid and the 1600 px one only when a photo is opened). Captions and order live in `gallery` in `content.js`.
 - Edited a photo in Lightroom? Export a full-size JPEG into `images/` and re-crop it, or export straight to the matching file in `assets/` at the same size (`me-shop.jpg` 480×640, `me-cafe.jpg` 480×600, `me-camera.jpg` 480×480, `me-sofa.jpg` 640×480).
 - `assets/aka/` holds the photos on the Also known as wall.
-- `assets/five/` holds the starting-five photos (480×640), and mine for my own card. `assets/five/cut/` holds the players (and me) cut out for the 2K cards: 600×800 transparent WebP in the card's shape, framed so a head, a hand or the ball breaks over the card's top edge (`cut` in `content.js`).
+- `assets/five/` holds the starting-five photos (480×640), and mine for my own card (off the page for now). `assets/five/cut/` holds the players (and me) cut out for the 2K cards: 600×800 transparent WebP in the card's shape, framed so a head, a hand or the ball breaks over the card's top edge (`cut` in `content.js`).
 - `assets/youtube/` and `assets/tiktok/` hold the designed video covers (720×1280, plus light `-480` copies for the Watch Me fan). The full-size 1080×1920 covers are in `exports/`. TikTok's own thumbnail links expire, so each TikTok clip also keeps its original thumbnail here, named after its video ID.
 - `assets/valorant/` holds Sova's art, icon and ability icons (from [valorant-api.com](https://valorant-api.com)). Riot's fan-content notice has to stay under the Agents I main wall while they're used.
 - `assets/audio/` holds the Sova sounds. Every sound on the main page plays through one mixer that evens out their volume, and the Sound switch on Sova's wall mutes them all (Airball has its own switch). The click, whoosh and 2K pack sounds are made in code, so they have no files.
@@ -85,8 +85,8 @@ These folders stay on my PC (they're in `.gitignore`): `images/` (original photo
 
 ## Credits
 
-- The Yao Ming and Shaquille O'Neal photos are from Wikimedia Commons under Creative Commons licences, credited under their walls on the site. Their crops and cut-outs here are shared under the same licences.
-- The Rondo, Kobe, MJ, LeBron and Wemby photos belong to their photographers.
+- The Yao Ming photos are from Wikimedia Commons under Creative Commons licences, credited under their walls on the site. Their crops and cut-outs here are shared under the same licences.
+- The Rondo, Kobe, MJ, LeBron, Shaq and Wemby photos belong to their photographers.
 - Sova's art and icons belong to Riot Games and are used under Riot's fan-content policy.
 - The 2K cards are fan-made, in the style of NBA 2K26's MyTEAM cards.
 - Fonts: Instrument Serif, Geist, Geist Mono and Barlow Condensed, from Google Fonts. Videos and music play in YouTube's, TikTok's and Spotify's own players.

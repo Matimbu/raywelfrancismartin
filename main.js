@@ -713,6 +713,17 @@ function cardSparks(seed) {
     `<g class="tk-glitter">${dots}</g><g class="tk-bolt-glow">${bolts}</g><g class="tk-bolt">${bolts}</g></svg>`;
 }
 
+// The groups on 2K26's attribute upgrades screen, in its order and colours;
+// a card's `build` lists its 21 ratings in this order (or one number for all)
+const BUILD_GROUPS = [
+  ["Fin", "#3b8cff", ["Close Shot", "Driving Layup", "Driving Dunk", "Standing Dunk", "Post Control"]],
+  ["Sht", "#35c46f", ["Mid-Range Shot", "Three-Point Shot", "Free Throw"]],
+  ["Ply", "#ff8a2c", ["Pass Accuracy", "Ball Handle", "Speed with Ball"]],
+  ["Def", "#ff3d52", ["Interior Defense", "Perimeter Defense", "Steal", "Block"]],
+  ["Reb", "#8a63ff", ["Offensive Rebound", "Defensive Rebound"]],
+  ["Phy", "#e2aa84", ["Speed", "Agility", "Strength", "Vertical"]]
+];
+
 // One card: a glowing frame (notched at the top right) with glitter and
 // lightning, the player cut out of his photo and standing in front of it,
 // breaking over its top, the overall in a big hexagon breaking out of the top
@@ -754,6 +765,30 @@ function twoKCard(c, w, extra = "") {
     badges.appendChild(badge);
   });
   const stats = el("span", "tk-stats");
+  // `build`: the whole build over the key numbers, a bar for every rating in
+  // the groups and colours of 2K26's attribute upgrades screen (rising as the
+  // tab turns to Attributes)
+  if (c.build != null) {
+    const chart = el("span", "tk-build");
+    let k = 0;
+    BUILD_GROUPS.forEach(([group, color, names]) => {
+      const column = el("span", "tk-build-group");
+      column.style.setProperty("--c", color);
+      column.style.setProperty("--n", names.length);
+      const bars = el("span", "tk-build-bars");
+      names.forEach((name) => {
+        const value = Array.isArray(c.build) ? c.build[k] : c.build;
+        const bar = el("i");
+        bar.style.setProperty("--v", (Math.max(0, Math.min(99, value)) / 99).toFixed(3));
+        bar.style.setProperty("--k", k++);
+        bar.title = `${name} ${value}`;
+        bars.appendChild(bar);
+      });
+      column.append(bars, el("b", "", group));
+      chart.appendChild(column);
+    });
+    stats.appendChild(chart);
+  }
   (c.stats || []).slice(0, 4).forEach(([name, value]) => {
     const row = el("span", "tk-stat");
     row.style.setProperty("--v", (value / 100).toFixed(2));
@@ -808,9 +843,10 @@ function packFace(w, c) {
   return pack;
 }
 
-// The back of a starting-five photo: its card (or two, stacked, for
-// co-starters), the tab that switches the badges and the attributes, and the
-// pack's face-down side
+// The back of a starting-five photo: its card (or two, one behind the other,
+// for co-starters, with a switch between them), the tab that switches the
+// badges and the attributes, and the pack's face-down side
+const SWITCH_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h14l-3.5-3.5M20 16H6l3.5 3.5"/></svg>';
 function twoKSide(w) {
   const list = (w.cards || [w.card]).slice(0, 2);
   const side = el("span", "flip-face tk-side");
@@ -819,6 +855,13 @@ function twoKSide(w) {
   if (list.length > 1) side.classList.add("tk-stack");
   list.forEach((c, i) => side.appendChild(twoKCard(c, w, i ? "tk-alt" : "")));
   if (list.some((c) => c.stats && c.stats.length)) side.appendChild(el("span", "tk-layer", "Attributes"));
+  if (list.length > 1) {
+    // the switch names the card behind: tap it to bring that one in front
+    const toggle = el("span", "tk-switch");
+    toggle.innerHTML = SWITCH_ICON;
+    toggle.appendChild(el("span", "", list[1].short || ""));
+    side.appendChild(toggle);
+  }
   side.appendChild(packFace(w, list[0]));
   return side;
 }
@@ -1036,6 +1079,7 @@ function playBoard() {
   const cards = wall.layout === "cards";
   if (cards) block.classList.add("cards");
   wall.words.forEach((w, i) => {
+    if (w.hidden) return; // (kept in content.js, off the page for now)
     const kind = cards ? "ww-card" : w.top ? "ww ww-top" : "ww";
     const item = el(w.link ? "a" : "span", `${kind} reveal`);
     linkify(item, w.link);
@@ -1189,7 +1233,7 @@ function playBoard() {
         item.addEventListener("mousemove", (e) => {
           if (!item.classList.contains("flipped")) return;
           // hold still over the tab, so it doesn't move away from the cursor
-          if (e.target.closest(".tk-layer")) return;
+          if (e.target.closest(".tk-layer, .tk-switch")) return;
           const r = item.querySelector(".ww-card-img").getBoundingClientRect();
           const x = clamp01((e.clientX - r.left) / r.width) - 0.5;
           const y = clamp01((e.clientY - r.top) / r.height) - 0.5;
@@ -1211,17 +1255,35 @@ function playBoard() {
         if (!turned) phoneTilt(); // the turned card leans as the phone tilts
       });
     }
-    // A stack: hovering a name under it (or tapping it) brings that card to
-    // the front, and so does clicking the card peeking out behind
+    // A stack: the switch on the card (or hovering or tapping a name under
+    // it) shuffles the other card to the front: the one in front slides out
+    // and tucks in behind as the other comes forward
     if (w.cards && w.cards.length > 1) {
       const side = item.querySelector(".tk-side");
+      const toggle = side.querySelector(".tk-switch");
+      let shuffling = 0;
       const choose = (k) => {
         const swap = k === 1;
         item.querySelectorAll(".ww-choose").forEach((n) => n.classList.toggle("chosen", Number(n.dataset.k) === k));
         if (side.classList.contains("swap") === swap) return;
         side.classList.toggle("swap", swap);
+        side.dataset.tier = tierKey(w.cards[k].tier);
+        toggle.lastChild.textContent = w.cards[1 - k].short || "";
+        if (!reduceMotion) {
+          side.classList.remove("shuffle");
+          void side.offsetWidth; // (so a quick second switch replays it)
+          side.classList.add("shuffle");
+          clearTimeout(shuffling);
+          shuffling = setTimeout(() => side.classList.remove("shuffle"), 600);
+        }
         packSound("tab");
       };
+      toggle.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (words.classList.contains("packed")) return;
+        choose(side.classList.contains("swap") ? 0 : 1);
+      });
       item.querySelectorAll(".ww-choose").forEach((name) => {
         const k = Number(name.dataset.k);
         if (canHover) onHover(name, () => !words.classList.contains("packed") && choose(k));
@@ -1236,13 +1298,6 @@ function playBoard() {
           }
         });
       });
-      side.querySelectorAll(".tk").forEach((card, k) => card.addEventListener("click", (e) => {
-        const behind = side.classList.contains("swap") ? k === 0 : k === 1;
-        if (!behind || !item.classList.contains("flipped")) return;
-        e.preventDefault();
-        e.stopPropagation();
-        choose(k);
-      }));
     }
     if (w.desc) item.dataset.desc = w.desc;
     if (w.stat) item.dataset.stat = w.stat;
@@ -3113,8 +3168,8 @@ function uiSound(kind) {
 // card turning is a whoosh, a snap and a thud; and what's revealed lands with
 // a boom and a brass "braam" chord that grows with the tier (bright for the
 // G.O.A.T., dark and low for Dark Matter, airy for Galaxy Opal and Pink
-// Diamond, and for Invincible an electric crackle on top). Off with the
-// sound switch.
+// Diamond, and for Invincible an electric crackle on top; the G.O.A.T. and
+// Invincible pulls bring the crowd up). Off with the sound switch.
 function packSound(kind, opts = {}) {
   const ctx = audio();
   if (!ctx) return;
@@ -3238,6 +3293,70 @@ function packSound(kind, opts = {}) {
     // Invincible crackles with electricity
     if (tier === "invincible") {
       for (let k = 0; k < 8; k++) noise(t + 0.05 + k * 0.07 + Math.random() * 0.03, 0.04, 2600, 4200, 0.16, "bandpass", 2, 0.003);
+    }
+    // the biggest pulls bring the crowd up, like a green from deep in Airball
+    if (tier === "goat" || tier === "invincible") crowd(t + 0.12, 0.8);
+    else if (tier === "sixth-man") crowd(t + 0.12, 1); // (my own card: the home crowd)
+  }
+
+  // A crowd: two broad rushes of noise, left and right, shaped by three
+  // vowel-like bands that drift, a few whistles and scattered claps; it
+  // swells, holds and fades (the same crowd as the Airball page's)
+  function crowd(at, level) {
+    const whole = 2.4;
+    const bus = ctx.createGain();
+    bus.gain.setValueAtTime(0.0001, at);
+    bus.gain.exponentialRampToValueAtTime(0.6 * level, at + 0.35);
+    bus.gain.setValueAtTime(0.6 * level, at + 1);
+    bus.gain.exponentialRampToValueAtTime(0.0001, at + whole);
+    bus.connect(out);
+    [-0.6, 0.6].forEach((pan) => {
+      const n = hiss(whole);
+      const place = ctx.createStereoPanner ? ctx.createStereoPanner() : ctx.createGain();
+      if (place.pan) place.pan.value = pan;
+      [[480, 1.2, 0.5], [1150, 1.4, 0.34], [2600, 2, 0.16]].forEach(([hz, q, gain]) => {
+        const band = ctx.createBiquadFilter();
+        band.type = "bandpass";
+        band.Q.value = q;
+        band.frequency.setValueAtTime(hz, at);
+        band.frequency.linearRampToValueAtTime(hz * (1.1 + Math.random() * 0.15), at + 0.9);
+        band.frequency.linearRampToValueAtTime(hz * (0.92 + Math.random() * 0.1), at + whole);
+        const g = ctx.createGain();
+        g.gain.value = gain;
+        n.connect(band).connect(g).connect(place);
+      });
+      place.connect(bus);
+      n.start(at);
+      n.stop(at + whole);
+    });
+    for (let k = 0; k < 3; k++) {
+      const whistle = ctx.createOscillator();
+      const g = ctx.createGain();
+      const start = at + 0.15 + Math.random() * 0.8;
+      const hz = 2100 + Math.random() * 900;
+      whistle.frequency.setValueAtTime(hz, start);
+      whistle.frequency.linearRampToValueAtTime(hz * 1.18, start + 0.18);
+      whistle.frequency.linearRampToValueAtTime(hz * 0.95, start + 0.42);
+      g.gain.setValueAtTime(0.0001, start);
+      g.gain.exponentialRampToValueAtTime(0.035, start + 0.05);
+      g.gain.exponentialRampToValueAtTime(0.0001, start + 0.45);
+      whistle.connect(g).connect(bus);
+      whistle.start(start);
+      whistle.stop(start + 0.5);
+    }
+    for (let k = 0; k < 16; k++) {
+      const clap = ctx.createBufferSource();
+      const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * 0.03), ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+      clap.buffer = buf;
+      const band = ctx.createBiquadFilter();
+      band.type = "bandpass";
+      band.frequency.value = 1300 + Math.random() * 900;
+      const g = ctx.createGain();
+      g.gain.value = 0.1 + Math.random() * 0.12;
+      clap.connect(band).connect(g).connect(bus);
+      clap.start(at + 0.2 + Math.random() * 1.6);
     }
   }
 }
@@ -4429,7 +4548,7 @@ if (reduceMotion) {
 // ease-out, 0.97 for controls, less for big surfaces)
 const PRESSABLE = ".lock-in-btn, .kit-slot, .agent-voice, .lb-btn, .lb-play, .header-link, .channel-visit, " +
   ".sound-switch, .story-photo, button.ww-spec, .theme-toggle, .ult-button, .video-row, .thumb, .shot, .shot-more, " +
-  ".peek-more, .peek-less, .peek-card, .craft-row, .link, .shot-meter, .play-replay, .pack-again";
+  ".peek-more, .peek-less, .peek-card, .craft-row, .link, .shot-meter, .play-replay, .pack-again, .tk-switch, .recent";
 if (!reduceMotion) {
   document.addEventListener("pointerdown", (e) => {
     if (e.button > 0) return;

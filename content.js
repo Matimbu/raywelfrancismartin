@@ -25,7 +25,6 @@ const SITE = {
   // new since their last visit; anything older than 30 days never shows.
   // `href` is a spot on the page (#five, #court, #channels...) or a page.
   recent: [
-    { date: "2026-09-25", text: "My own 2K card, off the bench", href: "#five" },
     { date: "2026-09-25", text: "2K26 cards for my starting five", href: "#five" },
     { date: "2026-09-24", text: "Airball, a basketball game", href: "airball" },
     { date: "2026-09-24", text: "Covers for my clips", href: "#channels" }
@@ -90,8 +89,14 @@ const SITE = {
   // `num`, a `pos` for the card if it isn't the word's, three `badges`, each
   // [name, level] with the level "Legend", "HOF", "Gold", "Silver" or
   // "Bronze", and four `stats`, each [attribute, rating] (the card's second
-  // layer; the best one is the last clue of its walkout). `id` gives a wall
-  // an address on the page (#five). `cut` is the player cut out of a photo
+  // layer; the best one is the last clue of its walkout). `build` puts the
+  // whole build over those, a bar per rating like 2K26's attribute upgrades
+  // screen: 21 ratings in its order (Close Shot, Driving Layup, Driving Dunk,
+  // Standing Dunk, Post Control, Mid-Range, Three-Point, Free Throw, Pass
+  // Accuracy, Ball Handle, Speed with Ball, Interior D, Perimeter D, Steal,
+  // Block, Off. Rebound, Def. Rebound, Speed, Agility, Strength, Vertical), or
+  // one number for all of them. `hidden: true` keeps a card off the page.
+  // `id` gives a wall an address on the page (#five). `cut` is the player cut out of a photo
   // (a 600 x 800 transparent WebP in the card's shape), so he stands in front
   // of the frame and breaks over its top; without it the photo goes inside.
   // `cards` (a list) stacks two cards in one spot: each has its own `image`
@@ -154,7 +159,7 @@ const SITE = {
       label: "My starting five",
       id: "five",
       section: "hobbies",
-      intro: "My all-time five, if I got to pick. Plus me, off the bench.",
+      intro: "My all-time five, if I got to pick.",
       layout: "cards",
       // the ratings, tiers and badges are the 2K cards I picked on 2kdb.net (MJ's stays ours)
       creditLead: "Photos via Wikimedia Commons, cropped and cut out: ", // the card players are cut out of them
@@ -164,9 +169,10 @@ const SITE = {
           link: "https://en.wikipedia.org/wiki/Rajon_Rondo",
           image: "assets/five/rondo-celtics.jpg", alt: "Rajon Rondo calling a play as he brings the ball up for the Celtics",
           card: {
-            ovr: 99, tier: "Dark Matter", label: "Certified", name: "Rajon Rondo", num: 9, cut: "assets/five/cut/rondo.webp",
+            ovr: 99, tier: "Dark Matter", label: "Certified", name: "Rajon Rondo", num: 9, cut: "assets/five/cut/rondo-ball.webp",
             badges: [["Dimer", "HOF"], ["Versatile Visionary", "HOF"], ["Interceptor", "HOF"]],
-            stats: [["Passing Vision", 99], ["Passing IQ", 99], ["Steal", 99], ["Perimeter Defense", 98]]
+            stats: [["Passing Vision", 99], ["Passing IQ", 99], ["Steal", 99], ["Perimeter Defense", 98]],
+            build: [98, 98, 80, 25, 87, 97, 90, 85, 99, 97, 99, 95, 98, 99, 88, 97, 97, 99, 99, 87, 92]
           }
         },
         {
@@ -174,9 +180,10 @@ const SITE = {
           link: "https://en.wikipedia.org/wiki/Kobe_Bryant",
           image: "assets/five/kobe-lakers.jpg", alt: "Kobe Bryant driving to the basket for the Lakers",
           card: {
-            ovr: 99, tier: "Dark Matter", label: "G.O.A.T.", name: "Kobe Bryant", num: 24, cut: "assets/five/cut/kobe.webp",
+            ovr: 99, tier: "Dark Matter", label: "G.O.A.T.", name: "Kobe Bryant", num: 24, cut: "assets/five/cut/kobe-center.webp",
             badges: [["Clutch Shooter", "HOF"], ["Space Creator", "HOF"], ["Difficult Shots", "HOF"]],
-            stats: [["Mid-Range Shot", 99], ["Shot IQ", 99], ["Post Fade", 99], ["Perimeter Defense", 99]]
+            stats: [["Mid-Range Shot", 99], ["Shot IQ", 99], ["Post Fade", 99], ["Perimeter Defense", 99]],
+            build: 99
           }
         },
         {
@@ -195,46 +202,52 @@ const SITE = {
           link: "https://en.wikipedia.org/wiki/LeBron_James",
           image: "assets/five/lebron-heat.jpg", alt: "LeBron James cocking the ball back for a dunk with the Heat",
           card: {
-            ovr: 99, tier: "G.O.A.T.", name: "LeBron James", num: 6, cut: "assets/five/cut/lebron-dunk.webp",
+            ovr: 99, tier: "G.O.A.T.", name: "LeBron James", num: 6, cut: "assets/five/cut/lebron-center.webp",
             badges: [["Posterizer", "Legend"], ["Versatile Visionary", "Legend"], ["High-Flying Denier", "Legend"]],
-            stats: [["Driving Dunk", 99], ["Passing Vision", 99], ["Strength", 99], ["Speed with Ball", 99]]
+            stats: [["Driving Dunk", 99], ["Passing Vision", 99], ["Strength", 99], ["Speed with Ball", 99]],
+            build: 99
           }
         },
         {
           pos: "C", text: "Yao / Shaq", note: "co-starters",
-          image: "assets/five/yao-shaq-lakers.jpg", alt: "Yao Ming calling for the ball for the Rockets, and Shaquille O'Neal in the Lakers' purple and gold",
+          image: "assets/five/yao-shaq-gold.jpg", alt: "Yao Ming calling for the ball for the Rockets, and Shaquille O'Neal roaring in the Lakers' gold #34",
           // co-starters: two cards stacked, pick one with the names under it
           cards: [
             {
               short: "Yao", ovr: 99, tier: "G.O.A.T.", name: "Yao Ming", num: 11,
               image: "assets/five/yao-rockets.jpg", cut: "assets/five/cut/yao.webp",
               badges: [["Hook Specialist", "Legend"], ["Paint Patroller", "Legend"], ["Post Up Poet", "Legend"]],
-              stats: [["Post Hook", 99], ["Block", 99], ["Mid-Range Shot", 99], ["Free Throw", 99]]
+              stats: [["Post Hook", 99], ["Block", 99], ["Mid-Range Shot", 99], ["Free Throw", 99]],
+              build: 99
             },
             {
               short: "Shaq", ovr: 99, tier: "Invincible", name: "Shaquille O'Neal", num: 34,
-              image: "assets/five/shaq-lakers.jpg", cut: "assets/five/cut/shaq.webp",
+              image: "assets/five/shaq-gold.jpg", cut: "assets/five/cut/shaq-gold.webp",
               badges: [["Post Powerhouse", "Legend"], ["Posterizer", "Legend"], ["Brick Wall", "Legend"]],
-              stats: [["Standing Dunk", 99], ["Strength", 99], ["Post Control", 99], ["Offensive Rebound", 99]]
+              stats: [["Standing Dunk", 99], ["Strength", 99], ["Post Control", 99], ["Offensive Rebound", 99]],
+              build: 99
             }
           ],
-          credit: [{ subject: "Yao Ming", by: "Keith Allison", license: "CC BY-SA 2.0", licenseUrl: "https://creativecommons.org/licenses/by-sa/2.0/", source: "https://commons.wikimedia.org/wiki/File:Yao_Ming_(2310548923).jpg" }, { subject: "Shaquille O'Neal", by: "Bigmoe797", license: "CC BY-SA 4.0", licenseUrl: "https://creativecommons.org/licenses/by-sa/4.0/", source: "https://commons.wikimedia.org/wiki/File:Shaq1_2000finals3.tif" }]
+          credit: [{ subject: "Yao Ming", by: "Keith Allison", license: "CC BY-SA 2.0", licenseUrl: "https://creativecommons.org/licenses/by-sa/2.0/", source: "https://commons.wikimedia.org/wiki/File:Yao_Ming_(2310548923).jpg" }]
         },
         {
           // me, off the bench: the photo holding my custom jacket, and on the
           // card, me cut out of my fit check. The overall, position and
           // attributes are my favourite NBA 2K26 MyCAREER build (a 99 SF,
           // 2-Way Inside-Out Point Forward); the badges are picked to match it.
+          // hidden until the rest of the site is done; then take `hidden` out
+          hidden: true,
           pos: "6th man", text: "Me", note: "the Court's Coder", link: "#court",
           image: "assets/five/raywel-jacket.jpg", alt: "Me in sunglasses, holding my custom RAYWEL jacket at a clothing shop",
           card: {
             ovr: 99, tier: "Sixth Man", name: "Raywel Martin", pos: "SF", cut: "assets/five/cut/raywel.webp",
             badges: [["Dimer", "HOF"], ["Posterizer", "HOF"], ["Limitless Range", "Gold"]],
-            stats: [["Pass Accuracy", 95], ["Driving Dunk", 93], ["Three-Point Shot", 92], ["Speed", 88]]
+            stats: [["Pass Accuracy", 95], ["Driving Dunk", 93], ["Three-Point Shot", 92], ["Speed", 88]],
+            build: [74, 75, 93, 58, 51, 82, 92, 76, 95, 86, 80, 51, 76, 43, 68, 35, 60, 88, 88, 60, 83]
           }
         }
       ],
-      notice: "The Rondo, Kobe, MJ and LeBron photos belong to their photographers."
+      notice: "The Rondo, Kobe, MJ, LeBron and Shaq photos belong to their photographers."
     },
     {
       label: "Agents I main",
