@@ -1020,6 +1020,288 @@ function packFace(w, c) {
   return pack;
 }
 
+// A card's sides, one after another on its tab: the card, attributes, and on
+// my own card every badge and my moves (the tab names the next one). The
+// side shows as a class on `host`. Returns a way back to the first side.
+function cardSides(host, tab) {
+  const SIDES = [["", "Badges"], ["layer-stats", "Attributes"]];
+  if (host.querySelector(".tk-allbadges")) SIDES.push(["layer-all", "All badges"]);
+  if (host.querySelector(".tk-moves")) SIDES.push(["layer-moves", "Moves"]);
+  if (SIDES.length > 2) SIDES[0][1] = "Card";
+  const setLayer = (k) => {
+    SIDES.forEach(([cls]) => cls && host.classList.remove(cls));
+    if (SIDES[k][0]) host.classList.add(SIDES[k][0]);
+    if (tab) tab.textContent = SIDES[(k + 1) % SIDES.length][1];
+  };
+  if (tab) {
+    tab.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const now = Math.max(0, SIDES.findIndex(([cls]) => cls && host.classList.contains(cls)));
+      setLayer((now + 1) % SIDES.length);
+      packSound("tab");
+    });
+  }
+  return () => setLayer(0);
+}
+
+// The card up close: a dialog with the card big (but not huge) in the middle
+// of the screen, every side and badge working as on the page, and a button
+// that saves it as a picture (the share sheet on phones, a download on
+// computers). Made the first time it's opened.
+let cardView = null;
+function openCardView(w) {
+  if (!cardView) {
+    const dialog = el("dialog", "card-view");
+    dialog.setAttribute("aria-label", "My player's card, up close");
+    const host = el("div", "card-view-card");
+    const side = twoKSide(w);
+    side.removeAttribute("aria-hidden");
+    host.appendChild(side);
+    const bar = el("div", "card-view-bar");
+    const save = el("button", "card-view-btn card-view-save mono", "Save as picture");
+    const close = el("button", "card-view-btn mono", "Close");
+    save.type = close.type = "button";
+    bar.append(save, close);
+    dialog.append(host, bar);
+    document.body.appendChild(dialog);
+    const first = cardSides(host, side.querySelector(".tk-layer"));
+    let picture = null;
+    dialog.draw = () => {
+      first();
+      picture = careerPicture(w.card).catch(() => null); // (ready before the tap, for the share sheet)
+    };
+    close.addEventListener("click", () => dialog.close());
+    dialog.addEventListener("click", (e) => e.target === dialog && dialog.close()); // (the dark around it)
+    dialog.addEventListener("close", () => holdPage(false));
+    save.addEventListener("click", async () => {
+      const blob = await picture;
+      const say = (text) => {
+        save.textContent = text;
+        clearTimeout(save.back);
+        save.back = setTimeout(() => (save.textContent = "Save as picture"), 1800);
+      };
+      if (!blob) return say("Couldn't make it");
+      if (window.goatcounter && window.goatcounter.count) {
+        window.goatcounter.count({ path: "mycareer-card-save", title: "Saved my MyCAREER card", event: true });
+      }
+      const file = new File([blob], "raywel-mycareer-card.png", { type: "image/png" });
+      if (navigator.share && !canHover && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], text: "My NBA 2K26 MyCAREER build, on raywel's site: https://matimbu.github.io/raywelfrancismartin/#court" });
+        } catch (e) {}
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const link = el("a");
+      link.href = url;
+      link.download = file.name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      say("Saved");
+    });
+    cardView = dialog;
+  }
+  cardView.draw();
+  holdPage(true);
+  cardView.showModal();
+}
+
+// The card as a picture, 1080 x 1350 (a portrait post): the card drawn big in
+// the middle, in its gold, with my name over it and the jumper and the
+// site's address under it
+async function careerPicture(c) {
+  await Promise.all(["italic 800 60px 'Barlow Condensed'", "800 60px 'Barlow Condensed'", "700 40px 'Barlow Condensed'", "600 30px 'Barlow Condensed'", "400 24px 'Geist Mono'"]
+    .map((font) => document.fonts.load(font).catch(() => {})));
+  const face = await new Promise((done) => {
+    const img = new Image();
+    img.onload = () => done(img);
+    img.onerror = () => done(null);
+    img.src = c.face;
+  });
+  const canvas = el("canvas");
+  canvas.width = 1080;
+  canvas.height = 1350;
+  const g = canvas.getContext("2d");
+  const cond = (weight, size, italic = "") => `${italic}${weight} ${size}px 'Barlow Condensed', sans-serif`;
+  const METAL = ["#fff8d8", "#f5d470", "#b8841f", "#fde8a2", "#6e4a0c"];
+  const metal = (x0, y0, x1, y1) => {
+    const grad = g.createLinearGradient(x0, y0, x1, y1);
+    [0, 0.3, 0.54, 0.72, 1].forEach((at, i) => grad.addColorStop(at, METAL[i]));
+    return grad;
+  };
+  const hexagon = (cx, cy, size) => {
+    g.beginPath();
+    [[0, -1], [0.87, -0.5], [0.87, 0.5], [0, 1], [-0.87, 0.5], [-0.87, -0.5]].forEach(([dx, dy], k) => (k ? g.lineTo : g.moveTo).call(g, cx + dx * size, cy + dy * size * 1.12));
+    g.closePath();
+  };
+  const LEVEL = { legend: ["#ffc9a3", "#e2451f"], hof: ["#d6b6ff", "#7a3de0"], gold: ["#ffe7a3", "#c8921a"], silver: ["#f1f4f6", "#8d98a1"], bronze: ["#f0b889", "#93502a"] };
+  // the page: dark, a gold light behind the card
+  g.fillStyle = "#0b0906";
+  g.fillRect(0, 0, 1080, 1350);
+  const halo = g.createRadialGradient(540, 600, 80, 540, 600, 720);
+  halo.addColorStop(0, "rgba(245,184,65,0.2)");
+  halo.addColorStop(1, "rgba(245,184,65,0)");
+  g.fillStyle = halo;
+  g.fillRect(0, 0, 1080, 1350);
+  // the card: a gold frame notched at the top right, dark inside with rays
+  const x = 150, y = 120, w = 780, h = 1040, notch = 64;
+  const shape = (inset) => {
+    g.beginPath();
+    g.moveTo(x + inset, y + inset);
+    g.lineTo(x + w - notch - inset * 0.4, y + inset);
+    g.lineTo(x + w - inset, y + notch + inset * 0.4);
+    g.lineTo(x + w - inset, y + h - inset);
+    g.lineTo(x + inset, y + h - inset);
+    g.closePath();
+  };
+  g.save();
+  g.shadowColor = "rgba(245,200,90,0.55)";
+  g.shadowBlur = 60;
+  shape(0);
+  g.fillStyle = metal(0, y, 0, y + h);
+  g.fill();
+  g.restore();
+  const cx = x + w / 2;
+  const cy = y + 400;
+  g.save();
+  shape(11);
+  g.clip();
+  g.fillStyle = "#120c02";
+  g.fillRect(x, y, w, h);
+  const glow = g.createRadialGradient(cx, cy, 20, cx, cy, 460);
+  glow.addColorStop(0, "rgba(184,132,31,0.55)");
+  glow.addColorStop(1, "rgba(184,132,31,0)");
+  g.fillStyle = glow;
+  g.fillRect(x, y, w, h);
+  g.fillStyle = "rgba(255,255,255,0.045)";
+  for (let k = 0; k < 36; k++) {
+    const a = (k / 36) * Math.PI * 2;
+    g.beginPath();
+    g.moveTo(cx, cy);
+    g.lineTo(cx + Math.cos(a) * 1400, cy + Math.sin(a) * 1400);
+    g.lineTo(cx + Math.cos(a + 0.06) * 1400, cy + Math.sin(a + 0.06) * 1400);
+    g.fill();
+  }
+  g.restore();
+  // MC and the build's tag, the overall
+  g.textAlign = "left";
+  g.fillStyle = "#fff";
+  g.font = cond(800, 84, "italic ");
+  g.fillText("MC", x + 58, y + 124);
+  g.fillStyle = "#f5d470";
+  g.font = cond(700, 28);
+  g.fillText((c.label || c.tier || "").toUpperCase(), x + 62, y + 166);
+  g.textAlign = "right";
+  g.fillStyle = "#fde8a2";
+  g.font = cond(700, 28);
+  g.fillText("OVR", x + w - 70, y + 118);
+  g.fillStyle = metal(0, y + 110, 0, y + 250);
+  g.font = cond(800, 140);
+  g.fillText(String(c.ovr), x + w - 62, y + 250);
+  // the face in a gold ring
+  const r = 170;
+  g.beginPath();
+  g.arc(cx, cy, r + 15, 0, Math.PI * 2);
+  g.fillStyle = "#6e4a0c";
+  g.fill();
+  g.beginPath();
+  g.arc(cx, cy, r + 10, 0, Math.PI * 2);
+  g.fillStyle = "#f5d470";
+  g.fill();
+  g.save();
+  g.beginPath();
+  g.arc(cx, cy, r, 0, Math.PI * 2);
+  g.clip();
+  g.fillStyle = "#b8841f";
+  g.fillRect(cx - r, cy - r, r * 2, r * 2);
+  if (face) g.drawImage(face, cx - r, cy - r, r * 2, r * 2);
+  g.restore();
+  // the names, the size, the position on its bar
+  g.textAlign = "center";
+  if (c.player) {
+    g.fillStyle = "#f5d470";
+    g.font = cond(700, 36);
+    g.fillText(c.player.toUpperCase().split("").join(" "), cx, y + 648);
+  }
+  g.fillStyle = "#fff";
+  g.font = cond(700, 64);
+  const words = (c.archetype || "").split(" ");
+  const lines = [""];
+  words.forEach((word) => {
+    const next = lines[lines.length - 1] ? `${lines[lines.length - 1]} ${word}` : word;
+    if (g.measureText(next).width > w - 120 && lines[lines.length - 1]) lines.push(word);
+    else lines[lines.length - 1] = next;
+  });
+  lines.forEach((line, k) => g.fillText(line, cx, y + 718 + k * 62));
+  const below = y + 718 + (lines.length - 1) * 62;
+  g.fillStyle = "rgba(255,255,255,0.9)";
+  g.font = cond(600, 34);
+  g.fillText(c.size || "", cx, below + 58);
+  const barY = below + 84;
+  g.fillStyle = metal(x, 0, x + w, 0);
+  g.fillRect(x + 11, barY, w - 22, 62);
+  g.fillStyle = "#120d06";
+  g.font = cond(800, 38);
+  const pos = POSITIONS[c.pos] || c.pos || "";
+  g.fillText(pos.toUpperCase().split("").join(" "), cx, barY + 45);
+  // the three badges, in a row under the bar
+  const chips = (c.badges || []).slice(0, 3);
+  let size = 30;
+  const chipWidth = () => chips.reduce((sum, [name, level]) => {
+    g.font = cond(700, size);
+    const nameW = g.measureText(name).width;
+    g.font = cond(700, size * 0.72);
+    return sum + size * 1.3 + nameW + 10 + g.measureText(String(level).toUpperCase()).width + 34;
+  }, 0);
+  while (chipWidth() > w - 80 && size > 20) size -= 2;
+  let at = cx - chipWidth() / 2;
+  const chipY = barY + 122;
+  chips.forEach(([name, level]) => {
+    const [hi, lo] = LEVEL[String(level).toLowerCase()] || LEVEL.silver;
+    const grad = g.createLinearGradient(at, chipY - size, at + size, chipY);
+    grad.addColorStop(0, hi);
+    grad.addColorStop(1, lo);
+    hexagon(at + size * 0.5, chipY - size * 0.35, size * 0.5);
+    g.fillStyle = grad;
+    g.fill();
+    at += size * 1.3;
+    g.textAlign = "left";
+    g.fillStyle = "#fff";
+    g.font = cond(700, size);
+    g.fillText(name, at, chipY);
+    at += g.measureText(name).width + 10;
+    g.fillStyle = hi;
+    g.font = cond(700, size * 0.72);
+    const tag = String(level).toUpperCase();
+    g.fillText(tag, at, chipY);
+    at += g.measureText(tag).width + 34;
+  });
+  // over and under the card
+  g.textAlign = "center";
+  g.fillStyle = "rgba(242,240,235,0.62)";
+  g.font = "400 24px 'Geist Mono', monospace";
+  g.fillText(`${(c.name || "").toUpperCase()}  ·  MY NBA 2K26 MYCAREER BUILD`, 540, 76);
+  const shot = c.jumper && typeof c.jumper === "object" ? c.jumper : null;
+  if (shot) {
+    g.fillStyle = "#f5d470";
+    const text = `JUMPER · ${String(shot.name || "").toUpperCase()}  ·  ${String(shot.line || "").toUpperCase()}`;
+    let px = 22;
+    do g.font = `400 ${px--}px 'Geist Mono', monospace`;
+    while (g.measureText(text).width > 980 && px > 14);
+    g.fillText(text, 540, 1208);
+    g.fillStyle = "rgba(245,212,112,0.7)";
+    g.font = "400 19px 'Geist Mono', monospace";
+    g.fillText((shot.grades || []).map(([n, v]) => `${n.toUpperCase()} ${v}`).join("  ·  "), 540, 1244);
+  }
+  g.fillStyle = "#8f8c86";
+  g.font = "400 22px 'Geist Mono', monospace";
+  g.fillText("MATIMBU.GITHUB.IO/RAYWELFRANCISMARTIN/#COURT", 540, 1290);
+  return new Promise((done) => canvas.toBlob(done, "image/png"));
+}
+
 // The back of a starting-five photo: its card (or two, one behind the other,
 // for co-starters, with a switch between them), the tab that switches the
 // badges and the attributes, and the pack's face-down side
@@ -1270,7 +1552,15 @@ function playBoard() {
   };
   const caption = el("p", "play-caption");
   caption.setAttribute("aria-live", "polite");
+  // Guess the play: one drawn slowly, no caption, no tab lit; pick it with
+  // the tabs. `quiz` is the play to guess, `streak` the ones in a row.
+  let quiz = null;
+  let streak = 0;
   board.narrate = (k) => {
+    if (quiz) {
+      caption.textContent = "Which play is this? Pick it below.";
+      return;
+    }
     const play = board.querySelector(".play-set.active");
     const lines = CAPTIONS[play && play.dataset.play] || [];
     caption.textContent = k >= 0 && lines[k] ? `${k + 1}/${lines.length}  ${lines[k]}` : "";
@@ -1311,16 +1601,43 @@ function playBoard() {
     });
     again();
   };
-  [["back-door", "Back door"], ["horns", "Horns"], ["post", "5-out post"]].forEach(([key, name], k) => {
+  const PLAYS = [["back-door", "Back door"], ["horns", "Horns"], ["post", "5-out post"]];
+  // an answer: right or wrong, the play is named and finishes drawing
+  const answer = (key) => {
+    const right = key === quiz;
+    const name = PLAYS.find(([k]) => k === quiz)[1];
+    streak = right ? streak + 1 : 0;
+    quiz = null;
+    board.classList.remove("quiz");
+    replaying++; // (the slow draw stops; the whole play shows)
+    board.classList.remove("slow");
+    delete board.dataset.replaying;
+    board.querySelectorAll(".play-set.active .play-step").forEach((step) => step.classList.add("on"));
+    tabs.querySelectorAll(".play-tab[data-play]").forEach((t) => t.classList.toggle("on", t.dataset.play === board.querySelector(".play-set.active").dataset.play));
+    caption.textContent = right ? `Right, it's ${name}.${streak > 1 ? ` ${streak} in a row!` : ""}` : `Not quite: that was ${name}.`;
+    packSound(right ? "reveal" : "tab", right ? { tier: "goat" } : undefined);
+  };
+  PLAYS.forEach(([key, name], k) => {
     const tab = el("button", `play-tab mono${k ? "" : " on"}`, name);
     tab.type = "button";
     tab.dataset.play = key;
     tab.setAttribute("aria-pressed", String(!k));
     tab.addEventListener("click", (e) => {
       e.stopPropagation();
-      select(key);
+      if (quiz) answer(key);
+      else select(key);
     });
     tabs.appendChild(tab);
+  });
+  const guess = el("button", "play-tab play-guess mono", "Guess the play");
+  guess.type = "button";
+  guess.addEventListener("click", (e) => {
+    e.stopPropagation();
+    quiz = PLAYS[Math.floor(Math.random() * PLAYS.length)][0];
+    board.classList.add("quiz");
+    board.querySelectorAll(".play-set").forEach((p) => p.classList.toggle("active", p.dataset.play === quiz));
+    tabs.querySelectorAll(".play-tab").forEach((t) => t.classList.remove("on"));
+    again(true);
   });
   // slow motion: the play again at a walk, a caption for each step
   const slow = el("button", "play-tab play-slow mono", "Slow-mo");
@@ -1329,10 +1646,11 @@ function playBoard() {
     e.stopPropagation();
     again(true);
   });
-  tabs.appendChild(slow);
+  tabs.append(slow, guess);
   board.append(caption, tabs);
   // (a word on the wall calls up its play; the one already up stays put)
   board.pick = (key) => {
+    if (quiz) return; // (no giving the answer away)
     const current = board.querySelector(".play-set.active");
     if (!current || current.dataset.play !== key) select(key);
   };
@@ -1494,27 +1812,7 @@ function playBoard() {
     // follows the link).
     const has2K = Boolean(w.card || w.cards);
     const layers = has2K && item.querySelector(".tk-layer");
-    // the card's sides, one after another on the tab: the card, attributes,
-    // and on my own card every badge and my moves. The tab names the next.
-    const SIDES = [["", "Badges"], ["layer-stats", "Attributes"]];
-    if (item.querySelector(".tk-allbadges")) SIDES.push(["layer-all", "All badges"]);
-    if (item.querySelector(".tk-moves")) SIDES.push(["layer-moves", "Moves"]);
-    if (SIDES.length > 2) SIDES[0][1] = "Card";
-    const setLayer = (k) => {
-      SIDES.forEach(([cls]) => cls && item.classList.remove(cls));
-      if (SIDES[k][0]) item.classList.add(SIDES[k][0]);
-      if (layers) layers.textContent = SIDES[(k + 1) % SIDES.length][1];
-    };
-    const firstLayer = () => setLayer(0);
-    if (layers) {
-      layers.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const now = Math.max(0, SIDES.findIndex(([cls]) => cls && item.classList.contains(cls)));
-        setLayer((now + 1) % SIDES.length);
-        packSound("tab");
-      });
-    }
+    const firstLayer = cardSides(item, layers);
     if (has2K && canHover) {
       onHover(item, () => {
         if (!words.classList.contains("packed")) item.classList.add("flipped");
@@ -1619,6 +1917,16 @@ function playBoard() {
     const mine = el("div", "wordwall-words ww-player named");
     addWord(wall.player, 0, mine, true);
     head.appendChild(mine);
+    // Full view: the card big in the middle of the screen, to read
+    const max = el("button", "card-max mono");
+    max.type = "button";
+    max.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.5 2.5h4v4M6.5 13.5h-4v-4M13.5 2.5 9 7M2.5 13.5 7 9"/></svg><span>Full view</span>';
+    max.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openCardView(wall.player);
+    });
+    mine.appendChild(max);
   }
   block.append(head, words);
 
