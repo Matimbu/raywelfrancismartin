@@ -136,7 +136,7 @@
   // Anyone can read the board and add a run; nobody can change or delete one
   // (the project's Firestore rules say so). Until the project's details are
   // filled in here, the board stays hidden.
-  const BOARD = { projectId: "", apiKey: "" };
+  const BOARD = { projectId: "malolos-rush", apiKey: "AIzaSyCixUmPtLRPRug_2GfYzlI4ZngXdbdR3I8" };
   const BOARD_HTML = '<div class="rush-board" hidden><p class="rush-board-title mono">Top runners</p><ol class="rush-board-list"></ol></div>';
   const SHARE_URL = "https://matimbu.github.io/raywelfrancismartin/#malolos-rush";
   // ?fps in the address shows the frame rate, to see how an old phone copes
