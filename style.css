@@ -845,6 +845,19 @@ button { font: inherit; color: inherit; }
 .play-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .play-slow { margin-left: auto; }
 .play-tab.play-guess { border-color: var(--accent); color: var(--fg); }
+.play-tab.play-max { display: inline-grid; place-items: center; padding: 5px 8px; }
+.play-max svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+/* the board's Full view: the board itself, big in the middle of the screen,
+   its stand-in keeping its place on the page */
+.play-spot { visibility: hidden; }
+.board-view { max-width: none; max-height: none; padding: 0; overflow: visible; border: 0; background: transparent; }
+.board-view::backdrop { background: rgb(5 5 7 / 0.84); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.board-view .play-board {
+  width: min(760px, 94vw);
+  width: min(760px, 94vw, calc((100dvh - 190px) * 1.5));
+  cursor: pointer;
+}
+.board-view .play-caption { font-size: 18px; }
 /* a quiz on: the play tabs are the answers (dashed), none lit */
 .play-board.quiz .play-tab[data-play] { border-style: dashed; color: var(--fg); }
 /* the caption under the court, saying what the step just drawn is */
@@ -1689,10 +1702,11 @@ button { font: inherit; color: inherit; }
 }
 /* Full view (under my card): the card big in the middle of the screen */
 .card-max {
+  align-self: flex-start;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 12px;
+  margin-top: 8px;
   padding: 6px 12px 6px 10px;
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -1849,6 +1863,14 @@ button { font: inherit; color: inherit; }
 .face-down .tk-pack { animation: pack-glow 1.1s ease-in-out infinite alternate; }
 @keyframes pack-glow { to { filter: brightness(1.3) saturate(1.15); } }
 .ww-card.face-down .flip { transform: rotateY(180deg); }
+/* A card's back is only drawn while it shows (turned, face down in the pack,
+   or tabbed to), and for the half second it takes to turn back: seven backs
+   full of glitter and glow, drawn all the time behind their photos, made the
+   scroll stutter. (Browsers without content-visibility simply draw them.) */
+.ww-card.flips .tk-side { content-visibility: hidden; transition: content-visibility 0s linear 0.5s allow-discrete; }
+.ww-card.flipped .tk-side,
+.ww-card.face-down .tk-side,
+.ww-card.flips:focus-visible .tk-side { content-visibility: visible; transition-delay: 0s; }
 .packed .flip { transition-duration: 0.7s; }
 /* The walkout: before a face-down card turns, its clues come up on it one by
    one on slanted neon tags (its position, then a badge), and its best

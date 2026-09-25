@@ -1045,31 +1045,60 @@ function cardSides(host, tab) {
   return () => setLayer(0);
 }
 
-// The card up close: a dialog with the card big (but not huge) in the middle
-// of the screen, every side and badge working as on the page, and a button
-// that saves it as a picture (the share sheet on phones, a download on
-// computers). Made the first time it's opened.
-let cardView = null;
+// A card up close: a dialog with the card big (but not huge) in the middle
+// of the screen, so the small print reads without zooming, every side, badge
+// and switch working as on the page. My own card also gets a button that
+// saves it as a picture (the share sheet on phones, a download on
+// computers). Each card's is made the first time it's opened.
+const cardViews = new Map();
+const MAX_ICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.5 2.5h4v4M6.5 13.5h-4v-4M13.5 2.5 9 7M2.5 13.5 7 9"/></svg>';
+// the Full view button under a card
+function fullViewButton(w) {
+  const max = el("button", "card-max mono");
+  max.type = "button";
+  max.innerHTML = `${MAX_ICON}<span>Full view</span>`;
+  max.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    openCardView(w);
+  });
+  return max;
+}
 function openCardView(w) {
+  let cardView = cardViews.get(w);
   if (!cardView) {
+    const list = w.cards || [w.card];
     const dialog = el("dialog", "card-view");
-    dialog.setAttribute("aria-label", "My player's card, up close");
+    dialog.setAttribute("aria-label", `${list[0].name || w.text}'s card, up close`);
     const host = el("div", "card-view-card");
     const side = twoKSide(w);
     side.removeAttribute("aria-hidden");
     host.appendChild(side);
     const bar = el("div", "card-view-bar");
+    const career = list[0].style === "career";
     const save = el("button", "card-view-btn card-view-save mono", "Save as picture");
     const close = el("button", "card-view-btn mono", "Close");
     save.type = close.type = "button";
-    bar.append(save, close);
+    if (career) bar.appendChild(save);
+    bar.appendChild(close);
     dialog.append(host, bar);
     document.body.appendChild(dialog);
     const first = cardSides(host, side.querySelector(".tk-layer"));
+    // co-starters: the switch brings the other card in front, as on the page
+    const toggle = side.querySelector(".tk-switch");
+    if (toggle) {
+      toggle.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const swap = side.classList.toggle("swap");
+        side.dataset.tier = tierKey(list[swap ? 1 : 0].tier);
+        toggle.lastChild.textContent = list[swap ? 0 : 1].short || "";
+        packSound("tab");
+      });
+    }
     let picture = null;
     dialog.draw = () => {
       first();
-      picture = careerPicture(w.card).catch(() => null); // (ready before the tap, for the share sheet)
+      if (career) picture = careerPicture(list[0]).catch(() => null); // (ready before the tap, for the share sheet)
     };
     close.addEventListener("click", () => dialog.close());
     dialog.addEventListener("click", (e) => e.target === dialog && dialog.close()); // (the dark around it)
@@ -1103,6 +1132,7 @@ function openCardView(w) {
       say("Saved");
     });
     cardView = dialog;
+    cardViews.set(w, dialog);
   }
   cardView.draw();
   holdPage(true);
@@ -1402,7 +1432,7 @@ function phoneTilt() {
 // the 1 up top holding the ball (Power forward), his defender overplaying the
 // pass (6 ft), a fake out toward the ball, then the cut behind him along the
 // baseline to the block, the 1's bounce pass meeting him there (Back door),
-// then the drop step spin to the rim for the and-one (Drop step spin).
+// then straight up for an easy layup.
 // Horns: the 4 and 5 at the elbows, the 1 up top, shooters in both corners;
 // the 4's man sags off; the 4 steps up to screen for the 1, who comes off it
 // dribbling; the 4 pops out beyond the arc, catches and knocks it down.
@@ -1424,7 +1454,7 @@ function playBoard() {
   const fake = { x: 247, y: 135 };
   const cut = "M247 135 C259 108 247 76 208 62";
   const pass = { x0: 157, y0: 167, x1: 203, y1: 73 };
-  const spin = "M208 62 C216 53 217 42 208 38 C199 34 191 43 197 50 C202 56 189 48 158 37";
+  const layup = "M208 62 C197 52 180 42 159 36"; // (the back door ends in an easy layup)
   // Horns: the screen, the 1's dribble off it, the pop and the shot
   const dribble = "M157 175 L163 169 L169 175 L175 169 L181 175 L187 169 L193 173 L199 171";
   const pop = "M178 152 C198 164 232 162 258 148";
@@ -1528,9 +1558,9 @@ function playBoard() {
       ${later("pass pass-head", head(pass.x1, pass.y1, Math.atan2(pass.y1 - pass.y0, pass.x1 - pass.x0), 6), 1.1)}
     </g>
     <g class="play-step">
-      ${ink("move", spin, 0, 0.7)}
-      <circle class="fade made" cx="150" cy="31.5" r="4.5" style="--at:0.7s"/>
-      <text class="fade and-one" x="96" y="66" style="--at:0.8s">and 1!</text>
+      ${ink("move", layup, 0, 0.4)}
+      <circle class="fade made" cx="150" cy="31.5" r="4.5" style="--at:0.4s"/>
+      <text class="fade and-one" x="96" y="66" style="--at:0.5s">easy 2</text>
     </g>
     </g>
     ${horns}
@@ -1546,7 +1576,7 @@ function playBoard() {
   board.appendChild(replay);
   // a line under the court saying what the step just drawn is
   const CAPTIONS = {
-    "back-door": ["The 4 on the wing, the 1 up top with the ball", "His man overplays the pass", "A fake out, then the cut behind him; the 1 bounces it in", "Drop step, spin to the rim: and one"],
+    "back-door": ["The 4 on the wing, the 1 up top with the ball", "His man overplays the pass", "A fake out, then the cut behind him; the 1 bounces it in", "Catch at the block, straight up: easy layup"],
     horns: ["Horns: the 4 and 5 at the elbows, shooters in the corners", "The 4's man sags off into the paint", "The 4 steps up and screens; the 1 comes off it", "The 4 pops behind the arc, catches and lets it fly"],
     post: ["Five out: everyone on the arc, the 4 on the wing", "His man plays him tight", "The 4 dives and seals, the 5 lifts; 1 to 5 to the post", "Drop step spin: and one"]
   };
@@ -1646,7 +1676,41 @@ function playBoard() {
     e.stopPropagation();
     again(true);
   });
-  tabs.append(slow, guess);
+  // Full view: the board big in the middle of the screen. The board itself
+  // moves into a dialog (a stand-in keeps its place) and back on closing,
+  // so a play or a quiz carries on.
+  const max = el("button", "play-tab play-max mono");
+  max.type = "button";
+  max.setAttribute("aria-label", "Full view of the board");
+  max.innerHTML = MAX_ICON;
+  let view = null;
+  let spot = null;
+  max.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (view && view.open) return view.close();
+    if (!view) {
+      view = el("dialog", "board-view");
+      view.setAttribute("aria-label", "The play board, up close");
+      view.addEventListener("click", (ev) => ev.target === view && view.close());
+      view.addEventListener("close", () => {
+        spot.replaceWith(board);
+        board.classList.remove("big");
+        max.setAttribute("aria-label", "Full view of the board");
+        holdPage(false);
+      });
+      document.body.appendChild(view);
+    }
+    spot = el("div", "play-board play-spot");
+    spot.style.height = `${board.offsetHeight}px`;
+    board.replaceWith(spot);
+    board.classList.add("big");
+    max.setAttribute("aria-label", "Close the full view");
+    view.appendChild(board);
+    holdPage(true);
+    view.showModal();
+    if (!quiz) again();
+  });
+  tabs.append(slow, guess, max);
   board.append(caption, tabs);
   // (a word on the wall calls up its play; the one already up stays put)
   board.pick = (key) => {
@@ -1908,6 +1972,8 @@ function playBoard() {
       onHover(item, () => showPreview({ image: w.image, emoji: "" }));
       item.addEventListener("mouseleave", hidePreview);
     }
+    // every 2K card: a Full view button under it, to read it big
+    if (has2K && cards) item.appendChild(fullViewButton(w));
     words.appendChild(item);
   };
   wall.words.forEach((w, i) => addWord(w, i, words, cards));
@@ -1917,16 +1983,6 @@ function playBoard() {
     const mine = el("div", "wordwall-words ww-player named");
     addWord(wall.player, 0, mine, true);
     head.appendChild(mine);
-    // Full view: the card big in the middle of the screen, to read
-    const max = el("button", "card-max mono");
-    max.type = "button";
-    max.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.5 2.5h4v4M6.5 13.5h-4v-4M13.5 2.5 9 7M2.5 13.5 7 9"/></svg><span>Full view</span>';
-    max.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      openCardView(wall.player);
-    });
-    mine.appendChild(max);
   }
   block.append(head, words);
 
@@ -2028,6 +2084,26 @@ function playBoard() {
       dealing = [setTimeout(open, 750)];
     });
     words.after(again);
+  }
+
+  // A wall of cards warms up before it's on screen: its pictures (the photos
+  // and the cut-out players on the backs) load and decode ahead, and the
+  // pack's sounds get their room ready if sound is already on, so nothing
+  // stalls the scroll the moment it arrives
+  if (cards || wall.player) {
+    const warm = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      warm.disconnect();
+      block.querySelectorAll("img").forEach((img) => {
+        img.loading = "eager";
+        if (img.decode) img.decode().catch(() => {});
+      });
+      if (audioCtx) {
+        noiseBuffer(audioCtx);
+        packSound("warm");
+      }
+    }, { rootMargin: "1400px 0px" });
+    warm.observe(block);
   }
 
   // Card labels roll from their number to their name once the cards are on
@@ -3834,11 +3910,8 @@ function uiSound(kind) {
     osc.stop(t + at + dur + 0.02);
   };
   const whoosh = (at, dur, from, to, peak) => {
-    const buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
     const src = ctx.createBufferSource();
-    src.buffer = buffer;
+    src.buffer = noiseBuffer(ctx);
     const band = ctx.createBiquadFilter();
     band.type = "bandpass";
     band.Q.value = 1.2;
@@ -3872,6 +3945,19 @@ function uiSound(kind) {
 // G.O.A.T., dark and low for Dark Matter, airy for Galaxy Opal and Pink
 // Diamond, and for Invincible an electric crackle on top; the G.O.A.T. and
 // Invincible pulls bring the crowd up). Off with the sound switch.
+// One buffer of white noise per audio context, made once and shared by every
+// hiss and whoosh (making fresh noise for each sound stalled the page when
+// the pack opened mid-scroll). Three seconds covers the longest.
+function noiseBuffer(ctx) {
+  if (!ctx.noiseBuf) {
+    const buf = ctx.createBuffer(1, ctx.sampleRate * 3, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    ctx.noiseBuf = buf;
+  }
+  return ctx.noiseBuf;
+}
+
 function packSound(kind, opts = {}) {
   const ctx = audio();
   if (!ctx) return;
@@ -3918,12 +4004,9 @@ function packSound(kind, opts = {}) {
     o.start(at);
     o.stop(at + attack + release + 0.05);
   };
-  const hiss = (dur) => {
-    const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const hiss = () => {
     const src = ctx.createBufferSource();
-    src.buffer = buf;
+    src.buffer = noiseBuffer(ctx);
     return src;
   };
   // noise through a filter that sweeps from one frequency to another
@@ -4046,12 +4129,15 @@ function packSound(kind, opts = {}) {
       whistle.start(start);
       whistle.stop(start + 0.5);
     }
+    // (one clap, made once, played sixteen times through different filters)
+    if (!ctx.clapBuf) {
+      ctx.clapBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * 0.03), ctx.sampleRate);
+      const d = ctx.clapBuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+    }
     for (let k = 0; k < 16; k++) {
       const clap = ctx.createBufferSource();
-      const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * 0.03), ctx.sampleRate);
-      const d = buf.getChannelData(0);
-      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
-      clap.buffer = buf;
+      clap.buffer = ctx.clapBuf;
       const band = ctx.createBiquadFilter();
       band.type = "bandpass";
       band.frequency.value = 1300 + Math.random() * 900;
@@ -5184,8 +5270,15 @@ function driftGallery() {
 }
 
 // Runs every frame but only touches the page when something moved.
+// (the scroll position is read only once the page has scrolled: reading it
+// makes the browser finish laying the page out first, and every still frame
+// was paying for that)
+let scrollMoved = true;
+addEventListener("scroll", () => (scrollMoved = true), { passive: true });
 function frame() {
-  const y = scrollY;
+  const moved = scrollMoved || frameY < 0;
+  scrollMoved = false;
+  const y = moved ? scrollY : frameY;
   const scrolled = y !== frameY;
   frameY = y;
   batching = true;
