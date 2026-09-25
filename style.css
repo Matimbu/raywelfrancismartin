@@ -875,6 +875,13 @@ button { font: inherit; color: inherit; }
 .play-board.coach .play-tab:not(.coach-tool):not(.play-max) { display: none; }
 .play-board.coach .play-tab.coach-tool { display: inline-block; }
 .play-tab.coach-done { margin-left: auto; border-color: var(--accent); color: var(--fg); }
+/* Defense: an X on each player, numbered for the one it guards; drag to move */
+.play-board .coach-def { transition: transform 0.3s var(--ease-out); }
+.play-board .coach-def.dragging { transition: none; }
+.play-board .coach-def path { stroke: var(--muted); stroke-width: 1.8; }
+.play-board .coach-def .def-num { fill: var(--muted); font-family: var(--mono); font-style: normal; font-size: 9px; }
+.play-board.coach .coach-def { cursor: grab; }
+.play-tab.coach-tool.on { border-color: var(--accent); color: var(--fg); }
 @media (prefers-reduced-motion: reduce) { .play-board .coach-player, .play-board .coach-ball { transition: none; } }
 /* a quiz on: the play tabs are the answers (dashed), none lit */
 .play-board.quiz .play-tab[data-play] { border-style: dashed; color: var(--fg); }

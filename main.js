@@ -1186,24 +1186,31 @@ function cardView(ring) {
     if (window.goatcounter && window.goatcounter.count) {
       window.goatcounter.count({ path: "mycareer-card-save", title: "Saved my MyCAREER card", event: true });
     }
-    const file = new File([blob], "raywel-mycareer-card.png", { type: "image/png" });
-    if (navigator.share && !canHover && navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], text: "My NBA 2K26 MyCAREER build, on raywel's site: https://matimbu.github.io/raywelfrancismartin/#court" });
-      } catch (e) {}
-      return;
-    }
-    const url = URL.createObjectURL(blob);
-    const link = el("a");
-    link.href = url;
-    link.download = file.name;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 4000);
-    say("Saved");
+    const how = await givePicture(blob, "raywel-mycareer-card.png", "My NBA 2K26 MyCAREER build, on raywel's site: https://matimbu.github.io/raywelfrancismartin/#court");
+    if (how === "saved") say("Saved");
   });
   return dialog;
+}
+
+// A picture made on the page: the share sheet on a phone (to post or send
+// it), a download on a computer. Resolves "shared" or "saved".
+async function givePicture(blob, name, text) {
+  const file = new File([blob], name, { type: "image/png" });
+  if (navigator.share && !canHover && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], text });
+    } catch (e) {}
+    return "shared";
+  }
+  const url = URL.createObjectURL(blob);
+  const link = el("a");
+  link.href = url;
+  link.download = name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  return "saved";
 }
 
 // The card as a picture, 1080 x 1350 (a portrait post): the card drawn big in
@@ -1788,8 +1795,10 @@ function playBoard() {
   // players start 5 out, the 1 up top with the ball. Drag a player and they
   // cut there, or onto a teammate to set a screen; drag whoever has the ball
   // to dribble, to the rim to drive, or onto a teammate to pass; tap them to
-  // shoot. Undo, Clear, and Replay draws it again a step at a time. (The play
-  // is kept in this browser for next time.)
+  // shoot. Undo, Clear, and Replay draws it again a step at a time. Defense
+  // puts an X on each of them (drag an X to move it). Share makes a link
+  // that opens the board with the play drawing itself; Save picture makes a
+  // picture of it. (The play is kept in this browser for next time.)
   const NS = "http://www.w3.org/2000/svg";
   const RIM = [150, 31.5];
   const START = { 1: [150, 178], 2: [44, 140], 3: [6, 24], 4: [256, 140], 5: [294, 24] };
@@ -1815,18 +1824,32 @@ function playBoard() {
   crew.appendChild(ball);
   const live = document.createElementNS(NS, "path"); // (the line while it's dragged)
   live.setAttribute("class", "coach-live");
-  mine.append(lines, crew);
+  // the defense: an X for each player, numbered for the one it guards
+  const guards = document.createElementNS(NS, "g");
+  const xs = {};
+  CREW.forEach((n) => {
+    const x = document.createElementNS(NS, "g");
+    x.setAttribute("class", "coach-def");
+    x.innerHTML = `<path d="M-6 -6 L6 6 M6 -6 L-6 6"/><text class="def-num" x="7" y="13">${n}</text>`;
+    guards.appendChild(x);
+    xs[n] = x;
+  });
+  mine.append(lines, guards, crew);
   svg.appendChild(mine);
   let plan = [];
+  let defense = null; // (null: no defense; else each X's spot, by the one it guards)
   try {
     plan = JSON.parse(localStorage.getItem("myPlay") || "[]");
     if (!Array.isArray(plan)) plan = [];
+    const d = JSON.parse(localStorage.getItem("myPlayD") || "null");
+    if (d && CREW.every((n) => Array.isArray(d[n]))) defense = d;
   } catch (e) {
     plan = [];
   }
   const keep = () => {
     try {
       localStorage.setItem("myPlay", JSON.stringify(plan));
+      localStorage.setItem("myPlayD", JSON.stringify(defense));
     } catch (e) {}
   };
   // where everyone stands (and who has the ball) after the first k steps
@@ -1847,6 +1870,8 @@ function playBoard() {
     const holder = s.ball && s.at[s.ball];
     ball.style.opacity = holder ? "1" : "0";
     if (holder) ball.style.transform = `translate(${holder[0] + 8}px, ${holder[1] - 8}px)`;
+    guards.style.display = defense ? "" : "none";
+    if (defense) CREW.forEach((n) => (xs[n].style.transform = `translate(${defense[n][0]}px, ${defense[n][1]}px)`));
   };
   // the marks: a marker line through the dragged points (a zigzag while
   // dribbling), an arrowhead or a screen's bar at the end, dashed passes
@@ -1982,15 +2007,17 @@ function playBoard() {
     const q = p.matrixTransform(m.inverse());
     return [Math.max(-6, Math.min(306, q.x)), Math.max(-6, Math.min(196, q.y))];
   };
-  const nearest = (pt, s, skip) => {
+  // the one of `spots` (players or Xs) nearest a point, within `reach`
+  const closest = (spots, pt, reach, skip = 0) => {
     let best = 0;
-    let gap = 18;
+    let gap = reach;
     CREW.forEach((n) => {
-      const d = Math.hypot(pt[0] - s.at[n][0], pt[1] - s.at[n][1]);
+      const d = Math.hypot(pt[0] - spots[n][0], pt[1] - spots[n][1]);
       if (n !== skip && d < gap) [best, gap] = [n, d];
     });
-    return best;
+    return [best, gap];
   };
+  const nearest = (pt, s, skip) => closest(s.at, pt, 18, skip)[0];
   const thin = (pts) => {
     const out = [pts[0]];
     pts.forEach((p, i) => {
@@ -2004,13 +2031,21 @@ function playBoard() {
   svg.addEventListener("pointerdown", (e) => {
     if (!coach || drag) return;
     const pt = toCourt(e);
+    if (!pt) return;
     const s = stateAt(plan.length);
-    const n = pt && nearest(pt, s, 0);
-    if (!n) return;
+    const [n, gap] = closest(s.at, pt, 18);
+    const [guard, guardGap] = defense ? closest(defense, pt, 14) : [0, 99];
+    if (!n && !guard) return;
     e.preventDefault();
     try {
       svg.setPointerCapture(e.pointerId);
     } catch (err) {}
+    // an X just moves where it's dragged (no line)
+    if (guard && (!n || guardGap < gap)) {
+      drag = { guard, id: e.pointerId };
+      xs[guard].classList.add("dragging");
+      return;
+    }
     drag = { n, s, id: e.pointerId, pts: [s.at[n]], far: 0 };
     live.setAttribute("d", "");
     mine.appendChild(live);
@@ -2018,6 +2053,11 @@ function playBoard() {
   svg.addEventListener("pointermove", (e) => {
     if (!drag || e.pointerId !== drag.id) return;
     const pt = toCourt(e);
+    if (pt && drag.guard) {
+      defense[drag.guard] = [Math.round(pt[0] * 10) / 10, Math.round(pt[1] * 10) / 10];
+      xs[drag.guard].style.transform = `translate(${pt[0]}px, ${pt[1]}px)`;
+      return;
+    }
     const last = drag.pts[drag.pts.length - 1];
     if (!pt || Math.hypot(pt[0] - last[0], pt[1] - last[1]) < 3) return;
     drag.pts.push(pt);
@@ -2026,8 +2066,14 @@ function playBoard() {
   });
   const drop = (e) => {
     if (!drag || e.pointerId !== drag.id) return;
-    const { n, s, pts, far } = drag;
+    const { n, s, pts, far, guard } = drag;
     drag = null;
+    if (guard) {
+      xs[guard].classList.remove("dragging");
+      keep();
+      caption.textContent = `The ${guard}'s defender moves`;
+      return;
+    }
     live.remove();
     if (e.type === "pointercancel") return;
     const hasBall = s.ball === n;
@@ -2096,11 +2142,58 @@ function playBoard() {
     }],
     ["Clear", () => {
       plan = [];
+      defense = null;
       keep();
       draw();
+      showDefense();
       caption.textContent = HINT;
     }],
     ["Replay", () => coachReplay()],
+    ["Defense", () => {
+      if (defense) defense = null;
+      else {
+        // each X between its player and the rim, where it would guard them
+        const s = stateAt(plan.length);
+        defense = {};
+        CREW.forEach((n) => {
+          const [x, y] = s.at[n];
+          const d = Math.hypot(RIM[0] - x, RIM[1] - y) || 1;
+          defense[n] = [Math.round((x + ((RIM[0] - x) / d) * 20) * 10) / 10, Math.round((y + ((RIM[1] - y) / d) * 20) * 10) / 10];
+        });
+      }
+      keep();
+      place(stateAt(plan.length));
+      showDefense();
+      caption.textContent = defense ? "Defense on: drag an X to guard someone tighter, or switch." : HINT;
+    }],
+    ["Share", async () => {
+      if (!plan.length) return (caption.textContent = "Draw a play first, then share it.");
+      const url = `${location.origin}${location.pathname}#play=${packPlay()}`;
+      if (window.goatcounter && window.goatcounter.count) {
+        window.goatcounter.count({ path: "coach-play-share", title: "Shared a play", event: true });
+      }
+      if (navigator.share && !canHover) {
+        try {
+          await navigator.share({ title: "My play", text: "A play I drew on raywel's board:", url });
+          return;
+        } catch (e) {
+          if (e && e.name === "AbortError") return;
+        }
+      }
+      try {
+        await navigator.clipboard.writeText(url);
+        caption.textContent = "Link copied: send it, and it opens with your play drawing itself.";
+      } catch (e) {
+        caption.textContent = url;
+      }
+    }],
+    ["Save picture", async () => {
+      if (!plan.length) return (caption.textContent = "Draw a play first, then save it.");
+      const blob = await playPicture().catch(() => null);
+      if (!blob) return (caption.textContent = "Couldn't make the picture.");
+      const how = await givePicture(blob, "my-play.png", "A play I drew on raywel's board: https://matimbu.github.io/raywelfrancismartin/#court");
+      if (how === "saved") caption.textContent = "Saved: my-play.png";
+    }],
     ["Done", () => leaveCoach()]
   ].map(([name, act]) => {
     const tool = el("button", `play-tab coach-tool mono${name === "Done" ? " coach-done" : ""}`, name);
@@ -2111,6 +2204,191 @@ function playBoard() {
     });
     return tool;
   });
+  // (the Defense tool is lit while the Xs are up)
+  const defenseTool = tools.find((tool) => tool.textContent === "Defense");
+  const showDefense = () => {
+    defenseTool.classList.toggle("on", Boolean(defense));
+    defenseTool.setAttribute("aria-pressed", String(Boolean(defense)));
+  };
+  showDefense();
+  // A play in a link (…/#play=…): each step as numbers (its kind, the
+  // player, who it's to, a three or not, then the points it runs through),
+  // and the Xs, as base64. What comes in is checked number by number.
+  const KINDS = ["cut", "screen", "dribble", "drive", "pass", "shot"];
+  const packPlay = () => {
+    const p = plan.map((s) => [KINDS.indexOf(s.kind), s.n, s.to || 0, s.three ? 1 : 0, ...(s.pts || []).flat().map(Math.round)]);
+    const d = defense ? CREW.map((n) => defense[n].map(Math.round)) : 0;
+    return btoa(JSON.stringify({ p, d })).replace(/[+]/g, "-").replace(/[/]/g, "_").replace(/=+$/, "");
+  };
+  const unpackPlay = (code) => {
+    try {
+      const { p, d } = JSON.parse(atob(code.replace(/-/g, "+").replace(/_/g, "/")));
+      const ok = (v, lo, hi) => typeof v === "number" && isFinite(v) && v >= lo && v <= hi;
+      const steps = (Array.isArray(p) ? p : []).slice(0, 40).map((row) => {
+        if (!Array.isArray(row)) return null;
+        const [k, n, to, three, ...xy] = row;
+        const kind = KINDS[k];
+        if (!kind || !ok(n, 1, 5)) return null;
+        const step = { kind, n };
+        if (kind === "pass" || kind === "screen") {
+          if (!ok(to, 1, 5) || to === n) return null;
+          step.to = to;
+        }
+        if (kind === "shot") step.three = three === 1;
+        if (kind === "pass" || kind === "shot") return step;
+        const pts = [];
+        for (let i = 0; i + 1 < xy.length && pts.length < 200; i += 2) {
+          if (ok(xy[i], -6, 306) && ok(xy[i + 1], -6, 196)) pts.push([xy[i], xy[i + 1]]);
+        }
+        if (pts.length < 2) return null;
+        step.pts = pts;
+        step.end = pts[pts.length - 1];
+        return step;
+      });
+      if (!steps.length || steps.some((s) => !s)) return null;
+      let def = null;
+      if (Array.isArray(d) && d.length === 5 && d.every((xy) => Array.isArray(xy) && ok(xy[0], -6, 306) && ok(xy[1], -6, 196))) {
+        def = {};
+        d.forEach((xy, i) => (def[i + 1] = [xy[0], xy[1]]));
+      }
+      return { steps, def };
+    } catch (e) {
+      return null;
+    }
+  };
+  // a shared play: the board opens big in Coach mode and draws it, step by
+  // step (it only becomes the one kept here if it's drawn on)
+  board.openShared = (code) => {
+    const got = unpackPlay(code);
+    if (!got) return false;
+    plan = got.steps;
+    defense = got.def;
+    enterCoach();
+    showDefense();
+    coachReplay();
+    return true;
+  };
+  // The play as a picture, 1080 x 1080: the court with every step drawn in
+  // full, the players where they end up (and the Xs), the steps listed
+  // under it, and the site's address. Always in the dark theme's colours.
+  const playPicture = async () => {
+    const css = getComputedStyle(document.documentElement);
+    const serif = css.getPropertyValue("--serif").trim() || "Georgia, serif";
+    const mono = css.getPropertyValue("--mono").trim() || "monospace";
+    await Promise.all([`italic 40px ${serif}`, `500 24px ${mono}`].map((spec) => document.fonts.load(spec).catch(() => {})));
+    const C = { bg: "#0a0a0a", card: "#161615", fg: "#f2f0eb", muted: "#8f8c86", accent: "#ff5a1f" };
+    const canvas = el("canvas");
+    canvas.width = canvas.height = 1080;
+    const g = canvas.getContext("2d");
+    g.fillStyle = C.bg;
+    g.fillRect(0, 0, 1080, 1080);
+    g.textAlign = "left";
+    g.fillStyle = C.accent;
+    g.font = `500 24px ${mono}`;
+    g.fillText("MY PLAY", 90, 92);
+    g.fillStyle = C.fg;
+    g.font = `italic 54px ${serif}`;
+    g.fillText("Drawn on raywel's board", 90, 150);
+    // the court, 900 wide, in its own units
+    const k = 900 / 324;
+    g.save();
+    g.setTransform(k, 0, 0, k, 90 + 12 * k, 190 + 12 * k);
+    g.lineCap = "round";
+    g.lineJoin = "round";
+    g.strokeStyle = "rgba(143, 140, 134, 0.5)";
+    svg.querySelectorAll(".court path").forEach((path) => {
+      g.lineWidth = path.classList.contains("board-glass") ? 2.4 : 1;
+      g.setLineDash(path.classList.contains("dash") ? [3, 4] : []);
+      g.stroke(new Path2D(path.getAttribute("d")));
+    });
+    g.setLineDash([]);
+    g.beginPath();
+    g.arc(RIM[0], RIM[1], 4.5, 0, Math.PI * 2);
+    g.stroke();
+    // every step's marks, drawn in full
+    [...lines.children].forEach((step) => step.querySelectorAll("path, circle, text").forEach((node) => {
+      const cls = node.getAttribute("class") || "";
+      if (node.tagName === "text") {
+        g.fillStyle = cls.includes("and-one") ? C.accent : C.muted;
+        g.font = `italic ${cls.includes("and-one") ? 19 : 14}px ${serif}`;
+        g.fillText(node.textContent, Number(node.getAttribute("x")), Number(node.getAttribute("y")));
+        return;
+      }
+      g.setLineDash([]);
+      if (node.tagName === "circle") {
+        g.strokeStyle = C.accent;
+        g.lineWidth = 2.2;
+        g.beginPath();
+        g.arc(Number(node.getAttribute("cx")), Number(node.getAttribute("cy")), Number(node.getAttribute("r")), 0, Math.PI * 2);
+        g.stroke();
+        return;
+      }
+      const pass = cls.includes("pass");
+      g.strokeStyle = pass ? C.fg : C.accent;
+      g.lineWidth = pass ? 1.5 : 2;
+      g.setLineDash(pass && !cls.includes("pass-head") ? [4, 4] : []);
+      g.stroke(new Path2D(node.getAttribute("d")));
+    }));
+    g.setLineDash([]);
+    const s = stateAt(plan.length);
+    if (defense) {
+      CREW.forEach((n) => {
+        const [x, y] = defense[n];
+        g.strokeStyle = C.muted;
+        g.lineWidth = 1.8;
+        g.stroke(new Path2D(`M${x - 6} ${y - 6} L${x + 6} ${y + 6} M${x + 6} ${y - 6} L${x - 6} ${y + 6}`));
+        g.fillStyle = C.muted;
+        g.font = `9px ${mono}`;
+        g.textAlign = "left";
+        g.fillText(String(n), x + 7, y + 13);
+      });
+    }
+    CREW.forEach((n) => {
+      const [x, y] = s.at[n];
+      g.beginPath();
+      g.arc(x, y, 10, 0, Math.PI * 2);
+      g.fillStyle = C.card;
+      g.fill();
+      g.strokeStyle = n === 4 ? C.fg : C.muted;
+      g.lineWidth = n === 4 ? 1.8 : 1.4;
+      g.stroke();
+      g.fillStyle = n === 4 ? C.fg : C.muted;
+      g.font = `12px ${mono}`;
+      g.textAlign = "center";
+      g.fillText(String(n), x, y + 4.5);
+    });
+    if (s.ball) {
+      const [x, y] = s.at[s.ball];
+      g.beginPath();
+      g.arc(x + 8, y - 8, 3.4, 0, Math.PI * 2);
+      g.fillStyle = C.accent;
+      g.fill();
+    }
+    g.restore();
+    // the steps, two columns under the court, then the address
+    const rows = plan.map((step, i) => `${i + 1}. ${say(step)}`);
+    const shown = rows.length > 8 ? [...rows.slice(0, 7), `…and ${rows.length - 7} more`] : rows;
+    g.textAlign = "left";
+    g.fillStyle = C.fg;
+    g.font = `italic 28px ${serif}`;
+    const sans = css.getPropertyValue("--sans").trim() || "sans-serif";
+    shown.forEach((row, i) => {
+      let text = row;
+      while (g.measureText(text).width > 440 && text.length > 4) text = `${text.slice(0, -2)}…`;
+      // (the serif italic draws "1" like "l", so the numbers are in the sans)
+      let x = 90 + (i < 4 ? 0 : 460);
+      text.split(/(\d+)/).filter(Boolean).forEach((part) => {
+        g.font = /^\d/.test(part) ? `500 25px ${sans}` : `italic 28px ${serif}`;
+        g.fillText(part, x, 850 + (i % 4) * 42);
+        x += g.measureText(part).width;
+      });
+      g.font = `italic 28px ${serif}`;
+    });
+    g.fillStyle = C.muted;
+    g.font = `20px ${mono}`;
+    g.fillText("matimbu.github.io/raywelfrancismartin", 90, 1040);
+    return new Promise((done) => canvas.toBlob(done, "image/png"));
+  };
   tabs.append(slow, guess, drawTab, ...tools, max);
   board.append(caption, tabs);
   // (a word on the wall calls up its play; the one already up stays put)
@@ -2800,9 +3078,26 @@ function openShared() {
   playRush();
 }
 if (location.hash === "#malolos-rush") openShared();
+// A shared play's link (…/#play=…) opens On the court's board, big, with
+// the play drawing itself
+function openPlay() {
+  const board = document.querySelector(".play-board:not(.play-spot)");
+  if (!board || !board.openShared) return;
+  if (!document.body.classList.contains("ready")) return setTimeout(openPlay, 250);
+  const wall = board.closest(".wordwall") || board;
+  if (lenis) lenis.scrollTo(wall, { immediate: true });
+  else {
+    document.documentElement.style.scrollBehavior = "auto";
+    wall.scrollIntoView();
+    document.documentElement.style.scrollBehavior = "";
+  }
+  board.openShared(location.hash.slice(6));
+}
+if (location.hash.startsWith("#play=")) openPlay();
 // (and a link to it on the page, like the New pill's)
 addEventListener("hashchange", () => {
   if (location.hash === "#malolos-rush") openShared();
+  else if (location.hash.startsWith("#play=")) openPlay();
 });
 
 SITE.crafts.forEach((craft, i) => {
@@ -3771,6 +4066,10 @@ function setCounter(n, instant = false) {
   lbCount.setAttribute("aria-label", `Photo ${n} of ${gallery.length}`);
 }
 
+// Phones open a photo at 800 px (sharp at a phone's width, a quarter of the
+// 1600 px copy's weight); computers swap in the 1600 px one
+const bigShot = () => (matchMedia("(max-width: 760px)").matches ? 800 : 1600);
+
 // dir: 1 = next, -1 = previous, 0 = just opened
 function showShot(i, dir = 0, instant = false) {
   lbIndex = (i + gallery.length) % gallery.length;
@@ -3780,10 +4079,12 @@ function showShot(i, dir = 0, instant = false) {
   // Show the grid-size copy right away, then swap in the large one
   lbImg.src = shotSrc(p, 800);
   lbImg.alt = p.alt || p.caption;
-  const large = new Image();
-  const wanted = lbIndex;
-  large.onload = () => { if (wanted === lbIndex) lbImg.src = large.src; };
-  large.src = shotSrc(p, 1600);
+  if (bigShot() > 800) {
+    const large = new Image();
+    const wanted = lbIndex;
+    large.onload = () => { if (wanted === lbIndex) lbImg.src = large.src; };
+    large.src = shotSrc(p, 1600);
+  }
   setCounter(lbIndex + 1, instant);
   $("lbText").textContent = p.caption;
   // The story is the punchline: it waits a beat after the photo, then comes
@@ -3809,7 +4110,7 @@ function showShot(i, dir = 0, instant = false) {
   // Warm up the neighbours so arrowing through feels instant
   [lbIndex - 1, lbIndex + 1].forEach((j) => {
     const next = gallery[(j + gallery.length) % gallery.length];
-    if (!next.video) new Image().src = shotSrc(next, 1600);
+    if (!next.video) new Image().src = shotSrc(next, bigShot());
   });
 }
 
@@ -5497,11 +5798,7 @@ function agentSelect(block, item) {
     onHover(button, () => button.disabled || playSound(SOUND_HOVER, 0.5));
   });
   let giveRoomBack = null;
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    panel.classList.add("on");
-    giveRoomBack = makeRoom(block, art, panel);
-    framePick(block, art, panel);
-  }));
+  let closed = false;
   const lockBtn = panel.querySelector(".lock-in-btn");
   const status = panel.querySelector(".agent-status");
   // the pick timer counts down the 12 s, like the agent select's
@@ -5517,6 +5814,7 @@ function agentSelect(block, item) {
     if (e.key === "Escape") close();
   };
   const close = () => {
+    closed = true;
     clearTimeout(timer);
     clearInterval(ticking);
     document.removeEventListener("keydown", onKey);
@@ -5565,6 +5863,23 @@ function agentSelect(block, item) {
     kit.appendChild(slot);
   });
   if (kit.children.length) panel.querySelector(".agent-title").after(kit, info);
+  // It comes up once its pictures are decoded (or after 0.4 s at most):
+  // Safari on older iPhones left the ability icons blank while the panel
+  // scaled in, until something else redrew it (like locking in). Once it's
+  // up, the icons get one more redraw, to be sure.
+  const decoded = [...panel.querySelectorAll("img")].map((img) => (img.decode ? img.decode().catch(() => {}) : null));
+  Promise.race([Promise.all(decoded), new Promise((done) => setTimeout(done, 400))]).then(() => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (closed) return;
+      panel.classList.add("on");
+      giveRoomBack = makeRoom(block, art, panel);
+      framePick(block, art, panel);
+      setTimeout(() => {
+        kit.style.transform = "translateZ(0)";
+        requestAnimationFrame(() => (kit.style.transform = ""));
+      }, 480);
+    }));
+  });
   lockBtn.addEventListener("click", () => {
     clearTimeout(timer);
     clearInterval(ticking);

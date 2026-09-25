@@ -307,7 +307,7 @@ const SITE = {
           cards: [
             {
               short: "Yao", ovr: 99, tier: "G.O.A.T.", name: "Yao Ming", num: 11,
-              image: "assets/five/yao-rockets.webp", cut: "assets/five/cut/yao.webp",
+              image: "assets/five/yao-rockets.webp", cut: "assets/five/cut/yao-shoulder.webp",
               badges: [["Hook Specialist", "Legend"], ["Paint Patroller", "Legend"], ["Post Up Poet", "Legend"]],
               stats: [["Post Hook", 99], ["Block", 99], ["Mid-Range Shot", 99], ["Free Throw", 99]],
               build: 99
