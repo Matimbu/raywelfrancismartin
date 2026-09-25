@@ -25,6 +25,8 @@ const SITE = {
   // new since their last visit; anything older than 30 days never shows.
   // `href` is a spot on the page (#five, #court, #channels...) or a page.
   recent: [
+    { date: "2026-09-26", text: "A quote I've carried for years", href: "#beliefs" },
+    { date: "2026-09-26", text: "Draw a play on the court's board and send it", href: "#court" },
     { date: "2026-09-25", text: "My MyCAREER card, on the court", href: "#court" },
     { date: "2026-09-25", text: "Malolos Rush: outrun the guard to Casa Real", href: "#malolos-rush" },
     { date: "2026-09-25", text: "Malolos Rush, a mini game", href: "#crafts" },
@@ -497,6 +499,14 @@ const SITE = {
     "*Be honest about what you know.* I'd rather say what I'm still learning than pretend I've figured it all out.",
     "*People change, memories don't.* When something moves me, I film it so I get to keep the moment."
   ],
+  // `quote`: a line I've carried for years, the first thing in What I
+  // believe (it lights up word by word like the beliefs). `by` is who it's
+  // credited to.
+  quote: {
+    text: "What are you afraid of losing, when nothing in this world truly belongs to you?",
+    by: "Marcus Aurelius",
+    note: "a line I've carried for years"
+  },
 
   // Video IDs come from the URL: youtube.com/watch?v=THIS_PART or
   // youtube.com/shorts/THIS_PART. `featuredVideo` plays right on the page.

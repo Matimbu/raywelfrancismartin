@@ -3363,6 +3363,21 @@ SITE.beliefs.forEach((text, i) => {
   wrap.append(side, p);
   $("beliefList").appendChild(wrap);
 });
+// `quote`: the line that opens the section, before the beliefs, in italics
+// with a hanging quote mark, lighting up word by word like them, and who
+// said it
+if (SITE.quote && SITE.quote.text) {
+  const figure = el("figure", "belief-quote");
+  const quote = el("blockquote");
+  const p = el("p", "belief");
+  splitWords(p, `*${SITE.quote.text}*`);
+  quote.appendChild(p);
+  const by = el("figcaption", "mono");
+  by.append(el("span", "belief-quote-by", SITE.quote.by || ""));
+  if (SITE.quote.note) by.append(` · ${SITE.quote.note}`);
+  figure.append(quote, by);
+  $("beliefList").prepend(figure);
+}
 const beliefEls = [...document.querySelectorAll(".belief")];
 
 function updateBeliefs() {
@@ -3376,6 +3391,7 @@ function updateBeliefs() {
       const lit = Math.round(progress * words.length);
       words.forEach((w, i) => w.classList.toggle("lit", i < lit));
       const side = p.previousElementSibling;
+      if (!side) return; // (the quote has no number)
       const num = side.querySelector(".belief-num");
       const started = progress > 0.02;
       if (started !== num.classList.contains("on")) {

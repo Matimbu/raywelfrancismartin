@@ -52,7 +52,7 @@ Built with plain HTML, CSS and JavaScript, plus [Lenis](https://github.com/darkr
 
 ## Editing
 
-Everything the site says is in `content.js`, grouped by section (`about`, `walls`, `story`, `crafts`, `hobbies`, `playlist`, `beliefs`, `youtube`, `gallery`, `links`). The comments in it explain each option. When something new goes up, add a line to `recent` so the New pill shows it.
+Everything the site says is in `content.js`, grouped by section (`about`, `walls`, `story`, `crafts`, `hobbies`, `playlist`, `beliefs`, `quote`, `youtube`, `gallery`, `links`). The comments in it explain each option. When something new goes up, add a line to `recent` so the New pill shows it.
 
 After changing `content.js`, `main.js` or `style.css`, bump the `?v=` number on them in `index.html` (and after changing `rush.js`, its `?v=` in `main.js`) so returning visitors don't get old cached copies (GitHub Pages caches files for 10 minutes). For the same reason, a replaced picture gets a new file name instead of overwriting the old one. Entries containing `TODO` show up (outlined in yellow) only when previewing locally; the live site skips them. Old iPhones get new `color-mix()` and `cqw` styles rewritten for them by `legacy.js` automatically, as long as a mixed colour is a `--variable` set to a plain colour (hex or `rgb()`).
 

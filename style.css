@@ -2971,6 +2971,24 @@ button.craft-row {
   max-width: 19ch;
   color: var(--muted);
 }
+/* the quote that opens What I believe: in line with the beliefs' text, its
+   opening mark hanging in the margin in the accent, who said it under it */
+.belief-quote { display: grid; gap: 22px; margin: 0; padding-left: 88px; }
+.belief-quote blockquote { position: relative; margin: 0; }
+.belief-quote blockquote::before {
+  content: "\201C";
+  position: absolute;
+  top: 0;
+  right: 100%;
+  margin-right: 0.08em;
+  font-family: var(--serif);
+  font-size: clamp(36px, 6vw, 84px);
+  line-height: 1.02;
+  color: var(--accent);
+}
+.belief-quote .belief { max-width: 21ch; }
+.belief-quote figcaption { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.belief-quote-by { color: var(--fg); }
 .fw { transition: opacity 0.5s ease; }
 .fw.strong { font-style: italic; color: var(--fg); }
 .js .fw { opacity: 0.14; }
@@ -4409,6 +4427,8 @@ button.craft-row {
   .link-value { grid-column: 1; grid-row: 2; }
   .link-arrow { grid-column: 2; grid-row: 1 / span 2; }
   .belief-wrap { grid-template-columns: 1fr; gap: 10px; }
+  .belief-quote { padding-left: 0.42em; font-size: clamp(36px, 6vw, 84px); }
+  .belief-quote figcaption { font-size: 11px; }
   .belief-side { padding-top: 0; }
   .belief-bar { display: none; }
 
