@@ -139,10 +139,15 @@
   const BOARD = { projectId: "malolos-rush", apiKey: "AIzaSyCixUmPtLRPRug_2GfYzlI4ZngXdbdR3I8" };
   const BOARD_HTML = '<div class="rush-board" hidden><p class="rush-board-title mono">Top runners</p><ol class="rush-board-list"></ol></div>';
   const SHARE_URL = "https://matimbu.github.io/raywelfrancismartin/#malolos-rush";
+  // The score, what the leaderboard ranks: a point a metre and 10 a coin, so
+  // the coins (and the ensaymada, and the landmarks' bonus coins) count
+  const COIN_POINTS = 10;
+  const scoreOf = (meters, coins) => meters + coins * COIN_POINTS;
+  const points = (n) => n.toLocaleString("en-US");
   // ?fps in the address shows the frame rate, to see how an old phone copes
   const SHOW_FPS = /[?&]fps\b/.test(location.search);
 
-  let dialog, canvas, g, distLabel, coinLabel, powerBar, fpsLabel, banner, startCard, overCard, overTitle, overScore, bestLabels, shareButton;
+  let dialog, canvas, g, distLabel, ptsLabel, coinLabel, powerBar, fpsLabel, banner, startCard, overCard, overTitle, overScore, bestLabels, shareButton;
   let postForm, nameInput, postButton, postNote;
   let box = { left: 0, top: 0, width: 0, height: 0 };
   let trail = []; // where the finger (or the mouse, held down) has just been
@@ -167,13 +172,14 @@
   let glowSprite = null; // a street lamp's glow, drawn once
   let frameAvg = 16.7, dropped = 0, fpsFrames = 0, fpsSince = 0;
   let shown = "", powerShown = -1;
+  // (best and posted are scores: a point a metre, 10 a coin)
   let best = 0, posted = 0, myName = "", boardAsked = -1e9;
   let counted = false;
   const countedZones = {};
   const sprites = {}; // the pixel sprites, each drawn once
   try {
-    best = Number(localStorage.getItem("malolosBest")) || 0;
-    posted = Number(localStorage.getItem("malolosPosted")) || 0;
+    best = Number(localStorage.getItem("malolosBestScore")) || 0;
+    posted = Number(localStorage.getItem("malolosPostedScore")) || 0;
     myName = localStorage.getItem("malolosName") || "";
   } catch (e) {}
 
@@ -330,13 +336,13 @@
       <div class="rush-stage">
         <canvas class="rush-canvas" tabindex="-1" role="img" aria-label="A student running down a three-lane street in Malolos at sunset, toward its landmarks, with jeepneys, barriers and coins coming"></canvas>
         <button class="rush-close mono" type="button" aria-label="Close the game">✕</button>
-        <div class="rush-hud mono" aria-hidden="true">${SHOW_FPS ? '<span class="rush-fps"></span>' : ""}<span class="rush-power" hidden><b></b></span><span class="rush-dist">0 m</span><span class="rush-coins">0</span></div>
+        <div class="rush-hud mono" aria-hidden="true">${SHOW_FPS ? '<span class="rush-fps"></span>' : ""}<span class="rush-power" hidden><b></b></span><span class="rush-pts">0</span><span class="rush-dist">0 m</span><span class="rush-coins">0</span></div>
         <div class="rush-banner" aria-live="polite"><p class="rush-banner-title"></p><p class="rush-banner-sub mono"></p></div>
         <div class="rush-card rush-start">
           <p class="rush-kicker mono">Crafts · a teaser</p>
           <h2 class="rush-title">Malolos <em>Rush</em></h2>
           <p class="rush-note">A tiny taste of my capstone game. The real one is 3D, in Unity.</p>
-          <p class="rush-keys mono">Swipe left or right to change lanes · swipe up to jump (or ← → and ↑ / Space)<br>A jeepney ends the run · clip a barrier and a guard gives chase<br>Barasoain 500 m · the cathedral 1000 m · Casa Real 1500 m</p>
+          <p class="rush-keys mono">Swipe left or right to change lanes · swipe up to jump (or ← → and ↑ / Space)<br>A jeepney ends the run · clip a barrier and a guard gives chase<br>Barasoain 500 m · the cathedral 1000 m · Casa Real 1500 m<br>Score: a point a metre, 10 a coin</p>
           <button class="rush-go mono" type="button">Run</button>
           <p class="rush-best mono"></p>
           ${BOARD_HTML}
@@ -362,6 +368,7 @@
     canvas = dialog.querySelector(".rush-canvas");
     g = canvas.getContext("2d");
     distLabel = dialog.querySelector(".rush-dist");
+    ptsLabel = dialog.querySelector(".rush-pts");
     coinLabel = dialog.querySelector(".rush-coins");
     powerBar = dialog.querySelector(".rush-power b");
     fpsLabel = dialog.querySelector(".rush-fps");
@@ -544,16 +551,18 @@
     cancelAnimationFrame(raf);
     sound(why === "guard" ? "caught" : "crash");
     const meters = Math.floor(dist);
-    const record = meters > best;
+    const got = Math.min(coins, meters); // (the board takes no more coins than metres)
+    const score = scoreOf(meters, got);
+    const record = score > best;
     if (record) {
-      best = meters;
+      best = score;
       try {
-        localStorage.setItem("malolosBest", String(best));
+        localStorage.setItem("malolosBestScore", String(best));
       } catch (e) {}
     }
     overTitle.textContent = why === "jeep" ? "Hit a jeepney!" : why === "guard" ? "Caught by the guard!" : "Tripped!";
-    overScore.textContent = `${meters} m · ${coins} ${coins === 1 ? "coin" : "coins"}${record ? " · new best" : ""}`;
-    const run = (lastRun = { meters, coins, record, why, reached });
+    overScore.textContent = `${points(score)} pts · ${meters} m · ${got} ${got === 1 ? "coin" : "coins"}${record ? " · new best" : ""}`;
+    const run = (lastRun = { meters, coins: got, score, record, why, reached });
     showBest();
     overCard.hidden = false;
     trail = [];
@@ -638,8 +647,8 @@
   // the numbers, and a line with the link that opens the game. The share
   // sheet on phones; on computers the picture and the line are copied.
   function shareText() {
-    const run = lastRun || { meters: 0, coins: 0 };
-    return `I ran ${run.meters} m${run.coins ? ` and grabbed ${run.coins} ${run.coins === 1 ? "coin" : "coins"}` : ""} in Malolos Rush on Raywel's site. Beat that:`;
+    const run = lastRun || { meters: 0, coins: 0, score: 0 };
+    return `I scored ${points(run.score)} in Malolos Rush on Raywel's site (${run.meters} m, ${run.coins} ${run.coins === 1 ? "coin" : "coins"}). Beat that:`;
   }
 
   async function shareCard() {
@@ -690,23 +699,28 @@
     c.font = "italic 400 124px 'Instrument Serif', serif";
     c.fillText("Rush", 72 + word, 196);
     // the numbers
-    const run = lastRun || { meters: 0, coins: 0 };
+    const run = lastRun || { meters: 0, coins: 0, score: 0 };
+    if (run.reached) {
+      c.fillStyle = "#f5b841";
+      c.font = "400 24px 'Geist Mono', monospace";
+      c.fillText(`REACHED ${["BARASOAIN", "THE CATHEDRAL", "CASA REAL"][run.reached - 1]}`, 76, 1008);
+    }
+    // the score big, "pts" small after it
     c.fillStyle = "#f2f0eb";
     c.font = "italic 400 190px 'Instrument Serif', serif";
-    c.fillText(`${run.meters} m`, 64, 1170);
+    const big = points(run.score);
+    c.fillText(big, 64, 1170);
+    const after = 64 + c.measureText(big).width + 18;
+    c.fillStyle = "#b9b5ad";
+    c.font = "400 44px 'Geist Mono', monospace";
+    c.fillText("PTS", after, 1170);
     c.fillStyle = "#f7c948";
     c.beginPath();
     c.arc(88, 1229, 14, 0, Math.PI * 2);
     c.fill();
     c.fillStyle = "#b9b5ad";
     c.font = "400 28px 'Geist Mono', monospace";
-    c.fillText(`${run.coins} ${run.coins === 1 ? "COIN" : "COINS"}   ·   BEST ${best} M`, 118, 1239);
-    if (run.reached) {
-      c.fillStyle = "#f5b841";
-      c.textAlign = "right";
-      c.fillText(`REACHED ${["BARASOAIN", "THE CATHEDRAL", "CASA REAL"][run.reached - 1]}`, CW - 72, 1239);
-      c.textAlign = "left";
-    }
+    c.fillText(`${run.coins} ${run.coins === 1 ? "COIN" : "COINS"}   ·   ${run.meters} M   ·   BEST ${points(best)}`, 118, 1239);
     c.fillStyle = "#8f8c86";
     c.font = "400 23px 'Geist Mono', monospace";
     c.fillText("BEAT IT  →  MATIMBU.GITHUB.IO/RAYWELFRANCISMARTIN/#MALOLOS-RUSH", 72, 1296);
@@ -754,24 +768,24 @@
     return `https://firestore.googleapis.com/v1/projects/${BOARD.projectId}/databases/(default)/documents`;
   }
 
-  // the ten best runners, each once (their best run)
+  // the ten best runners by score, each once (their best run)
   async function loadBoard() {
     const res = await fetch(`${boardUrl()}:runQuery?key=${BOARD.apiKey}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ structuredQuery: { from: [{ collectionId: "malolosRush" }], orderBy: [{ field: { fieldPath: "meters" }, direction: "DESCENDING" }], limit: 40 } })
+      body: JSON.stringify({ structuredQuery: { from: [{ collectionId: "malolosRush" }], orderBy: [{ field: { fieldPath: "score" }, direction: "DESCENDING" }], limit: 40 } })
     });
     if (!res.ok) throw new Error(String(res.status));
     const seen = {};
     const top = [];
     (await res.json()).forEach((row) => {
       const fields = row.document && row.document.fields;
-      if (!fields || !fields.name || !fields.meters) return;
+      if (!fields || !fields.name || !fields.score) return;
       const name = String(fields.name.stringValue || "").slice(0, 16);
       const key = name.toLowerCase();
       if (!name || seen[key] || top.length >= 10) return;
       seen[key] = true;
-      top.push({ name, meters: Number(fields.meters.integerValue) || 0 });
+      top.push({ name, score: Number(fields.score.integerValue) || 0 });
     });
     return top;
   }
@@ -797,7 +811,7 @@
       top.slice(0, 5).forEach((r, i) => {
         const li = document.createElement("li");
         if (myName && r.name.toLowerCase() === myName.toLowerCase()) li.className = "me";
-        [String(i + 1), r.name, `${r.meters} m`].forEach((text) => {
+        [String(i + 1), r.name, `${points(r.score)} pts`].forEach((text) => {
           const span = document.createElement("span");
           span.textContent = text;
           li.appendChild(span);
@@ -810,7 +824,7 @@
   // after a run: a name box to post it, when it beats the best already posted
   function offerPost() {
     if (!BOARD.projectId) return;
-    const can = lastRun.meters >= 10 && lastRun.meters > posted;
+    const can = lastRun.meters >= 10 && lastRun.score > posted;
     postForm.hidden = !can;
     postNote.hidden = can || !posted;
     if (can) {
@@ -818,7 +832,7 @@
       postButton.disabled = false;
       postButton.textContent = posted ? "Post my new best" : "Post my run";
     } else if (posted) {
-      postNote.textContent = `Your best on the board: ${posted} m`;
+      postNote.textContent = `Your best on the board: ${points(posted)} pts`;
     }
     refreshBoard();
   }
@@ -834,14 +848,19 @@
       const res = await fetch(`${boardUrl()}/malolosRush?key=${BOARD.apiKey}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fields: { name: { stringValue: name }, meters: { integerValue: String(run.meters) }, coins: { integerValue: String(Math.min(run.coins, run.meters)) } } })
+        body: JSON.stringify({ fields: {
+          name: { stringValue: name },
+          meters: { integerValue: String(run.meters) },
+          coins: { integerValue: String(run.coins) },
+          score: { integerValue: String(run.score) }
+        } })
       });
       if (!res.ok) throw new Error(String(res.status));
       myName = name;
-      posted = run.meters;
+      posted = run.score;
       try {
         localStorage.setItem("malolosName", name);
-        localStorage.setItem("malolosPosted", String(posted));
+        localStorage.setItem("malolosPostedScore", String(posted));
       } catch (err) {}
       if (window.goatcounter && window.goatcounter.count) {
         window.goatcounter.count({ path: "malolos-rush-post", title: "Posted a Malolos Rush run", event: true });
@@ -863,7 +882,7 @@
   }
 
   function showBest() {
-    bestLabels.forEach((b) => (b.textContent = best ? `Best: ${best} m` : ""));
+    bestLabels.forEach((b) => (b.textContent = best ? `Best: ${points(best)} pts` : ""));
   }
 
   function move(dir) {
@@ -1059,7 +1078,9 @@
     const key = `${Math.floor(dist)}|${coins}`;
     if (key !== shown) {
       shown = key;
-      distLabel.textContent = `${Math.floor(dist)} m`;
+      const m = Math.floor(dist);
+      ptsLabel.textContent = `${points(scoreOf(m, Math.min(coins, m)))} pts`;
+      distLabel.textContent = `${m} m`;
       coinLabel.textContent = String(coins);
     }
     const left = magnet > 0 ? Math.ceil((magnet / MAGNET) * 40) / 40 : 0;
@@ -1727,7 +1748,7 @@
   if (/[?&]rushtest\b/.test(location.search)) {
     window.rushTest = {
       sounds: [],
-      info: () => ({ state, dist: Math.floor(dist), coins, lane, magnet: +magnet.toFixed(2), reached, lit: +lit.toFixed(2), chase: +chase.toFixed(1), caught, dpr: DPR, things: things.length }),
+      info: () => ({ state, dist: Math.floor(dist), coins, score: scoreOf(Math.floor(dist), Math.min(coins, Math.floor(dist))), lane, magnet: +magnet.toFixed(2), reached, lit: +lit.toFixed(2), chase: +chase.toFixed(1), caught, dpr: DPR, things: things.length }),
       skipTo: (m) => {
         dist = m;
         nextRow = m + 14;

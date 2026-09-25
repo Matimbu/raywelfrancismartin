@@ -25,6 +25,7 @@ const SITE = {
   // new since their last visit; anything older than 30 days never shows.
   // `href` is a spot on the page (#five, #court, #channels...) or a page.
   recent: [
+    { date: "2026-09-25", text: "My MyCAREER card, off the bench", href: "#five" },
     { date: "2026-09-25", text: "Malolos Rush: outrun the guard to Casa Real", href: "#malolos-rush" },
     { date: "2026-09-25", text: "Malolos Rush, a mini game", href: "#crafts" },
     { date: "2026-09-25", text: "2K26 cards for my starting five", href: "#five" },
@@ -151,9 +152,9 @@ const SITE = {
       board: true, // and a coach's board draws the move, one step per word
       intro: "Where I play and what I go to.",
       words: [
-        { text: "Center", note: "or the 3, on the wing", top: true },
+        { text: "Power forward", note: "not the 5: I'd rather run the floor", top: true },
         { text: "6 ft", note: "easy fouls in the post" },
-        { text: "Triple threat", note: "jab right, explode left, reverse on the right side" },
+        { text: "Back door", note: "my man overplays, I cut behind him" },
         { text: "Drop step spin", note: "and one!" }
       ]
     },
@@ -233,19 +234,23 @@ const SITE = {
           credit: [{ subject: "Yao Ming", by: "Keith Allison", license: "CC BY-SA 2.0", licenseUrl: "https://creativecommons.org/licenses/by-sa/2.0/", source: "https://commons.wikimedia.org/wiki/File:Yao_Ming_(2310548923).jpg" }]
         },
         {
-          // me, off the bench: the photo holding my custom jacket, and on the
-          // card, me cut out of my fit check. The overall, position and
-          // attributes are my favourite NBA 2K26 MyCAREER build (a 99 SF,
-          // 2-Way Inside-Out Point Forward); the badges are picked to match it.
-          // hidden until the rest of the site is done; then take `hidden` out
-          hidden: true,
+          // me, off the bench: the photo holding my custom jacket; turned over,
+          // my NBA 2K26 MyCAREER build (the closest to how I really play: a
+          // power forward who runs the floor, cuts back door and posts up) on
+          // a card like the game's builds screen, my player's face in the
+          // ring, in G.O.A.T. gold. `build` is its 21 ratings as they are now;
+          // the badges are its best three of 35.
           pos: "6th man", text: "Me", note: "the Court's Coder", link: "#court",
           image: "assets/five/raywel-jacket.jpg", alt: "Me in sunglasses, holding my custom RAYWEL jacket at a clothing shop",
           card: {
-            ovr: 99, tier: "Sixth Man", name: "Raywel Martin", pos: "SF", cut: "assets/five/cut/raywel.webp",
-            badges: [["Dimer", "HOF"], ["Posterizer", "HOF"], ["Limitless Range", "Gold"]],
-            stats: [["Pass Accuracy", 95], ["Driving Dunk", 93], ["Three-Point Shot", 92], ["Speed", 88]],
-            build: [74, 75, 93, 58, 51, 82, 92, 76, 95, 86, 80, 51, 76, 43, 68, 35, 60, 88, 88, 60, 83]
+            style: "career", ovr: 95, tier: "G.O.A.T.", label: "G.O.A.T. Build", name: "Raywel Martin", pos: "PF",
+            face: "assets/five/raywel-mycareer.webp",
+            archetype: "2-Way Middy-Slashing Cleaner",
+            size: "HT 6'8\" · WT 239 lbs · WS 7'1\"",
+            jumper: "Ray Allen base · Beluba and Rudy Gay releases, 65 / 35",
+            badges: [["Pogo Stick", "Legend"], ["Posterizer", "HOF"], ["Aerial Wizard", "HOF"]],
+            stats: [["Driving Dunk", 96], ["Defensive Rebound", 90], ["Vertical", 88], ["Mid-Range Shot", 87]],
+            build: [43, 38, 96, 40, 70, 87, 83, 78, 66, 85, 75, 71, 85, 70, 71, 61, 90, 85, 80, 85, 88]
           }
         }
       ],

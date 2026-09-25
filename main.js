@@ -753,7 +753,91 @@ const BUILD_GROUPS = [
 // attributes) on slanted tags, and a black banner across the bottom that runs
 // past the frame: the jersey number, the last name big in metal with the
 // first name sitting on top of the banner, and the position.
+const POSITIONS = { PG: "Point Guard", SG: "Shooting Guard", SF: "Small Forward", PF: "Power Forward", C: "Center" };
+
+// badges on slanted tags (three at most)
+function cardBadges(c) {
+  const badges = el("span", "tk-badges");
+  (c.badges || []).slice(0, 3).forEach(([name, level], i) => {
+    const badge = el("span", "tk-badge");
+    badge.dataset.level = String(level).toLowerCase();
+    badge.style.setProperty("--b", i); // (Legend badges shine one after another)
+    const label = el("span", "tk-badge-label");
+    label.append(el("i"), el("span", "tk-badge-name", name), el("span", "tk-level", level));
+    badge.appendChild(label);
+    badges.appendChild(badge);
+  });
+  return badges;
+}
+
+// `build`: the whole build, a bar for every rating in the groups and colours
+// of 2K26's attribute upgrades screen (rising as the tab turns to Attributes)
+function buildChart(c) {
+  const chart = el("span", "tk-build");
+  let k = 0;
+  BUILD_GROUPS.forEach(([group, color, names]) => {
+    const column = el("span", "tk-build-group");
+    column.style.setProperty("--c", color);
+    column.style.setProperty("--n", names.length);
+    const bars = el("span", "tk-build-bars");
+    names.forEach((name) => {
+      const value = Array.isArray(c.build) ? c.build[k] : c.build;
+      const bar = el("i");
+      bar.style.setProperty("--v", (Math.max(0, Math.min(99, value)) / 99).toFixed(3));
+      bar.style.setProperty("--k", k++);
+      bar.title = `${name} ${value}`;
+      bars.appendChild(bar);
+    });
+    column.append(bars, el("b", "", group));
+    chart.appendChild(column);
+  });
+  return chart;
+}
+
+// A MyCAREER build (`style: "career"`, my own card) on a card like the game's
+// builds screen instead of a MyTEAM card: the player's face in a ring, the
+// overall, the build's name, size and position, the badges under it; the
+// Attributes tab has the whole build and the jumper. In the tier's metal and
+// glitter (G.O.A.T. gold).
+function careerCard(c, w, extra) {
+  const card = el("span", `tk tk-career${extra ? ` ${extra}` : ""}`);
+  card.dataset.tier = tierKey(c.tier);
+  const glow = el("span", "tk-glow");
+  const frame = el("span", "tk-frame");
+  const body = el("span", "tk-body");
+  body.insertAdjacentHTML("beforeend", cardSparks(c.name || w.text));
+  body.append(el("span", "tk-shine"), el("span", "tk-holo"));
+  frame.appendChild(body);
+  glow.appendChild(frame);
+  card.appendChild(glow);
+  const top = el("span", "tk-career-top");
+  top.append(el("b", "tk-mc", "MC"), el("span", "tk-career-label", c.label || c.tier));
+  const ovr = el("span", "tk-career-ovr");
+  ovr.append(el("small", "", "OVR"), el("b", "", String(c.ovr)));
+  const face = el("span", "tk-career-face");
+  const img = el("img");
+  img.src = c.face;
+  img.alt = "";
+  img.loading = "lazy";
+  img.decoding = "async";
+  face.appendChild(img);
+  const pos = c.pos || w.pos || "";
+  const stats = el("span", "tk-stats");
+  if (c.build != null) stats.appendChild(buildChart(c));
+  if (c.jumper) {
+    const jumper = el("span", "tk-career-jumper");
+    jumper.append(el("b", "", "Jumper"), el("span", "", c.jumper));
+    stats.appendChild(jumper);
+  }
+  const ui = el("span", "tk-ui");
+  ui.append(top, ovr, face, el("span", "tk-career-arch", c.archetype || ""), el("span", "tk-career-size", c.size || ""),
+    el("span", "tk-career-pos", POSITIONS[pos] || pos), cardBadges(c), stats);
+  card.appendChild(ui);
+  return card;
+}
+
 function twoKCard(c, w, extra = "") {
+  if (c.style === "career") return careerCard(c, w, extra);
   const card = el("span", extra ? `tk ${extra}` : "tk");
   card.dataset.tier = tierKey(c.tier);
   const glow = el("span", "tk-glow");
@@ -776,41 +860,10 @@ function twoKCard(c, w, extra = "") {
     body.appendChild(img);
   }
   body.insertAdjacentHTML("beforeend", cardSparks(c.name || w.text));
-  const badges = el("span", "tk-badges");
-  (c.badges || []).slice(0, 3).forEach(([name, level], i) => {
-    const badge = el("span", "tk-badge");
-    badge.dataset.level = String(level).toLowerCase();
-    badge.style.setProperty("--b", i); // (Legend badges shine one after another)
-    const label = el("span", "tk-badge-label");
-    label.append(el("i"), el("span", "tk-badge-name", name), el("span", "tk-level", level));
-    badge.appendChild(label);
-    badges.appendChild(badge);
-  });
+  const badges = cardBadges(c);
   const stats = el("span", "tk-stats");
-  // `build`: the whole build over the key numbers, a bar for every rating in
-  // the groups and colours of 2K26's attribute upgrades screen (rising as the
-  // tab turns to Attributes)
-  if (c.build != null) {
-    const chart = el("span", "tk-build");
-    let k = 0;
-    BUILD_GROUPS.forEach(([group, color, names]) => {
-      const column = el("span", "tk-build-group");
-      column.style.setProperty("--c", color);
-      column.style.setProperty("--n", names.length);
-      const bars = el("span", "tk-build-bars");
-      names.forEach((name) => {
-        const value = Array.isArray(c.build) ? c.build[k] : c.build;
-        const bar = el("i");
-        bar.style.setProperty("--v", (Math.max(0, Math.min(99, value)) / 99).toFixed(3));
-        bar.style.setProperty("--k", k++);
-        bar.title = `${name} ${value}`;
-        bars.appendChild(bar);
-      });
-      column.append(bars, el("b", "", group));
-      chart.appendChild(column);
-    });
-    stats.appendChild(chart);
-  }
+  // (the whole build over the key numbers)
+  if (c.build != null) stats.appendChild(buildChart(c));
   (c.stats || []).slice(0, 4).forEach(([name, value]) => {
     const row = el("span", "tk-stat");
     row.style.setProperty("--v", (value / 100).toFixed(2));
@@ -845,7 +898,6 @@ function twoKCard(c, w, extra = "") {
 function packFace(w, c) {
   const pack = el("span", "tk-pack");
   const clues = el("span", "tk-clues");
-  const POSITIONS = { PG: "Point Guard", SG: "Shooting Guard", SF: "Small Forward", PF: "Power Forward", C: "Center" };
   const pos = c.pos || w.pos || "";
   clues.append(el("span", "tk-clue", POSITIONS[pos.split("/")[0]] || pos));
   if (c.badges && c.badges[0]) clues.append(el("span", "tk-clue", c.badges[0][0]));
@@ -875,6 +927,7 @@ function twoKSide(w) {
   side.setAttribute("aria-hidden", "true");
   side.dataset.tier = tierKey(list[0].tier);
   if (list.length > 1) side.classList.add("tk-stack");
+  if (list[0].style === "career") side.classList.add("tk-side-career");
   list.forEach((c, i) => side.appendChild(twoKCard(c, w, i ? "tk-alt" : "")));
   if (list.some((c) => c.stats && c.stats.length)) side.appendChild(el("span", "tk-layer", "Attributes"));
   if (list.length > 1) {
@@ -958,46 +1011,16 @@ function phoneTilt() {
 }
 
 // On the court's play board: a coach's board with the half court around the
-// arc (the basket at the top) where the words are drawn as a play in marker, one step for each
-// word as it lights up: the 5 on the wing (Center), his defender (6 ft), the
-// jab right, then the drive left that comes back to the right side (Triple
-// threat; a dribble is a zigzag on a coach's board), then the drop step spin
-// to the rim for the and-one (Drop step spin)
+// arc (the basket at the top) where the words are drawn as a play in marker,
+// one step for each word as it lights up. A power forward's go-to: the 4 on
+// the wing with the 1 up top holding the ball (Power forward), his defender
+// overplaying the pass (6 ft), a fake out toward the ball, then the cut
+// behind him along the baseline to the block, the 1's bounce pass meeting him
+// there (Back door), then the drop step spin to the rim for the and-one
+// (Drop step spin)
 function playBoard() {
   const board = el("div", "play-board reveal");
   const f = (n) => n.toFixed(1);
-  const bez = ([p0, c1, c2, p3], t) => {
-    const u = 1 - t;
-    return [0, 1].map((k) => u * u * u * p0[k] + 3 * u * u * t * c1[k] + 3 * u * t * t * c2[k] + t * t * t * p3[k]);
-  };
-  // a dribble: a zigzag along the curves, straight at the end for the arrow
-  const dribble = (curves, amp = 3, step = 5.5, tail = 9) => {
-    const pts = [];
-    curves.forEach((c) => {
-      for (let k = pts.length ? 1 : 0; k <= 40; k++) pts.push(bez(c, k / 40));
-    });
-    const len = [0];
-    for (let k = 1; k < pts.length; k++) len.push(len[k - 1] + Math.hypot(pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1]));
-    const total = len[len.length - 1];
-    const at = (d) => {
-      let k = 1;
-      while (k < len.length - 1 && len[k] < d) k++;
-      const [ax, ay] = pts[k - 1];
-      const [bx, by] = pts[k];
-      const t = (d - len[k - 1]) / (len[k] - len[k - 1] || 1);
-      const n = Math.hypot(bx - ax, by - ay) || 1;
-      return { x: ax + (bx - ax) * t, y: ay + (by - ay) * t, tx: (bx - ax) / n, ty: (by - ay) / n };
-    };
-    let d = `M${f(pts[0][0])} ${f(pts[0][1])}`;
-    for (let s = step, side = 1; s < total - tail; s += step, side = -side) {
-      const p = at(s);
-      d += ` L${f(p.x - p.ty * amp * side)} ${f(p.y + p.tx * amp * side)}`;
-    }
-    const bend = at(total - tail);
-    const [ex, ey] = pts[pts.length - 1];
-    d += ` L${f(bend.x)} ${f(bend.y)} L${f(ex)} ${f(ey)}`;
-    return { d, x: ex, y: ey, angle: Math.atan2(ey - bend.y, ex - bend.x) };
-  };
   const head = (x, y, angle, size = 7) => {
     const side = (turn) => `${f(x + Math.cos(angle + Math.PI + turn) * size)} ${f(y + Math.sin(angle + Math.PI + turn) * size)}`;
     return `M${side(-0.5)} L${f(x)} ${f(y)} L${side(0.5)}`;
@@ -1005,12 +1028,12 @@ function playBoard() {
   // each mark draws (or fades in) `at` seconds into its step, taking `t`
   const ink = (cls, d, at = 0, t = 0.4) => `<path class="ink ${cls}" pathLength="1" d="${d}" style="--at:${at}s;--t:${t}s"/>`;
   const later = (cls, d, at) => `<path class="fade ${cls}" d="${d}" style="--at:${at}s"/>`;
-  const jab = { x: 251, y: 146 };
-  const drive = dribble([
-    [[211, 134], [190, 139], [166, 131], [163, 110]],
-    [[163, 110], [160, 90], [178, 82], [191, 70]]
-  ]);
-  const spin = "M191 70 C199 61 202 49 193 45 C184 41 176 50 182 57 C187 63 175 55 157 38";
+  // the fake out toward the ball, the cut round behind the defender to the
+  // block, the bounce pass from the top meeting it, and the spin to the rim
+  const fake = { x: 247, y: 135 };
+  const cut = "M247 135 C259 108 247 76 208 62";
+  const pass = { x0: 157, y0: 167, x1: 203, y1: 73 };
+  const spin = "M208 62 C216 53 217 42 208 38 C199 34 191 43 197 50 C202 56 189 48 158 37";
   board.innerHTML = `<svg viewBox="-12 -12 324 214">
     <g class="court">
       <path d="M0 202 V0 H300 V202"/>
@@ -1024,19 +1047,23 @@ function playBoard() {
       <circle class="rim" cx="150" cy="31.5" r="4.5"/>
     </g>
     <g class="play-step">
-      <circle class="ink me" pathLength="1" cx="222" cy="140" r="10" style="--at:0s;--t:0.5s"/>
-      <text class="fade num" x="222" y="144.5" style="--at:0.3s">5</text>
+      <circle class="ink me" pathLength="1" cx="240" cy="108" r="10" style="--at:0s;--t:0.5s"/>
+      <text class="fade num" x="240" y="112.5" style="--at:0.3s">4</text>
+      <circle class="fade mate" cx="150" cy="176" r="9" style="--at:0.4s"/>
+      <text class="fade num mate-num" x="150" y="180.5" style="--at:0.5s">1</text>
     </g>
     <g class="play-step">
-      ${ink("me", "M201 113 L213 125", 0, 0.18)}
-      ${ink("me", "M213 113 L201 125", 0.2, 0.18)}
+      ${ink("me", "M218 118 L230 130", 0, 0.18)}
+      ${ink("me", "M230 118 L218 130", 0.2, 0.18)}
     </g>
     <g class="play-step">
-      ${ink("move", `M233 142 L${jab.x} ${jab.y}`, 0, 0.2)}
-      ${later("move", head(jab.x, jab.y, Math.atan2(jab.y - 142, jab.x - 233), 6), 0.2)}
-      <text class="fade note" x="244" y="163" style="--at:0.2s">jab</text>
-      ${ink("move", drive.d, 0.35, 0.9)}
-      ${later("move drive-head", head(drive.x, drive.y, drive.angle), 1.25)}
+      ${ink("move", `M242 117 L${fake.x} ${fake.y}`, 0, 0.2)}
+      <text class="fade note" x="252" y="152" style="--at:0.2s">fake</text>
+      ${ink("move", cut, 0.35, 0.7)}
+      ${later("move drive-head", head(208, 62, Math.atan2(62 - 76, 208 - 247)), 1.05)}
+      <text class="fade note" x="250" y="72" style="--at:0.9s">back door</text>
+      ${later("pass", `M${pass.x0} ${pass.y0} L${pass.x1} ${pass.y1}`, 0.95)}
+      ${later("pass pass-head", head(pass.x1, pass.y1, Math.atan2(pass.y1 - pass.y0, pass.x1 - pass.x0), 6), 1.1)}
     </g>
     <g class="play-step">
       ${ink("move", spin, 0, 0.7)}
@@ -1061,7 +1088,7 @@ function playBoard() {
     steps.forEach((step) => step.classList.remove("on"));
     void board.offsetWidth; // the wipe is instant, then it draws again
     board.classList.remove("resetting");
-    const at = [250, 950, 1650, 3200];
+    const at = [250, 950, 1650, 3300];
     steps.forEach((step, i) => setTimeout(() => run === replaying && step.classList.add("on"), at[i] ?? 250 + i * 900));
     setTimeout(() => run === replaying && delete board.dataset.replaying, 4600);
   };
@@ -1697,7 +1724,7 @@ const tagWatch = reduceMotion ? null : new IntersectionObserver((entries) => {
 // A craft with `game: true` (Malolos Rush) opens a tiny playable teaser:
 // rush.js, loaded the first time someone presses Play (bump its ?v= here
 // when it changes)
-const RUSH_JS = "rush.js?v=20260925-8";
+const RUSH_JS = "rush.js?v=20260925-9";
 function playRush() {
   if (window.openRush) return window.openRush();
   const script = el("script");

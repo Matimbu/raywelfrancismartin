@@ -821,6 +821,11 @@ button { font: inherit; color: inherit; }
 .play-board .court .board-glass { stroke-width: 2.4; }
 .play-board .me { stroke: var(--fg); stroke-width: 1.8; }
 .play-board .move { stroke: var(--accent); stroke-width: 2; }
+/* a teammate (the 1 with the ball) and a pass, dashed like a coach draws it */
+.play-board .mate { stroke: var(--muted); stroke-width: 1.4; }
+.play-board .num.mate-num { fill: var(--muted); }
+.play-board .pass { stroke: var(--fg); stroke-width: 1.5; stroke-dasharray: 4 4; }
+.play-board .pass-head { stroke-dasharray: none; }
 /* marker lines draw themselves; arrowheads and notes fade in after them */
 /* (the gap is longer than the line, so no round cap dots the end while it's hidden) */
 .play-board .ink { stroke-dasharray: 1 2; stroke-dashoffset: 1; transition: stroke-dashoffset 0.25s ease; }
@@ -1430,6 +1435,104 @@ button { font: inherit; color: inherit; }
 }
 .tk-layer::after { content: ""; position: absolute; inset: -12px -14px -5px; }
 @media (hover: hover) and (pointer: fine) { .tk-layer:hover { background: color-mix(in srgb, var(--glow) 35%, rgb(6 7 10)); } }
+
+/* My own card (`style: "career"`): laid out like 2K26's MyCAREER builds card
+   (MC and the build's tag top left, the overall top right, the face in a
+   ring, the build's name, size and position on a bar), in the tier's metal
+   with its glitter. The frame fills the card; nobody breaks out of it. */
+.tk-career .tk-glow { inset: 3cqw 3.5cqw; }
+.tk-career .tk-body {
+  background:
+    radial-gradient(62% 36% at 50% 33%, color-mix(in srgb, var(--m3) 42%, transparent), transparent 76%),
+    repeating-conic-gradient(from -6deg at 50% 33%, rgb(255 255 255 / 0.04) 0deg 5deg, transparent 5deg 16deg),
+    linear-gradient(180deg, #17120a, var(--deep) 60%);
+}
+.tk-career .tk-body::before { background: none; }
+.tk-career-top, .tk-career-ovr { position: absolute; top: 8cqw; display: grid; line-height: 1; }
+.tk-career-top { left: 9cqw; gap: 1cqw; }
+.tk-mc { font-weight: 800; font-style: italic; font-size: 9cqw; letter-spacing: -0.04em; }
+.tk-career-label {
+  font-weight: 700;
+  font-size: max(6px, 3.3cqw);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--m2);
+}
+.tk-career-ovr { right: 9cqw; justify-items: end; }
+.tk-career-ovr small { font-weight: 700; font-size: max(6px, 3.3cqw); letter-spacing: 0.12em; color: var(--m4); }
+.tk-career-ovr b {
+  padding: 0 0.14em;
+  margin: 0 -0.14em;
+  font-weight: 800;
+  font-size: 15cqw;
+  letter-spacing: -0.02em;
+  background: var(--metal);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.tk-career-face {
+  position: absolute;
+  top: 24cqw;
+  left: 28cqw;
+  width: 44cqw;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--m3);
+  box-shadow: 0 0 0 1cqw var(--m2), 0 0 0 1.5cqw var(--m5), 0 0 4cqw color-mix(in srgb, var(--m2) 55%, transparent);
+  transition: opacity 0.22s ease, scale 0.3s var(--ease-out);
+}
+.tk-career-face img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.tk-career-arch {
+  position: absolute;
+  top: 73cqw;
+  left: 8cqw;
+  right: 8cqw;
+  font-weight: 700;
+  font-size: 6.6cqw;
+  line-height: 1.05;
+  text-align: center;
+  text-wrap: balance;
+}
+.tk-career-size {
+  position: absolute;
+  top: 88.5cqw;
+  left: 6cqw;
+  right: 6cqw;
+  font-weight: 700;
+  font-size: max(7px, 4.1cqw);
+  letter-spacing: 0.04em;
+  text-align: center;
+  white-space: nowrap;
+  color: rgb(255 255 255 / 0.92);
+}
+.tk-career-pos {
+  position: absolute;
+  top: 95.5cqw;
+  left: 4.5cqw;
+  right: 4.5cqw;
+  padding: 1.1cqw 0;
+  background: var(--metal);
+  color: #120d06;
+  font-weight: 800;
+  font-size: max(7px, 4.2cqw);
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-align: center;
+  text-transform: uppercase;
+}
+.tk-career .tk-badges { top: 104cqw; bottom: auto; left: 9cqw; right: 9cqw; gap: 1.2cqw; justify-items: center; }
+.tk-career .tk-badge-label { font-size: max(7.5px, 3.9cqw); }
+.tk-career .tk-badge i { width: max(7px, 3.9cqw); }
+/* the Attributes tab: the whole build and the jumper where the face was */
+.tk-career .tk-stats { top: 30cqw; bottom: auto; left: 9cqw; right: 9cqw; gap: 3cqw; }
+.tk-career .tk-stat { display: none; }
+.tk-career-jumper { display: grid; gap: 0.8cqw; font-size: max(7px, 3.7cqw); line-height: 1.2; }
+.tk-career-jumper b { font-size: max(6px, 3.1cqw); letter-spacing: 0.12em; text-transform: uppercase; color: var(--m2); }
+.layer-stats .tk-career-face { opacity: 0; scale: 0.92; }
+/* (its tab sits by the face, clear of the overall) */
+.tk-side-career .tk-layer { top: 61cqw; right: 5cqw; }
 
 /* Co-starters: two cards in one spot, the one behind out of sight. The
    switch (or the names under the card) shuffles them: the front card slides
@@ -3479,6 +3582,7 @@ button.craft-row {
 .rush-power[hidden] { display: none; }
 .rush-power b { display: block; height: 100%; background: #f5b841; box-shadow: 0 0 8px rgb(245 184 65 / 0.7); transform-origin: left; }
 .rush-fps { color: #9be38b; }
+.rush-pts { color: #f5b841; }
 /* a word across the sky: Barasoain reached, an ensaymada grabbed */
 .rush-banner {
   position: absolute;
