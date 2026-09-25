@@ -44,7 +44,7 @@ Built with plain HTML, CSS and JavaScript, plus [Lenis](https://github.com/darkr
 - Type **sova** anywhere to launch the Owl Drone.
 - Click **LOCKED IN** under Sova's picture. It knows his real name.
 - **Take a shot** from the Basketball card: hold, release in the green, drag the ball back for a longer shot, and share your streak.
-- Press **Play** on Malolos Rush in Crafts: a tiny three-lane runner down a Malolos street at night, toward Barasoain Church. Swipe to change lanes and swipe up to jump the barriers (drag with the mouse on a computer, or use the arrows and Space), dodge the jeepneys and grab the coins.
+- Press **Play** on Malolos Rush in Crafts: a tiny three-lane runner down a Malolos street at night, toward Barasoain Church. Swipe to change lanes and swipe up to jump the barriers (drag with the mouse on a computer, or use the arrows and Space), dodge the jeepneys and grab the coins. After a crash, **Share my run** makes a picture of the crash with your distance and a link back (the share sheet on a phone; copied on a computer, ready to paste into a chat). The link, `…/#malolos-rush`, opens the game straight away.
 - Tap my **Discord** or **Valorant** name under Contact to copy it.
 - Flip between dark and light with the toggle at the top right.
 
@@ -60,7 +60,7 @@ To publish, commit and push to `main`. GitHub Pages redeploys in about a minute.
 
 - `index.html` is the site.
 - `404.html` is Airball, the page GitHub Pages shows for any address that doesn't exist.
-- `rush.js` is the Malolos Rush teaser game, loaded only when someone presses Play.
+- `rush.js` is the Malolos Rush teaser game, loaded only when someone presses Play (or opens the site with `#malolos-rush`).
 - `watch/index.html` is a share page for the videos. It has its own preview card (`assets/og-watch.jpg`) and sends people on to Watch Me.
 
 ## Photos and other files

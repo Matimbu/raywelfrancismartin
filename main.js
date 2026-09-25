@@ -1675,13 +1675,25 @@ const tagWatch = reduceMotion ? null : new IntersectionObserver((entries) => {
 // A craft with `game: true` (Malolos Rush) opens a tiny playable teaser:
 // rush.js, loaded the first time someone presses Play (bump its ?v= here
 // when it changes)
-const RUSH_JS = "rush.js?v=20260925-4";
+const RUSH_JS = "rush.js?v=20260925-5";
 function playRush() {
   if (window.openRush) return window.openRush();
   const script = el("script");
   script.src = RUSH_JS;
   script.onload = () => window.openRush && window.openRush();
   document.head.appendChild(script);
+}
+// A shared run's link (…/#malolos-rush) opens the game once the page is in,
+// over the Crafts section, so a friend can go straight for the score
+if (location.hash === "#malolos-rush") {
+  const openShared = () => {
+    if (!document.body.classList.contains("ready")) return setTimeout(openShared, 250);
+    const crafts = $("crafts");
+    if (lenis) lenis.scrollTo(crafts, { immediate: true });
+    else crafts.scrollIntoView();
+    playRush();
+  };
+  openShared();
 }
 
 SITE.crafts.forEach((craft, i) => {

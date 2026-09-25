@@ -18,8 +18,13 @@
     ["..HHHH..", "..HHHH..", "..HHHH..", "...SS...", ".TTTTTT.", "STTTTTTS", "S.TTTT.S", "..TTTT..", "..PPPP..", "..PPPP..", "..S..S..", "..K..S..", ".....K.."]
   ];
 
-  let dialog, canvas, g, distLabel, coinLabel, startCard, overCard, overTitle, overScore, bestLabels;
-  let W = 0, H = 0, DPR = 1, f = 1, horizon = 0, camH = 1.8;
+  let dialog, canvas, g, distLabel, coinLabel, startCard, overCard, overTitle, overScore, bestLabels, shareButton;
+  let box = { left: 0, top: 0, width: 0, height: 0 };
+  let trail = []; // where the finger (or the mouse, held down) has just been
+  let lastRun = null; // the run that just ended, for its share card
+  let carding = false; // drawing the share card (no streak on it)
+  const SHARE_URL = "https://matimbu.github.io/raywelfrancismartin/#malolos-rush";
+  let W = 0, H = 0, view = 0, DPR = 1, f = 1, horizon = 0, camH = 1.8;
   let raf = 0, last = 0, state = "ready";
   let lane = 1, x = 0, y = 0, vy = 0, clock = 0, dist = 0, coins = 0, speed = 10, nextRow = 20, stride = 0;
   let things = [];
@@ -105,7 +110,10 @@
           <p class="rush-kicker mono">Run over</p>
           <h2 class="rush-title rush-over-title"></h2>
           <p class="rush-score mono"></p>
-          <button class="rush-go mono" type="button">Run again</button>
+          <div class="rush-actions">
+            <button class="rush-go mono" type="button">Run again</button>
+            <button class="rush-share mono" type="button">Share my run</button>
+          </div>
           <p class="rush-best mono"></p>
         </div>
       </div>`;
@@ -119,6 +127,11 @@
     overTitle = dialog.querySelector(".rush-over-title");
     overScore = dialog.querySelector(".rush-score");
     bestLabels = dialog.querySelectorAll(".rush-best");
+    shareButton = dialog.querySelector(".rush-share");
+    shareButton.addEventListener("click", (e) => {
+      e.stopPropagation();
+      shareRun();
+    });
     dialog.querySelectorAll(".rush-go").forEach((b) => b.addEventListener("click", (e) => {
       e.stopPropagation();
       go();
@@ -131,13 +144,21 @@
     // waiting for the finger to lift), one move per swipe, and a mouse drag
     // works the same. A tap on the street only starts a run.
     let from = null;
+    // (and a short streak follows the finger, so a swipe feels answered)
+    const mark = (e) => {
+      trail.push({ x: e.clientX - box.left, y: e.clientY - box.top, t: performance.now() });
+      if (trail.length > 14) trail.shift();
+    };
     canvas.addEventListener("pointerdown", (e) => {
       from = { x: e.clientX, y: e.clientY, done: false };
+      trail = [];
+      mark(e);
       try {
         canvas.setPointerCapture(e.pointerId);
       } catch (err) {}
     });
     canvas.addEventListener("pointermove", (e) => {
+      if (from) mark(e);
       if (!from || from.done || state !== "running") return;
       const dx = e.clientX - from.x;
       const dy = e.clientY - from.y;
@@ -160,26 +181,33 @@
   }
 
   function size() {
-    const r = canvas.getBoundingClientRect();
+    box = canvas.getBoundingClientRect();
     DPR = Math.min(2, devicePixelRatio || 1);
-    W = r.width;
-    H = r.height;
-    canvas.width = Math.round(W * DPR);
-    canvas.height = Math.round(H * DPR);
+    canvas.width = Math.round(box.width * DPR);
+    canvas.height = Math.round(box.height * DPR);
     g.setTransform(DPR, 0, 0, DPR, 0, 0);
-    // lanes 0.36 of the width apart at the runner, the runner's feet near the bottom
-    f = (0.36 * W * PZ) / 0.7;
-    horizon = H * 0.36;
+    geometry(box.width, box.height);
+    draw();
+  }
+
+  // The view for a screen of w x h: lanes 0.36 of the width apart at the
+  // runner, the runner's feet near the bottom, stars and the town's roofs.
+  // (The share card frames it as if only span wide, a wider shot of the
+  // street, with the horizon a little lower to leave the sky for the title.)
+  function geometry(w, h, span = w, sky = 0.36) {
+    W = w;
+    H = h;
+    view = span;
+    f = (0.36 * view * PZ) / 0.7;
+    horizon = H * sky;
     camH = ((H * 0.86 - horizon) * PZ) / f;
-    stars = Array.from({ length: 46 }, () => [Math.random() * W, Math.random() * horizon * 0.9, Math.random() * 1.2 + 0.3]);
-    // low buildings along the horizon, either side of the church
+    stars = Array.from({ length: Math.round((46 * W) / view) }, () => [Math.random() * W, Math.random() * horizon * 0.9, Math.random() * 1.2 + 0.3]);
     skyline = [];
     for (let sx = 0; sx < W; ) {
-      const w = W * (0.04 + Math.random() * 0.07);
-      skyline.push([sx, w, W * (0.02 + Math.random() * 0.06)]);
-      sx += w;
+      const bw = view * (0.04 + Math.random() * 0.07);
+      skyline.push([sx, bw, view * (0.02 + Math.random() * 0.06)]);
+      sx += bw;
     }
-    draw();
   }
 
   function reset() {
@@ -237,6 +265,8 @@
     cancelAnimationFrame(raf);
     state = "ready";
     if (typeof lenis !== "undefined" && lenis) lenis.start();
+    // came in by the shared link: drop it, so a reload doesn't open the game again
+    if (location.hash === "#malolos-rush") history.replaceState(null, "", location.pathname + location.search);
   }
 
   function over(why) {
@@ -253,9 +283,117 @@
     }
     overTitle.textContent = why === "jeep" ? "Hit a jeepney!" : "Tripped!";
     overScore.textContent = `${meters} m · ${coins} ${coins === 1 ? "coin" : "coins"}${record ? " · new best" : ""}`;
+    lastRun = { meters, coins, record, why };
     showBest();
     overCard.hidden = false;
+    trail = [];
     draw();
+  }
+
+  // Share the run: a picture of how it ended (the street, the crash) with
+  // the numbers, and a line with the link that opens the game. The share
+  // sheet on phones; on computers the picture and the line are copied.
+  function shareText() {
+    const run = lastRun || { meters: 0, coins: 0 };
+    return `I ran ${run.meters} m${run.coins ? ` and grabbed ${run.coins} ${run.coins === 1 ? "coin" : "coins"}` : ""} in Malolos Rush on Raywel's site. Beat that:`;
+  }
+
+  async function shareCard() {
+    await Promise.all(["700 90px Geist", "italic 400 90px 'Instrument Serif'", "400 20px 'Geist Mono'"]
+      .map((font) => document.fonts.load(font).catch(() => {})));
+    const CW = 1080;
+    const CH = 1350;
+    const scene = 1060; // the street's height on the card
+    const card = document.createElement("canvas");
+    card.width = CW;
+    card.height = CH;
+    const c = card.getContext("2d");
+    c.fillStyle = "#0a0a0a";
+    c.fillRect(0, 0, CW, CH);
+    // the street as it was when the run ended, drawn again as a wider shot
+    const keep = { g, W, H, view, f, horizon, camH, stars, skyline };
+    g = c;
+    carding = true;
+    c.save();
+    c.beginPath();
+    c.rect(0, 0, CW, scene);
+    c.clip();
+    geometry(CW, scene, 640, 0.4);
+    draw();
+    c.restore();
+    carding = false;
+    ({ g, W, H, view, f, horizon, camH, stars, skyline } = keep);
+    // fade the street into the panel below
+    const fade = c.createLinearGradient(0, scene - 280, 0, scene);
+    fade.addColorStop(0, "rgba(10,10,10,0)");
+    fade.addColorStop(1, "rgba(10,10,10,1)");
+    c.fillStyle = fade;
+    c.fillRect(0, scene - 280, CW, 280);
+    c.textAlign = "left";
+    c.textBaseline = "alphabetic";
+    // the title over the sky
+    c.fillStyle = "rgba(242,240,235,0.6)";
+    c.font = "400 22px 'Geist Mono', monospace";
+    c.fillText("RAYWEL MARTIN  ·  A TEASER OF MY CAPSTONE", 76, 84);
+    c.fillStyle = "#f2f0eb";
+    c.font = "700 110px Geist, sans-serif";
+    c.fillText("Malolos", 72, 196);
+    const word = c.measureText("Malolos ").width;
+    c.fillStyle = "#ff5a1f";
+    c.font = "italic 400 124px 'Instrument Serif', serif";
+    c.fillText("Rush", 72 + word, 196);
+    // the numbers
+    const run = lastRun || { meters: 0, coins: 0 };
+    c.fillStyle = "#f2f0eb";
+    c.font = "italic 400 190px 'Instrument Serif', serif";
+    c.fillText(`${run.meters} m`, 64, 1170);
+    c.fillStyle = "#f7c948";
+    c.beginPath();
+    c.arc(88, 1229, 14, 0, Math.PI * 2);
+    c.fill();
+    c.fillStyle = "#b9b5ad";
+    c.font = "400 28px 'Geist Mono', monospace";
+    c.fillText(`${run.coins} ${run.coins === 1 ? "COIN" : "COINS"}   ·   BEST ${best} M`, 118, 1239);
+    c.fillStyle = "#8f8c86";
+    c.font = "400 23px 'Geist Mono', monospace";
+    c.fillText("BEAT IT  →  MATIMBU.GITHUB.IO/RAYWELFRANCISMARTIN/#MALOLOS-RUSH", 72, 1296);
+    return new Promise((done) => card.toBlob(done, "image/png"));
+  }
+
+  async function shareRun() {
+    if (!lastRun) return;
+    const label = shareButton;
+    const say = (text) => {
+      label.textContent = text;
+      clearTimeout(label.back);
+      label.back = setTimeout(() => (label.textContent = "Share my run"), 1800);
+    };
+    if (window.goatcounter && window.goatcounter.count) {
+      window.goatcounter.count({ path: "malolos-rush-share", title: "Shared a Malolos Rush run", event: true });
+    }
+    const text = `${shareText()} ${SHARE_URL}`;
+    const blob = await shareCard().catch(() => null);
+    // phones: the share sheet, with the picture when it takes files
+    if (navigator.share && matchMedia("(pointer: coarse)").matches) {
+      const file = blob && new File([blob], "malolos-rush.png", { type: "image/png" });
+      try {
+        if (file && navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], text });
+        else await navigator.share({ title: "Malolos Rush", text: shareText(), url: SHARE_URL });
+      } catch (e) {}
+      return;
+    }
+    // computers: the picture and the line on the clipboard together
+    try {
+      if (!blob || !window.ClipboardItem) throw new Error("no picture");
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob, "text/plain": new Blob([text], { type: "text/plain" }) })]);
+      return say("Picture copied");
+    } catch (e) {}
+    try {
+      await navigator.clipboard.writeText(text);
+      say("Link copied");
+    } catch (e) {
+      say("Couldn't copy");
+    }
   }
 
   function showBest() {
@@ -460,11 +598,48 @@
     fog.addColorStop(1, "rgba(74,34,23,0)");
     g.fillStyle = fog;
     g.fillRect(0, horizon, W, H * 0.12);
+    if (!carding) streak();
+  }
+
+  // the swipe's streak: an orange glow with a white core, thinning and
+  // fading out behind the finger in about a quarter of a second
+  // one ribbon along the finger's last quarter second: thick at the finger,
+  // thin at the tail, white with an orange glow
+  function streak() {
+    const now = performance.now();
+    const live = trail.filter((p) => now - p.t < 260);
+    if (live.length < 2) return;
+    const left = [];
+    const right = [];
+    live.forEach((p, k) => {
+      const q = live[Math.max(0, k - 1)];
+      const r = live[Math.min(live.length - 1, k + 1)];
+      const len = Math.hypot(r.x - q.x, r.y - q.y) || 1;
+      const half = 3.5 * (1 - (now - p.t) / 260);
+      const nx = (-(r.y - q.y) / len) * half;
+      const ny = ((r.x - q.x) / len) * half;
+      left.push([p.x + nx, p.y + ny]);
+      right.push([p.x - nx, p.y - ny]);
+    });
+    const head = live[live.length - 1];
+    g.save();
+    g.shadowColor = "rgba(255,90,31,0.95)";
+    g.shadowBlur = 16 * DPR;
+    g.fillStyle = "rgba(255,255,255,0.92)";
+    g.beginPath();
+    left.forEach(([px, py], k) => (k ? g.lineTo(px, py) : g.moveTo(px, py)));
+    right.reverse().forEach(([px, py]) => g.lineTo(px, py));
+    g.closePath();
+    g.fill();
+    g.beginPath();
+    g.arc(head.x, head.y, 3.5 * (1 - (now - head.t) / 260), 0, Math.PI * 2);
+    g.fill();
+    g.restore();
   }
 
   function church() {
     const cx = W / 2;
-    const u = W * 0.0105; // one unit of the facade
+    const u = view * 0.0105; // one unit of the facade
     const base = horizon;
     g.fillStyle = "#0e1022";
     // the wings and the facade
