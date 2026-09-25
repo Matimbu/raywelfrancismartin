@@ -20,6 +20,17 @@ const SITE = {
   statement: "I make things on screen, on paper and on the court.",
   motto: "Focus on what I can control.", // signs off the footer
 
+  // What's new on the site, newest first, shown in a small pill over my name
+  // (rolling through them). Someone who's been here before sees only what's
+  // new since their last visit; anything older than 30 days never shows.
+  // `href` is a spot on the page (#five, #court, #channels...) or a page.
+  recent: [
+    { date: "2026-09-25", text: "My own 2K card, off the bench", href: "#five" },
+    { date: "2026-09-25", text: "2K26 cards for my starting five", href: "#five" },
+    { date: "2026-09-24", text: "Airball, a basketball game", href: "airball" },
+    { date: "2026-09-24", text: "Covers for my clips", href: "#channels" }
+  ],
+
   place: {
     label: "Based in",
     name: "Malolos, Bulacan",
@@ -73,11 +84,14 @@ const SITE = {
   // A card's `card` turns its photo over into an NBA 2K26 MyTEAM card in the
   // G.O.A.T. card's style (hover on computers, tap on phones), and the cards
   // open like a pack the first time they're on screen: `ovr`, `tier`
-  // ("G.O.A.T.", "Invincible", "Dark Matter", "Galaxy Opal", "Pink Diamond"
-  // or "Diamond"), the `name` on it, the jersey `num`, three `badges`, each
-  // [name, level] with the level "HOF", "Gold", "Silver" or "Bronze", and four
-  // `stats`, each [attribute, rating] (the card's second layer; the best one
-  // is the last clue of its walkout). `cut` is the player cut out of a photo
+  // ("G.O.A.T.", "Invincible", "Dark Matter", "Galaxy Opal", "Pink Diamond",
+  // "Diamond", or my own "Sixth Man"), a `label` if the card's painted name
+  // isn't its tier (like Rondo's Certified), the `name` on it, the jersey
+  // `num`, a `pos` for the card if it isn't the word's, three `badges`, each
+  // [name, level] with the level "Legend", "HOF", "Gold", "Silver" or
+  // "Bronze", and four `stats`, each [attribute, rating] (the card's second
+  // layer; the best one is the last clue of its walkout). `id` gives a wall
+  // an address on the page (#five). `cut` is the player cut out of a photo
   // (a 600 x 800 transparent WebP in the card's shape), so he stands in front
   // of the frame and breaks over its top; without it the photo goes inside.
   // `cards` (a list) stacks two cards in one spot: each has its own `image`
@@ -124,6 +138,7 @@ const SITE = {
     },
     {
       label: "On the court",
+      id: "court", // the page address for this wall (#court)
       section: "hobbies",
       lightUp: true, // the words light up one after another as you read, like a play being called
       board: true, // and a coach's board draws the move, one step per word
@@ -137,9 +152,11 @@ const SITE = {
     },
     {
       label: "My starting five",
+      id: "five",
       section: "hobbies",
-      intro: "My all-time five, if I got to pick.",
+      intro: "My all-time five, if I got to pick. Plus me, off the bench.",
       layout: "cards",
+      // the ratings, tiers and badges are the 2K cards I picked on 2kdb.net (MJ's stays ours)
       creditLead: "Photos via Wikimedia Commons, cropped and cut out: ", // the card players are cut out of them
       words: [
         {
@@ -147,9 +164,9 @@ const SITE = {
           link: "https://en.wikipedia.org/wiki/Rajon_Rondo",
           image: "assets/five/rondo-celtics.jpg", alt: "Rajon Rondo calling a play as he brings the ball up for the Celtics",
           card: {
-            ovr: 92, tier: "Pink Diamond", name: "Rajon Rondo", num: 9, cut: "assets/five/cut/rondo.webp",
-            badges: [["Dimer", "HOF"], ["Needle Threader", "HOF"], ["Interceptor", "Gold"]],
-            stats: [["Pass Vision", 99], ["Pass Accuracy", 98], ["Ball Handle", 92], ["Steal", 91]]
+            ovr: 99, tier: "Dark Matter", label: "Certified", name: "Rajon Rondo", num: 9, cut: "assets/five/cut/rondo.webp",
+            badges: [["Dimer", "HOF"], ["Versatile Visionary", "HOF"], ["Interceptor", "HOF"]],
+            stats: [["Passing Vision", 99], ["Passing IQ", 99], ["Steal", 99], ["Perimeter Defense", 98]]
           }
         },
         {
@@ -157,9 +174,9 @@ const SITE = {
           link: "https://en.wikipedia.org/wiki/Kobe_Bryant",
           image: "assets/five/kobe-lakers.jpg", alt: "Kobe Bryant driving to the basket for the Lakers",
           card: {
-            ovr: 98, tier: "Dark Matter", name: "Kobe Bryant", num: 24, cut: "assets/five/cut/kobe.webp",
-            badges: [["Space Creator", "HOF"], ["Deadeye", "HOF"], ["Tireless Scorer", "HOF"]],
-            stats: [["Shot IQ", 99], ["Mid-Range Shot", 98], ["Close Shot", 96], ["Perimeter Defense", 93]]
+            ovr: 99, tier: "Dark Matter", label: "G.O.A.T.", name: "Kobe Bryant", num: 24, cut: "assets/five/cut/kobe.webp",
+            badges: [["Clutch Shooter", "HOF"], ["Space Creator", "HOF"], ["Difficult Shots", "HOF"]],
+            stats: [["Mid-Range Shot", 99], ["Shot IQ", 99], ["Post Fade", 99], ["Perimeter Defense", 99]]
           }
         },
         {
@@ -178,9 +195,9 @@ const SITE = {
           link: "https://en.wikipedia.org/wiki/LeBron_James",
           image: "assets/five/lebron-heat.jpg", alt: "LeBron James cocking the ball back for a dunk with the Heat",
           card: {
-            ovr: 98, tier: "Dark Matter", name: "LeBron James", num: 6, cut: "assets/five/cut/lebron.webp",
-            badges: [["Chase Down Artist", "HOF"], ["Posterizer", "HOF"], ["Floor General", "Gold"]],
-            stats: [["Driving Dunk", 98], ["Pass Vision", 96], ["Strength", 95], ["Speed with Ball", 93]]
+            ovr: 99, tier: "G.O.A.T.", name: "LeBron James", num: 6, cut: "assets/five/cut/lebron-dunk.webp",
+            badges: [["Posterizer", "Legend"], ["Versatile Visionary", "Legend"], ["High-Flying Denier", "Legend"]],
+            stats: [["Driving Dunk", 99], ["Passing Vision", 99], ["Strength", 99], ["Speed with Ball", 99]]
           }
         },
         {
@@ -189,19 +206,32 @@ const SITE = {
           // co-starters: two cards stacked, pick one with the names under it
           cards: [
             {
-              short: "Yao", ovr: 96, tier: "Galaxy Opal", name: "Yao Ming", num: 11,
+              short: "Yao", ovr: 99, tier: "G.O.A.T.", name: "Yao Ming", num: 11,
               image: "assets/five/yao-rockets.jpg", cut: "assets/five/cut/yao.webp",
-              badges: [["Post Spin Technician", "HOF"], ["Rim Protector", "HOF"], ["Middy Magician", "Gold"]],
-              stats: [["Post Hook", 97], ["Block", 94], ["Mid-Range Shot", 88], ["Free Throw", 86]]
+              badges: [["Hook Specialist", "Legend"], ["Paint Patroller", "Legend"], ["Post Up Poet", "Legend"]],
+              stats: [["Post Hook", 99], ["Block", 99], ["Mid-Range Shot", 99], ["Free Throw", 99]]
             },
             {
-              short: "Shaq", ovr: 98, tier: "Dark Matter", name: "Shaquille O'Neal", num: 34,
+              short: "Shaq", ovr: 99, tier: "Invincible", name: "Shaquille O'Neal", num: 34,
               image: "assets/five/shaq-lakers.jpg", cut: "assets/five/cut/shaq.webp",
-              badges: [["Backdown Punisher", "HOF"], ["Posterizer", "HOF"], ["Brick Wall", "HOF"]],
-              stats: [["Standing Dunk", 99], ["Strength", 99], ["Post Control", 98], ["Offensive Rebound", 95]]
+              badges: [["Post Powerhouse", "Legend"], ["Posterizer", "Legend"], ["Brick Wall", "Legend"]],
+              stats: [["Standing Dunk", 99], ["Strength", 99], ["Post Control", 99], ["Offensive Rebound", 99]]
             }
           ],
           credit: [{ subject: "Yao Ming", by: "Keith Allison", license: "CC BY-SA 2.0", licenseUrl: "https://creativecommons.org/licenses/by-sa/2.0/", source: "https://commons.wikimedia.org/wiki/File:Yao_Ming_(2310548923).jpg" }, { subject: "Shaquille O'Neal", by: "Bigmoe797", license: "CC BY-SA 4.0", licenseUrl: "https://creativecommons.org/licenses/by-sa/4.0/", source: "https://commons.wikimedia.org/wiki/File:Shaq1_2000finals3.tif" }]
+        },
+        {
+          // me, off the bench: the photo holding my custom jacket, and on the
+          // card, me cut out of my fit check. The overall, position and
+          // attributes are my favourite NBA 2K26 MyCAREER build (a 99 SF,
+          // 2-Way Inside-Out Point Forward); the badges are picked to match it.
+          pos: "6th man", text: "Me", note: "the Court's Coder", link: "#court",
+          image: "assets/five/raywel-jacket.jpg", alt: "Me in sunglasses, holding my custom RAYWEL jacket at a clothing shop",
+          card: {
+            ovr: 99, tier: "Sixth Man", name: "Raywel Martin", pos: "SF", cut: "assets/five/cut/raywel.webp",
+            badges: [["Dimer", "HOF"], ["Posterizer", "HOF"], ["Limitless Range", "Gold"]],
+            stats: [["Pass Accuracy", 95], ["Driving Dunk", 93], ["Three-Point Shot", 92], ["Speed", 88]]
+          }
         }
       ],
       notice: "The Rondo, Kobe, MJ and LeBron photos belong to their photographers."

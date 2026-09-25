@@ -73,6 +73,9 @@ if (window.Lenis && !reduceMotion) {
 }
 
 document.addEventListener("click", (e) => {
+  // (a handler that already took the click wins, like a card turning over
+  // on its first tap)
+  if (e.defaultPrevented) return;
   const link = e.target.closest('a[href^="#"]');
   if (!link) return;
   const hash = link.getAttribute("href");
@@ -454,6 +457,53 @@ const statement = $("statement");
 roles.textContent = SITE.roles.join(" · ");
 statement.textContent = SITE.statement;
 
+// Recently added: what's new on the site, in a small pill over the name that
+// rolls through the items and takes you to the one showing. Someone who's
+// been here before sees only what's new since their last visit (their last
+// browser session); anything older than 30 days never shows.
+(function recentPill() {
+  const items = SITE.recent || [];
+  if (!items.length) return;
+  const day = (d) => new Date(`${d}T00:00:00`).getTime();
+  let last = 0;
+  try {
+    const kept = sessionStorage.getItem("lastVisit");
+    last = Number(kept ?? localStorage.getItem("lastVisit") ?? 0);
+    if (kept === null) sessionStorage.setItem("lastVisit", String(last));
+    localStorage.setItem("lastVisit", String(Date.now()));
+  } catch (e) {}
+  const lastDay = last ? new Date(last).setHours(0, 0, 0, 0) : 0;
+  const since = Math.max(Date.now() - 30 * 864e5, lastDay);
+  const fresh = items.filter((r) => day(r.date) >= since);
+  if (!fresh.length) return;
+  const pill = el("a", "recent mono");
+  const roll = el("span", "recent-roll");
+  const rows = fresh.map((r) => roll.appendChild(el("span", "", r.text)));
+  pill.append(el("span", "recent-tag", "New"), roll, el("span", "recent-arrow", "→"));
+  let at = 0;
+  const show = (k) => {
+    // the one leaving slides up and out, then drops back below, out of sight
+    const prev = rows[at];
+    if (k !== at) {
+      prev.classList.replace("on", "off");
+      setTimeout(() => prev.classList.remove("off"), 700);
+    }
+    at = k;
+    rows[at].classList.add("on");
+    pill.href = fresh[at].href; // same site, same tab (a spot on the page or Airball)
+    pill.setAttribute("aria-label", `New on the site: ${fresh[at].text}`);
+  };
+  show(0);
+  if (fresh.length > 1 && !reduceMotion) {
+    // (holds still while the pointer is on it, and once the hero is scrolled away)
+    setInterval(() => {
+      if (pill.matches(":hover") || scrollY > innerHeight) return;
+      show((at + 1) % fresh.length);
+    }, 4200);
+  }
+  $("heroName").before(pill);
+})();
+
 // Location card
 const place = $("place");
 [
@@ -694,9 +744,10 @@ function twoKCard(c, w, extra = "") {
   }
   body.insertAdjacentHTML("beforeend", cardSparks(c.name || w.text));
   const badges = el("span", "tk-badges");
-  (c.badges || []).slice(0, 3).forEach(([name, level]) => {
+  (c.badges || []).slice(0, 3).forEach(([name, level], i) => {
     const badge = el("span", "tk-badge");
     badge.dataset.level = String(level).toLowerCase();
+    badge.style.setProperty("--b", i); // (Legend badges shine one after another)
     const label = el("span", "tk-badge-label");
     label.append(el("i"), el("span", "tk-badge-name", name), el("span", "tk-level", level));
     badge.appendChild(label);
@@ -723,8 +774,11 @@ function twoKCard(c, w, extra = "") {
   const lastName = el("span", "tk-last", last);
   if (last.length > 6) lastName.classList.add("long");
   const banner = el("span", "tk-banner");
-  banner.append(el("span", "tk-medal", c.num != null ? String(c.num) : ""), lastName, el("span", "tk-pos", w.pos || ""));
-  card.append(badges, stats, emblem, el("span", "tk-label", c.tier), el("span", "tk-first", cut > 0 ? full.slice(0, cut) : ""), banner);
+  banner.append(el("span", "tk-medal", c.num != null ? String(c.num) : ""), lastName, el("span", "tk-pos", c.pos || w.pos || ""));
+  // the lettering and tags, one layer over the player (the 3D pop lifts it)
+  const ui = el("span", "tk-ui");
+  ui.append(badges, stats, emblem, el("span", "tk-label", c.label || c.tier), el("span", "tk-first", cut > 0 ? full.slice(0, cut) : ""), banner);
+  card.appendChild(ui);
   return card;
 }
 
@@ -735,7 +789,8 @@ function packFace(w, c) {
   const pack = el("span", "tk-pack");
   const clues = el("span", "tk-clues");
   const POSITIONS = { PG: "Point Guard", SG: "Shooting Guard", SF: "Small Forward", PF: "Power Forward", C: "Center" };
-  clues.append(el("span", "tk-clue", POSITIONS[w.pos] || w.pos || ""));
+  const pos = c.pos || w.pos || "";
+  clues.append(el("span", "tk-clue", POSITIONS[pos.split("/")[0]] || pos));
   if (c.badges && c.badges[0]) clues.append(el("span", "tk-clue", c.badges[0][0]));
   pack.append(el("span", "tk-mt", "MT"), clues);
   const best = (c.stats || []).reduce((top, s) => (!top || s[1] > top[1] ? s : top), null);
@@ -953,6 +1008,7 @@ function playBoard() {
 (SITE.walls || []).forEach((wall) => {
   if (!wall.words || !wall.words.length) return;
   const block = el("div", "wordwall");
+  if (wall.id) block.id = wall.id;
   if (wall.ign) block.dataset.ign = wall.ign;
   if (wall.role) block.dataset.role = wall.role;
   const head = el("div", "wordwall-head reveal");
