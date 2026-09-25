@@ -97,7 +97,7 @@
           <p class="rush-kicker mono">Crafts · a teaser</p>
           <h2 class="rush-title">Malolos <em>Rush</em></h2>
           <p class="rush-note">A tiny taste of my capstone game. The real one is 3D, in Unity.</p>
-          <p class="rush-keys mono">Swipe or ← → to change lanes · swipe up, ↑ or Space to jump · dodge the jeepneys</p>
+          <p class="rush-keys mono">Swipe left or right to change lanes · swipe up to jump · dodge the jeepneys<br>(or ← → and ↑ / Space)</p>
           <button class="rush-go mono" type="button">Run</button>
           <p class="rush-best mono"></p>
         </div>
@@ -126,27 +126,33 @@
     dialog.querySelector(".rush-close").addEventListener("click", () => dialog.close());
     dialog.addEventListener("close", stop);
     dialog.addEventListener("keydown", onKey);
-    // swipes (or taps: left, middle, right) on the street
+    // Swipes, like Subway Surfers: left or right changes lanes, up jumps, down
+    // drops out of a jump. Each swipe counts the moment it's long enough (no
+    // waiting for the finger to lift), one move per swipe, and a mouse drag
+    // works the same. A tap on the street only starts a run.
     let from = null;
     canvas.addEventListener("pointerdown", (e) => {
-      from = { x: e.clientX, y: e.clientY, at: performance.now() };
+      from = { x: e.clientX, y: e.clientY, done: false };
+      try {
+        canvas.setPointerCapture(e.pointerId);
+      } catch (err) {}
     });
-    canvas.addEventListener("pointerup", (e) => {
-      if (!from) return;
+    canvas.addEventListener("pointermove", (e) => {
+      if (!from || from.done || state !== "running") return;
       const dx = e.clientX - from.x;
       const dy = e.clientY - from.y;
-      from = null;
-      if (state !== "running") return go();
-      if (Math.abs(dx) > 28 && Math.abs(dx) > Math.abs(dy)) move(dx > 0 ? 1 : -1);
-      else if (dy < -28) jump();
-      else {
-        const r = canvas.getBoundingClientRect();
-        const at = (e.clientX - r.left) / r.width;
-        if (at < 0.33) move(-1);
-        else if (at > 0.67) move(1);
-        else jump();
-      }
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
+      from.done = true;
+      if (Math.abs(dx) > Math.abs(dy)) move(dx > 0 ? 1 : -1);
+      else if (dy < 0) jump();
+      else drop();
     });
+    canvas.addEventListener("pointerup", () => {
+      const tapped = from && !from.done;
+      from = null;
+      if (tapped && state !== "running") go();
+    });
+    canvas.addEventListener("pointercancel", () => (from = null));
     addEventListener("resize", () => dialog.open && size());
     document.addEventListener("visibilitychange", () => {
       if (document.hidden && state === "running") pause();
@@ -269,10 +275,16 @@
     sound("jump");
   }
 
+  // swipe down (or down / S) in the air: come straight back down
+  function drop() {
+    if (y > 0.05) vy = Math.min(vy, -9);
+  }
+
   function onKey(e) {
     const k = e.key;
     if (k === "ArrowLeft" || k === "a" || k === "A") move(-1);
     else if (k === "ArrowRight" || k === "d" || k === "D") move(1);
+    else if (k === "ArrowDown" || k === "s" || k === "S") drop();
     else if (k === "ArrowUp" || k === "w" || k === "W" || k === " ") {
       if (state === "running") jump();
       else if (e.target.tagName !== "BUTTON") go();

@@ -1675,7 +1675,7 @@ const tagWatch = reduceMotion ? null : new IntersectionObserver((entries) => {
 // A craft with `game: true` (Malolos Rush) opens a tiny playable teaser:
 // rush.js, loaded the first time someone presses Play (bump its ?v= here
 // when it changes)
-const RUSH_JS = "rush.js?v=20260925-3";
+const RUSH_JS = "rush.js?v=20260925-4";
 function playRush() {
   if (window.openRush) return window.openRush();
   const script = el("script");

@@ -44,7 +44,7 @@ Built with plain HTML, CSS and JavaScript, plus [Lenis](https://github.com/darkr
 - Type **sova** anywhere to launch the Owl Drone.
 - Click **LOCKED IN** under Sova's picture. It knows his real name.
 - **Take a shot** from the Basketball card: hold, release in the green, drag the ball back for a longer shot, and share your streak.
-- Press **Play** on Malolos Rush in Crafts: a tiny three-lane runner down a Malolos street at night, toward Barasoain Church. Swipe (or use the arrows) to change lanes, swipe up or press Space to jump the barriers, dodge the jeepneys and grab the coins.
+- Press **Play** on Malolos Rush in Crafts: a tiny three-lane runner down a Malolos street at night, toward Barasoain Church. Swipe to change lanes and swipe up to jump the barriers (drag with the mouse on a computer, or use the arrows and Space), dodge the jeepneys and grab the coins.
 - Tap my **Discord** or **Valorant** name under Contact to copy it.
 - Flip between dark and light with the toggle at the top right.
 
