@@ -25,7 +25,7 @@ const SITE = {
   // new since their last visit; anything older than 30 days never shows.
   // `href` is a spot on the page (#five, #court, #channels...) or a page.
   recent: [
-    { date: "2026-09-28", text: "Antabay, a campus queue system, in the works", href: "#crafts" },
+    { date: "2026-09-28", text: "CampusQue, a campus queue system, in the works", href: "#crafts" },
     { date: "2026-09-28", text: "My motorparts inventory and POS", href: "#crafts" },
     { date: "2026-09-27", text: "How I started coding, in my story", href: "#about" },
     { date: "2026-09-26", text: "A quote I've carried for years", href: "#beliefs" },
@@ -431,7 +431,7 @@ const SITE = {
     "Studying BSIT at STI College Malolos",
     "Looking for OJT / junior dev roles",
     "Building Malolos Rush, my capstone game in Unity",
-    "Building Antabay, a queue system for our campus"
+    "Building CampusQue, a queue system for our campus"
   ],
 
   // Oldest first, so the numbers read like a timeline.
@@ -493,7 +493,7 @@ const SITE = {
     // line under the row, and `ticket` is the hover preview (a queue ticket)
     // until there are screenshots.
     {
-      title: "Antabay",
+      title: "CampusQue",
       tags: ["Full-stack", "Next.js", "Socket.IO", "PostgreSQL"],
       year: "2026",
       emoji: "🎫",
