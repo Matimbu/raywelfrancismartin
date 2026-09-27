@@ -405,20 +405,20 @@ const SITE = {
         text: "April 19, my team won the Syntax Valorant Cup. Then the STI Malolos intramurals: everyone bashed our upper-bracket games, so we made a Cinderella run through the lower bracket and took that gold too."
       },
       {
-        year: "2024",
+        year: "2023",
         until: "now",
         title: "College days",
         text: "Where the maturity began. Every kind of hardship: physical, mental, emotional, spiritual. And the most important lesson of all, the wisdom of life."
       },
       {
-        year: "2025",
+        year: "2024",
         title: "The first build",
         text: "Second year. My groupmates asked me to build a simple kiosk while they handled the main system for our client. Zero confidence in coding, so I asked ChatGPT how to code properly, and the rest is history. AI is the future, but it's up to the architect, me, to decide how to build it. Soon I stopped chasing game ranks and got addicted to building my own projects."
       },
       {
-        year: "2026",
+        year: "2025",
         title: "The section switch",
-        text: "Third year, I changed sections. If I'm top 5 in a class where I know how to code well, something is wrong. In the new one I met people better than me, in coding and in life, and it pushed me to level up. I don't want to be average. That's me: healthy competition."
+        text: "First year, no coding yet, and I was already top 5 in our coding classes. So in third year I changed sections. If I'm top 5 in a class where I know how to code well, something is wrong. In the new one I met people better than me, in coding and in life, and it pushed me to level up. I don't want to be average. That's me: healthy competition."
       },
       { year: "2026", title: "Malolos Rush", text: "Building my capstone game in Unity.", runner: true }
     ]
