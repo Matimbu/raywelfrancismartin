@@ -2966,6 +2966,7 @@ if (SITE.story && SITE.story.items && SITE.story.items.length) {
       body.appendChild(open);
     }
     const year = el("span", "story-year", s.year);
+    if (s.month) year.prepend(el("span", "story-month mono", s.month)); // (a month, small over the year)
     if (s.until) year.appendChild(el("span", "story-until mono", `to ${s.until}`));
     li.append(year, body);
     // `runner`: a tiny runner dashes along the row's line as it draws,

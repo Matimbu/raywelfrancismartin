@@ -405,6 +405,7 @@ const SITE = {
         text: "April 19, my team won the Syntax Valorant Cup. Then the STI Malolos intramurals: everyone bashed our upper-bracket games, so we made a Cinderella run through the lower bracket and took that gold too."
       },
       {
+        month: "Sep",
         year: "2023",
         until: "now",
         title: "College days",

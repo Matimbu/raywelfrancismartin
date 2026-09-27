@@ -2525,6 +2525,7 @@ button.ww-spec .ww-spec-value { max-width: 24ch; }
   transition: color 0.3s ease;
 }
 @media (hover: hover) and (pointer: fine) { .story-item:hover .story-year { color: var(--fg); } }
+.story-month { display: block; margin-bottom: 6px; font-style: normal; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
 .story-until { display: block; margin-top: 10px; font-style: normal; font-size: 10px; color: var(--accent); }
 .story-title { margin-bottom: 6px; font-size: 18px; }
 .story-medals { margin-left: 10px; font-size: 15px; letter-spacing: 2px; }
