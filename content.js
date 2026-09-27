@@ -414,7 +414,7 @@ const SITE = {
       {
         year: "2024",
         title: "The first build",
-        text: "Second year. My groupmates asked me to build a simple kiosk while they handled the main system for our client. Zero confidence in coding, so I asked ChatGPT how to code properly, and the rest is history. AI is the future, but it's up to the architect, me, to decide how to build it. Soon I stopped chasing game ranks and got addicted to building my own projects."
+        text: "Second year. My groupmates asked me to build a simple kiosk while they handled the main system for our client. Zero confidence in coding, so I asked an AI tool how to code properly, and the rest is history. AI is the future, but it's up to the architect, me, to decide how to build it. Soon I stopped chasing game ranks and got addicted to building my own projects."
       },
       {
         year: "2025",
