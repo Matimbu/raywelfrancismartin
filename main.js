@@ -305,6 +305,34 @@ function splitWords(node, text) {
   });
 }
 
+// Stagger Text (after Vengeance UI): a title's words each rise into place,
+// one after another, when it comes on screen
+const staggerWatch = "IntersectionObserver" in window
+  ? new IntersectionObserver((entries) => entries.forEach((entry) => {
+    if (!entry.isIntersecting) return;
+    entry.target.classList.add("in");
+    staggerWatch.unobserve(entry.target);
+  }), { threshold: 0.4 })
+  : null;
+function staggerWords(node) {
+  if (reduceMotion || !staggerWatch) return node;
+  const text = node.textContent;
+  node.setAttribute("aria-label", text);
+  node.textContent = "";
+  node.classList.add("stagger");
+  text.split(/\s+/).filter(Boolean).forEach((word, i) => {
+    if (i) node.appendChild(document.createTextNode(" "));
+    const clip = el("span", "sw");
+    clip.setAttribute("aria-hidden", "true");
+    const inner = el("span", "", word);
+    inner.style.setProperty("--i", i);
+    clip.appendChild(inner);
+    node.appendChild(clip);
+  });
+  staggerWatch.observe(node);
+  return node;
+}
+
 // ============================================================
 //  Header + clock
 // ============================================================
@@ -2937,7 +2965,7 @@ if (SITE.story && SITE.story.items && SITE.story.items.length) {
     else addScene(li, 0.2); // the year and the story slide together
     li.style.setProperty("--d", i);
     const body = el("div", "story-body");
-    const title = el("p", "story-title", s.title);
+    const title = staggerWords(el("p", "story-title", s.title));
     if (s.medals) {
       const medals = el("span", "story-medals");
       medals.setAttribute("role", "img");
@@ -3166,7 +3194,7 @@ SITE.hobbies.forEach((h, i) => {
   const card = el("article", "hobby reveal");
   card.style.setProperty("--d", i);
   if (isTodo(h.title, h.text)) card.classList.add("todo");
-  card.append(el("span", "hobby-emoji", h.emoji), el("h3", "hobby-title", h.title), el("p", "hobby-text", h.text));
+  card.append(el("span", "hobby-emoji", h.emoji), staggerWords(el("h3", "hobby-title", h.title)), el("p", "hobby-text", h.text));
   if (h.link) {
     const go = el("a", "hobby-link mono", `${h.linkText || "More"} ↗`);
     go.href = h.link; // same site, same tab (Airball has its own way back)
@@ -6121,3 +6149,64 @@ if (!reduceMotion) {
 }
 
 setupUltButton();
+
+// Spotlight Navbar (after Vengeance UI): a soft light follows the mouse along
+// the nav (a real mouse move, not the page scrolling under it), and when the
+// mouse leaves it springs back to the link of the section you're on, where
+// it rests, dimmer. Computers only.
+(() => {
+  const nav = document.querySelector(".nav");
+  if (!nav || !canHover || reduceMotion) return;
+  const beam = el("span", "nav-beam");
+  beam.setAttribute("aria-hidden", "true");
+  nav.appendChild(beam);
+  let x = 0;
+  let v = 0;
+  let target = null;
+  let raf = 0;
+  let hovering = false;
+  const set = (px) => nav.style.setProperty("--spot-x", `${px.toFixed(1)}px`);
+  const activeX = () => {
+    const link = nav.querySelector("a.active");
+    if (!link) return null;
+    const r = link.getBoundingClientRect();
+    return r.left - nav.getBoundingClientRect().left + r.width / 2;
+  };
+  // a spring (stiffness 200, damping 20, like the original's)
+  const spring = () => {
+    cancelAnimationFrame(raf);
+    let last = performance.now();
+    const step = (now) => {
+      const dt = Math.min(0.032, (now - last) / 1000);
+      last = now;
+      if (hovering || target == null) return;
+      v += ((target - x) * 200 - v * 20) * dt;
+      x += v * dt;
+      set(x);
+      if (Math.abs(target - x) > 0.3 || Math.abs(v) > 0.3) raf = requestAnimationFrame(step);
+      else set((x = target));
+    };
+    raf = requestAnimationFrame(step);
+  };
+  const rest = () => {
+    target = activeX();
+    nav.style.setProperty("--spot-on", target == null ? "0" : "0.5");
+    if (target != null) spring();
+  };
+  nav.addEventListener("mousemove", (e) => {
+    hovering = true;
+    cancelAnimationFrame(raf);
+    v = 0;
+    set((x = e.clientX - nav.getBoundingClientRect().left));
+    nav.style.setProperty("--spot-on", "1");
+  });
+  nav.addEventListener("mouseleave", () => {
+    hovering = false;
+    rest();
+  });
+  // (the section you're on changes as you scroll; the light follows)
+  new MutationObserver(() => hovering || rest()).observe(nav, { subtree: true, attributes: true, attributeFilter: ["class"] });
+  addEventListener("resize", () => hovering || rest());
+  set((x = activeX() ?? 0));
+  rest();
+})();

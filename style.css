@@ -4504,3 +4504,101 @@ button.craft-row {
 @media (max-width: 480px) {
   .clock { display: none; }
 }
+
+/* ============================================================
+   After Vengeance UI (vengenceui.com), redone in plain CSS/JS in the
+   site's own colours: Line Hover Link, Spotlight Navbar, Glow Border Card
+   and Stagger Text
+   ============================================================ */
+/* Line Hover Link ("double"): a line draws in under the link from the left,
+   a second one just below it from the right (lines, not an underline, so
+   they follow a link that wraps) */
+.inline-link, .ww-credits a, .hobby-link, .footer a {
+  padding-bottom: 6px;
+  text-decoration: none;
+  background-image: linear-gradient(var(--lh-top, currentColor), var(--lh-top, currentColor)), linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 0 calc(100% - 5px), 100% 100%;
+  background-size: var(--lh-rest, 0%) 1px, 0% 1px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  transition: background-size 0.3s cubic-bezier(0.7, 0, 0.2, 1), color 0.3s ease;
+}
+.inline-link { --lh-top: var(--accent); --lh-rest: 100%; }
+.ww-credits a { --lh-top: var(--line); --lh-rest: 100%; }
+@media (hover: hover) and (pointer: fine) {
+  .inline-link:hover, .ww-credits a:hover, .hobby-link:hover, .footer a:hover {
+    background-size: 100% 1px, 100% 1px;
+    transition-timing-function: cubic-bezier(0.4, 1, 0.8, 1);
+  }
+}
+.inline-link:focus-visible, .hobby-link:focus-visible, .footer a:focus-visible { background-size: 100% 1px, 100% 1px; }
+
+/* Spotlight Navbar: a soft light in the accent follows the mouse along the
+   nav, a thin beam over it like a lamp, and springs back to the section
+   you're on when the mouse leaves (see main.js) */
+.nav { position: relative; isolation: isolate; --spot-x: -200px; }
+.nav::before, .nav-beam {
+  content: "";
+  position: absolute;
+  left: var(--spot-x);
+  pointer-events: none;
+  opacity: var(--spot-on, 0);
+  transition: opacity 0.35s ease;
+}
+.nav::before {
+  top: 50%;
+  z-index: -1;
+  width: 110px;
+  height: 46px;
+  translate: -50% -50%;
+  background: radial-gradient(closest-side, rgb(255 90 31 / 0.2), transparent);
+}
+.nav-beam {
+  top: -22px;
+  width: 44px;
+  height: 1px;
+  translate: -50% 0;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  box-shadow: 0 0 10px var(--accent);
+}
+
+/* Glow Border Card: pointing at a hobby card draws a thin frame round it
+   with a band of orange and gold circling it, and a soft glow of the same */
+@property --glow-a { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+.hobby { position: relative; }
+.hobby::before, .hobby::after {
+  content: "";
+  position: absolute;
+  inset: -16px -12px -20px;
+  border-radius: 14px;
+  padding: 1px;
+  background: conic-gradient(from var(--glow-a), transparent 0 50%, #ff5a1f 68%, #f5b841 80%, transparent 94%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.45s ease;
+  animation: glow-spin 4s linear infinite paused;
+}
+.hobby::after { padding: 5px; filter: blur(12px); }
+@keyframes glow-spin { to { --glow-a: 360deg; } }
+@media (hover: hover) and (pointer: fine) {
+  .hobby:hover::before { opacity: 1; animation-play-state: running; }
+  .hobby:hover::after { opacity: 0.55; animation-play-state: running; }
+}
+
+/* Stagger Text: each word rises into place, one after another */
+.js .stagger .sw { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: 0.08em; }
+.js .stagger .sw > span {
+  display: inline-block;
+  transform: translateY(110%);
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1) calc(var(--i, 0) * 50ms + 120ms);
+}
+.js .stagger.in .sw > span { transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hobby::before, .hobby::after { animation: none; }
+  .js .stagger .sw > span { transform: none; transition: none; }
+}
