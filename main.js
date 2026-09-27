@@ -3009,7 +3009,18 @@ function showPreview(craft) {
   previewIn.textContent = "";
   sizePreview(240, 300);
   const pics = craft.images || (craft.image ? [craft.image] : []);
-  if (pics.length) {
+  if (craft.ticket) {
+    // a sneak peek until there are screenshots: one of its queue tickets
+    const t = craft.ticket;
+    const ticket = el("span", "peek-ticket");
+    ticket.append(
+      el("span", "peek-ticket-top mono", `${craft.title} · ${t.service}`),
+      el("b", "peek-ticket-code", t.code),
+      el("span", "peek-ticket-ahead mono", `${t.ahead} ahead of you`),
+      el("span", "peek-ticket-soon mono", craft.soon || "Coming soon")
+    );
+    previewIn.appendChild(ticket);
+  } else if (pics.length) {
     const imgs = pics.map((src, k) => {
       const img = el("img", pics.length > 1 ? `flip${k ? "" : " on"}` : "");
       img.alt = "";
@@ -3133,8 +3144,13 @@ SITE.crafts.forEach((craft, i) => {
     el("span", "craft-title", craft.title),
     tags,
     el("span", "craft-year mono", craft.year),
-    craft.game ? el("span", "craft-arrow craft-play mono", "Play") : el("span", "craft-arrow", craft.link ? "↗" : "")
+    craft.game ? el("span", "craft-arrow craft-play mono", "Play")
+      : craft.soon ? el("span", "craft-arrow craft-soon-pill mono", craft.soon)
+      : el("span", "craft-arrow", craft.link ? "↗" : "")
   );
+  // still being built: a pill in place of the arrow, and a line about it
+  if (craft.soon) row.classList.add("craft-soon");
+  if (craft.blurb) row.appendChild(el("span", "craft-blurb", craft.blurb));
   if (canHover) {
     onHover(row, () => showPreview(craft));
     row.addEventListener("mouseleave", hidePreview);
