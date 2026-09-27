@@ -25,6 +25,7 @@ const SITE = {
   // new since their last visit; anything older than 30 days never shows.
   // `href` is a spot on the page (#five, #court, #channels...) or a page.
   recent: [
+    { date: "2026-09-27", text: "How I started coding, in my story", href: "#story" },
     { date: "2026-09-26", text: "A quote I've carried for years", href: "#beliefs" },
     { date: "2026-09-26", text: "Draw a play on the court's board and send it", href: "#court" },
     { date: "2026-09-25", text: "My MyCAREER card, on the court", href: "#court" },
@@ -408,6 +409,16 @@ const SITE = {
         until: "now",
         title: "College days",
         text: "Where the maturity began. Every kind of hardship: physical, mental, emotional, spiritual. And the most important lesson of all, the wisdom of life."
+      },
+      {
+        year: "2025",
+        title: "The first build",
+        text: "Second year. My groupmates asked me to build a simple kiosk while they handled the main system for our client. Zero confidence in coding, so I asked ChatGPT how to code properly, and the rest is history. AI is the future, but it's up to the architect, me, to decide how to build it. Soon I stopped chasing game ranks and got addicted to building my own projects."
+      },
+      {
+        year: "2026",
+        title: "The section switch",
+        text: "Third year, I changed sections. If I'm top 5 in a class where I know how to code well, something is wrong. In the new one I met people better than me, in coding and in life, and it pushed me to level up. I don't want to be average. That's me: healthy competition."
       },
       { year: "2026", title: "Malolos Rush", text: "Building my capstone game in Unity.", runner: true }
     ]
