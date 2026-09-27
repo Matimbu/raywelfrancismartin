@@ -62,7 +62,7 @@ To publish, commit and push to `main`. GitHub Pages redeploys in about a minute.
 
 - `index.html` is the site.
 - `404.html` is Airball, the page GitHub Pages shows for any address that doesn't exist.
-- `rush.js` is the Malolos Rush teaser game, loaded only when someone presses Play (or opens the site with `#malolos-rush`). Its leaderboard is a free Firebase project (Cloud Firestore, project `malolos-rush`), ranked by score (metres + 10 × coins); its rules only take a run whose score adds up, and a fake score can be deleted in the console's Firestore Data tab.
+- `rush.js` is the Malolos Rush teaser game, loaded only when someone presses Play (or opens the site with `#malolos-rush`). Its leaderboard is a free Firebase project (Cloud Firestore, project `malolos-rush`), ranked by score (metres + 10 × coins), which the game works out from each run's metres and coins. It works with either version of the database's rules: the first ones (a run is a name, metres and coins) or the later ones (with the score too, which must add up); the game posts with the score and, if that's refused, again without it. A fake run can be deleted in the console's Firestore Data tab.
 - `legacy.js` is for old iPhones (iOS 15 and older, like the iPhone 7): their Safari doesn't know `color-mix()` or container units (`cqw`), which the 2K cards and some glows use, so this file rewrites the styles for them. Only those browsers load it.
 - `watch/index.html` is a share page for the videos. It has its own preview card (`assets/og-watch.jpg`) and sends people on to Watch Me.
 

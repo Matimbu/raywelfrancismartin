@@ -768,26 +768,35 @@
     return `https://firestore.googleapis.com/v1/projects/${BOARD.projectId}/databases/(default)/documents`;
   }
 
-  // the ten best runners by score, each once (their best run)
+  // the ten best runners by score, each once (their best run). Every run's
+  // score is worked out here from its metres and coins, so runs posted
+  // before scores existed count too, and it doesn't matter which version of
+  // the database's rules is up (the older ones only take name, metres and
+  // coins). The 200 longest runs are plenty to find the best scores.
   async function loadBoard() {
     const res = await fetch(`${boardUrl()}:runQuery?key=${BOARD.apiKey}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ structuredQuery: { from: [{ collectionId: "malolosRush" }], orderBy: [{ field: { fieldPath: "score" }, direction: "DESCENDING" }], limit: 40 } })
+      body: JSON.stringify({ structuredQuery: { from: [{ collectionId: "malolosRush" }], orderBy: [{ field: { fieldPath: "meters" }, direction: "DESCENDING" }], limit: 200 } })
     });
     if (!res.ok) throw new Error(String(res.status));
-    const seen = {};
-    const top = [];
+    const runs = [];
     (await res.json()).forEach((row) => {
       const fields = row.document && row.document.fields;
-      if (!fields || !fields.name || !fields.score) return;
+      if (!fields || !fields.name || !fields.meters) return;
       const name = String(fields.name.stringValue || "").slice(0, 16);
-      const key = name.toLowerCase();
-      if (!name || seen[key] || top.length >= 10) return;
-      seen[key] = true;
-      top.push({ name, score: Number(fields.score.integerValue) || 0 });
+      const meters = Number(fields.meters.integerValue) || 0;
+      const coins = fields.coins ? Number(fields.coins.integerValue) || 0 : 0;
+      if (name) runs.push({ name, score: scoreOf(meters, coins) });
     });
-    return top;
+    runs.sort((a, b) => b.score - a.score);
+    const seen = {};
+    return runs.filter((r) => {
+      const key = r.name.toLowerCase();
+      if (seen[key]) return false;
+      seen[key] = true;
+      return true;
+    }).slice(0, 10);
   }
 
   function refreshBoard(force) {
@@ -844,17 +853,24 @@
     const run = lastRun;
     postButton.disabled = true;
     postButton.textContent = "Posting…";
-    try {
-      const res = await fetch(`${boardUrl()}/malolosRush?key=${BOARD.apiKey}`, {
+    // (with its score; if the database's rules are the older ones, which
+    // refuse a score, again without it: the board works it out anyway)
+    const send = (withScore) => {
+      const fields = {
+        name: { stringValue: name },
+        meters: { integerValue: String(run.meters) },
+        coins: { integerValue: String(run.coins) }
+      };
+      if (withScore) fields.score = { integerValue: String(run.score) };
+      return fetch(`${boardUrl()}/malolosRush?key=${BOARD.apiKey}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fields: {
-          name: { stringValue: name },
-          meters: { integerValue: String(run.meters) },
-          coins: { integerValue: String(run.coins) },
-          score: { integerValue: String(run.score) }
-        } })
+        body: JSON.stringify({ fields })
       });
+    };
+    try {
+      let res = await send(true);
+      if (res.status === 403) res = await send(false);
       if (!res.ok) throw new Error(String(res.status));
       myName = name;
       posted = run.score;
