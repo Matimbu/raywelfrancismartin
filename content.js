@@ -682,6 +682,26 @@ const SITE = {
     }
   ],
 
+  // Numbers in About that count up the first time they're on screen (after
+  // Vengeance UI's Stats Counter). `count: "crafts"` or `"gallery"` counts
+  // that list, so it stays right as things get added; otherwise `value`.
+  stats: [
+    { count: "crafts", label: "Things I've made" },
+    { value: 2, label: "Valorant golds" },
+    { count: "gallery", label: "Moments I kept" },
+    { value: 95, label: "OVR, my 2K26 build" }
+  ],
+
+  // "Before you ask", above the links in Contact (after Vengeance UI's FAQ
+  // Accordion): one answer open at a time. [label](url) makes a link.
+  faq: [
+    { q: "Are you open to OJT or a junior role?", a: "Yes. I'm studying BSIT at STI College Malolos and looking for OJT or junior dev roles. Email me, or pick any of the links below." },
+    { q: "What do you build with?", a: "Whatever the project needs. So far: C# and WinForms for The Hive Kiosk, Node.js and SQLite for a motorparts inventory and POS, Unity for Malolos Rush, and Next.js, Socket.IO and PostgreSQL for CampusQue, which I'm building now." },
+    { q: "Do you code with AI?", a: "Yes, it's how I started. AI is the future, but it's up to the architect, me, to decide how to build it." },
+    { q: "Can I see your code?", a: "Most of it is on [my GitHub](https://github.com/Matimbu). The Hive Kiosk and the motorparts inventory are public. Malolos Rush is our group's capstone, so its repo stays private, but you can play the teaser in Crafts." },
+    { q: "Where are you based?", a: "Malolos, Bulacan, in the Philippines." }
+  ],
+
   links: [
     { label: "Email", value: "raywelfrancismartin@gmail.com", url: "mailto:raywelfrancismartin@gmail.com" },
     { label: "Instagram", value: "@_matimbu", url: "https://instagram.com/_matimbu" },

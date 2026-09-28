@@ -4376,6 +4376,110 @@ if (talk) {
     drawWatch.observe(talk);
   }
 }
+// Stats Counter (after Vengeance UI): a row of numbers under About's text
+// that count up from 0 the first time they come on screen. A number can
+// count a list (`count: "crafts"`), leaving out anything still in the works
+// (`soon`) or marked TODO.
+if (SITE.stats && SITE.stats.length) {
+  const row = el("div", "stats");
+  SITE.stats.forEach((s, i) => {
+    const list = s.count ? (SITE[s.count] || []).filter((x) => !x.soon && !isTodo(x.title || "", x.caption || "", x.file || "")) : null;
+    const value = list ? list.length : Number(s.value) || 0;
+    const item = el("div", "stat");
+    item.style.setProperty("--d", i);
+    const num = el("span", "stat-num", reduceMotion ? String(value) : "0");
+    num.dataset.to = value;
+    num.setAttribute("aria-hidden", "true");
+    item.append(num, el("span", "sr-only", String(value)), el("span", "stat-label mono", s.label));
+    row.appendChild(item);
+  });
+  document.querySelector("#about .about-grid").after(row);
+  if (!reduceMotion && "IntersectionObserver" in window) {
+    const countWatch = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      countWatch.disconnect();
+      row.classList.add("in");
+      const nums = [...row.querySelectorAll(".stat-num")];
+      const start = performance.now();
+      const tick = (now) => {
+        const t = Math.min(1, (now - start) / 1500);
+        const eased = 1 - (1 - t) ** 4; // (fast, then settling, no bounce)
+        nums.forEach((n) => (n.textContent = String(Math.round(Number(n.dataset.to) * eased))));
+        if (t < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }, { threshold: 0.6 });
+    countWatch.observe(row);
+  } else {
+    row.classList.add("in");
+  }
+}
+
+// FAQ Accordion (after Vengeance UI): "Before you ask", above the contact
+// links. One answer open at a time; its bar on the left lights up and the
+// plus turns into a minus.
+if (SITE.faq && SITE.faq.length) {
+  const block = el("div", "faq reveal");
+  const list = el("ul", "faq-list");
+  const items = SITE.faq.map((f, i) => {
+    const li = el("li", "faq-item");
+    const q = el("button", "faq-q");
+    q.type = "button";
+    q.id = `faq-q-${i}`;
+    q.setAttribute("aria-expanded", "false");
+    q.setAttribute("aria-controls", `faq-a-${i}`);
+    const sign = el("span", "faq-sign");
+    sign.setAttribute("aria-hidden", "true");
+    q.append(sign, el("span", "faq-q-text", f.q));
+    const a = el("div", "faq-a");
+    a.id = `faq-a-${i}`;
+    a.setAttribute("role", "region");
+    a.setAttribute("aria-labelledby", q.id);
+    const inner = el("div", "faq-a-inner");
+    const p = el("p");
+    appendWithLinks(p, f.a);
+    inner.appendChild(p);
+    a.appendChild(inner);
+    li.append(q, a);
+    list.appendChild(li);
+    return li;
+  });
+  const toggle = (k) => items.forEach((li, i) => {
+    const open = i === k && !li.classList.contains("open");
+    li.classList.toggle("open", open);
+    li.querySelector(".faq-q").setAttribute("aria-expanded", String(open));
+  });
+  items.forEach((li, i) => li.querySelector(".faq-q").addEventListener("click", () => toggle(i)));
+  block.append(el("p", "faq-label mono", "Before you ask"), list);
+  $("linkList").before(block);
+}
+
+// Light Lines (after Vengeance UI): behind "Let's talk.", faint vertical
+// lines with lights sliding along them, some down, some up, each at its own
+// speed. Only transforms move (cheap to draw), and only while it's on screen.
+(() => {
+  const section = document.getElementById("connect");
+  if (!section) return;
+  const layer = el("div", "light-lines");
+  layer.setAttribute("aria-hidden", "true");
+  [6, 17, 29, 38, 50, 61, 72, 84, 95].forEach((x, i) => {
+    const line = el("span", "ll-line");
+    line.style.left = `${x}%`;
+    const light = el("i", i % 3 === 1 ? "ll-up" : "");
+    const dur = 6 + Math.random() * 10;
+    light.style.setProperty("--dur", `${dur.toFixed(1)}s`);
+    light.style.setProperty("--delay", `${(-Math.random() * dur).toFixed(1)}s`);
+    line.appendChild(light);
+    layer.appendChild(line);
+  });
+  section.prepend(layer);
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver(([entry]) => layer.classList.toggle("on", entry.isIntersecting)).observe(section);
+  } else {
+    layer.classList.add("on");
+  }
+})();
+
 // Section titles: the letters drift in from both sides, meet as the title
 // reaches the middle of the screen, and dissolve upward as it leaves
 document.querySelectorAll(".title.split, .contact-title.split, .channel-name.split").forEach((title) => {

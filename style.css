@@ -4602,3 +4602,115 @@ button.craft-row {
   .hobby::before, .hobby::after { animation: none; }
   .js .stagger .sw > span { transform: none; transition: none; }
 }
+
+/* Stats Counter: four numbers under About's text, big in the serif, their
+   labels in mono; each rises in a beat after the one before */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+  margin-top: clamp(48px, 7vw, 88px);
+  padding-top: 28px;
+  border-top: 1px solid var(--line);
+}
+.stat { display: grid; gap: 10px; align-content: start; }
+.stat-num {
+  font-family: var(--serif);
+  font-size: clamp(48px, 7vw, 96px);
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.stat-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.js .stat { opacity: 0; translate: 0 14px; transition: opacity 0.6s ease calc(var(--d, 0) * 90ms), translate 0.7s var(--ease-out) calc(var(--d, 0) * 90ms); }
+.js .stats.in .stat { opacity: 1; translate: 0 0; }
+@media (max-width: 760px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 32px; } }
+
+/* FAQ Accordion: "Before you ask". Each question has a bar on its left
+   that lights up in the accent when it's open, a plus that turns into a
+   minus, and the answer opens under it */
+.faq { margin: clamp(40px, 6vw, 64px) 0; max-width: 760px; }
+.faq-label { margin-bottom: 14px; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.faq-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); background: var(--bg); }
+.faq-item { border-bottom: 1px solid var(--line); }
+.faq-q {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  min-height: 60px;
+  padding: 16px 16px 16px 20px;
+  border: 0;
+  border-left: 2px solid var(--line);
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: clamp(16px, 1.8vw, 19px);
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.25s ease, border-color 0.25s ease, background-color 0.25s ease;
+}
+.faq-sign { position: relative; flex: none; width: 14px; height: 14px; }
+.faq-sign::before, .faq-sign::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  width: 14px;
+  height: 2px;
+  background: currentColor;
+  transition: transform 0.3s var(--ease-out);
+}
+.faq-sign::after { transform: rotate(90deg); }
+.faq-item.open .faq-sign::after { transform: rotate(0deg); }
+.faq-item.open .faq-q { color: var(--fg); border-left-color: var(--accent); background: color-mix(in srgb, var(--fg) 4%, transparent); }
+.faq-item.open .faq-sign { color: var(--accent); }
+@media (hover: hover) and (pointer: fine) { .faq-q:hover { color: var(--fg); border-left-color: var(--muted); } }
+.faq-q:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.faq-a {
+  display: grid;
+  grid-template-rows: 0fr;
+  border-left: 2px solid var(--line);
+  transition: grid-template-rows 0.35s var(--ease-out), border-color 0.25s ease, background-color 0.25s ease;
+}
+.faq-item.open .faq-a { grid-template-rows: 1fr; border-left-color: var(--accent); background: color-mix(in srgb, var(--fg) 4%, transparent); }
+.faq-a-inner { overflow: hidden; visibility: hidden; transition: visibility 0s linear 0.35s; }
+.faq-item.open .faq-a-inner { visibility: visible; transition-delay: 0s; }
+.faq-a p { max-width: 62ch; margin: 0; padding: 0 20px 22px 50px; color: var(--muted); font-size: 16px; line-height: 1.6; }
+@media (prefers-reduced-motion: reduce) { .faq-a, .faq-sign::before, .faq-sign::after { transition: none; } }
+
+/* Light Lines: faint vertical lines behind the contact section, fading out
+   at the top and bottom, with lights in the accent sliding along them */
+.contact { position: relative; isolation: isolate; }
+.light-lines {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(transparent, #000 18%, #000 78%, transparent);
+  mask-image: linear-gradient(transparent, #000 18%, #000 78%, transparent);
+}
+.ll-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: color-mix(in srgb, var(--fg) 6%, transparent);
+  overflow: hidden;
+}
+/* a light is as tall as the section, lit only at its bottom end, and slides
+   from above the top to past the bottom (or back up) */
+.ll-line i {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(transparent 82%, color-mix(in srgb, var(--accent) 90%, transparent) 97%, transparent);
+  transform: translateY(-100%);
+  animation: ll-down var(--dur, 9s) linear var(--delay, 0s) infinite paused;
+}
+.ll-line i.ll-up { background: linear-gradient(transparent, color-mix(in srgb, var(--accent) 90%, transparent) 3%, transparent 18%); animation-name: ll-up; }
+.light-lines.on .ll-line i { animation-play-state: running; }
+@keyframes ll-down { from { transform: translateY(-100%); } to { transform: translateY(20%); } }
+@keyframes ll-up { from { transform: translateY(100%); } to { transform: translateY(-20%); } }
+@media (prefers-reduced-motion: reduce) { .ll-line i { display: none; } }
