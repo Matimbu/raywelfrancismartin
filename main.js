@@ -5618,13 +5618,23 @@ document.addEventListener("click", (e) => {
   fireDart(e.clientX + scrollX, e.clientY + scrollY);
 });
 
-// A layer over the whole page for effects that aren't tied to one section
+// A layer over the whole page for effects that aren't tied to one section.
+// It's as tall as the page when an effect starts, and goes away once its
+// last effect is gone: left behind, it kept that height after the page got
+// shorter again (Sova's agent select closing), leaving empty space under
+// the footer.
 function pageFx() {
   let fx = document.querySelector(".page-fx");
   if (!fx) {
     fx = el("div", "page-fx");
     fx.setAttribute("aria-hidden", "true");
     document.body.appendChild(fx);
+    const layer = fx;
+    new MutationObserver((changes, watch) => {
+      if (layer.children.length) return;
+      watch.disconnect();
+      layer.remove();
+    }).observe(layer, { childList: true });
   }
   fx.style.height = `${document.documentElement.scrollHeight}px`;
   return fx;
