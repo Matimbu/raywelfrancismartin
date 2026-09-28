@@ -700,14 +700,19 @@
         let path;
         let arrive; // when it gets to the rim, or lands short
         if (result === "swish") {
-          // nothing but net: the ball crosses the rim's line within 2 px of
-          // its middle from any spot, clear of the rim and the glass
-          // (measured: at least 6 px of air), slows in the net and drops out
+          // nothing but net: high over the court, then in on a diagonal
+          // (50 degrees, the shallowest the ball can come in at without
+          // touching the rim) straight through the middle of the rim; the
+          // net catches it and turns it down. Measured from every spot: at
+          // least 2 px of air from the rim and the glass.
           const top = Math.min(from.y, rim.y) - lift * 1.6;
-          const inNet = { x: rim.x, y: rim.y + 30 };
+          const dir = { x: Math.cos((50 * Math.PI) / 180), y: Math.sin((50 * Math.PI) / 180) };
+          const mid = { x: rim.x, y: rim.y };
+          const netBottom = { x: rim.x, y: rim.y + 42 };
+          const caught = { x: rim.x + 16 * dir.x, y: rim.y + 16 * dir.y };
           path = [
-            curve(from, { x: from.x + (rim.x - from.x) * 0.45, y: top }, { x: rim.x, y: top }, inNet, flight, ["swish"]),
-            drop(inNet, { x: rim.x, y: rim.y + 42 }, 90),
+            curve(from, { x: from.x + (rim.x - from.x) * 0.4, y: top }, { x: rim.x - 90 * dir.x, y: rim.y - 90 * dir.y }, mid, flight, ["swish"]),
+            { ms: 190, at: (t) => ({ x: (1 - t) ** 2 * mid.x + 2 * (1 - t) * t * caught.x + t * t * netBottom.x, y: (1 - t) ** 2 * mid.y + 2 * (1 - t) * t * caught.y + t * t * netBottom.y }) },
             ...through.slice(1)
           ];
           arrive = flight;
