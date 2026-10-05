@@ -401,13 +401,14 @@ const SITE = {
     label: "Where I'm from",
     title: "Born on an island.",
     paragraphs: [
-      "I was born and raised in Labuan, a small island in Malaysia, off the coast of Sabah near Kota Kinabalu. Wherever you went, there was a beach close by. Some were clean, some were rough around the edges, and a few had the whitest sand I've ever seen. Life was simple. Nobody was racing anybody.",
-      "Growing up in a Muslim-majority country taught me respect early. It was on me to respect the customs, keep my pride in check, and learn from the people around me. Malay, Chinese and Indian families, side by side, every day. When that's your normal, you learn how to get along with everyone.",
-      "I grew up on nasi lemak and roti canai, talking in English, Malay and some very rough Tagalog. Knowing the local language changes everything. It's how a place starts to feel like home.",
-      "I was 12, turning 13, when we moved to the Philippines. What hit me first was how much diskarte people need just to cover the basics. The school system took some getting used to. And the talent here is real: I've met a lot of people who are seriously good at what they do. One more thing I noticed: a suntukan here usually means fists. Back home, kicks were part of it too. Blame the football.",
-      "I haven't been back since. Moving made me think about what I wanted beyond the life I knew. The grass always looks greener on the other side, until you look back at what you had."
+      "I was born and raised in Labuan, a small island and federal territory in Malaysia, near Kota Kinabalu. The beaches are what I remember most. Wherever you went, there was always a beach nearby. Some were clean, some were rough around the edges, and some had the whitest sand I’d ever seen. Life felt simple back then. I didn’t feel much pressure to compete with anyone.",
+      "Growing up in a Muslim-majority country also taught me respect. Even though I was raised there, I understood that I had to respect the local customs, keep my pride in check, and learn from the people around me. I also appreciated growing up around Malay, Chinese, and Indian communities. Different cultures, different traditions, all part of everyday life. You learn how to get along with people when that’s the environment you grow up in.",
+      "Nasi lemak and roti canai, easily. Those two will always stay with me. I spoke English, Malay, and some rough Tagalog back then. Haha. Knowing the local language makes a big difference. It helps you connect with people and feel more at home.",
+      "I was 12, turning 13, when we moved to the Philippines. My biggest culture shock was how much “diskarte” people needed just to cover everyday necessities. Seeing that up close stayed with me. The education system took some adjusting to as well. But one thing that stood out was the talent. I’ve met a lot of talented people here in the Philippines.",
+      "On a lighter note, even the way people talked about fighting felt different. From what I remember, “suntukan” here usually meant fists. Back in Malaysia, kicks could come into it too. Maybe all that football had something to do with it. Haha. That’s just a personal observation from growing up.",
+      "I haven’t been back to Malaysia since we left. “The grass is always greener on the other side” comes to mind. There’s always that thought that life could be better somewhere else, or that another path might lead to something you haven’t found yet. Moving gave me a reason to think about what I wanted beyond the life I’d grown up knowing."
     ],
-    lesson: "Appreciate the little things while they're still part of your everyday. A place, a routine, a moment with someone. Some things only make sense when you're older."
+    lesson: "Appreciate the little things while they’re still part of your everyday life. A place, a routine, a moment with someone—you might not think much of it at the time. Years later, you realize how much it meant. Some things only make sense as you get older."
   },
 
   story: {
