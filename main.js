@@ -353,7 +353,7 @@ if (!reduceMotion && /^\d{4}$/.test(sinceYear) && sinceYear < thisYear) {
   yearNode.classList.add("year-roll");
   playOnView(yearNode, "rolled", 0.9);
 }
-document.title = `${SITE.firstName} ${SITE.lastName}`;
+document.title = SITE.fullName;
 
 const portfolioLink = $("portfolioLink");
 if (SITE.portfolio) portfolioLink.href = SITE.portfolio;
@@ -501,7 +501,7 @@ function buildName(node, lines) {
     node.appendChild(lineEl);
   });
 }
-buildName($("heroName"), [SITE.firstName, SITE.lastName]);
+buildName($("heroName"), [SITE.firstName, SITE.middleName, SITE.lastName].filter(Boolean));
 
 const roles = $("roles");
 const statement = $("statement");

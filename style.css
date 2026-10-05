@@ -4496,7 +4496,8 @@ button.craft-row {
   .floater-badge { width: 32px; height: 32px; font-size: 17px; top: -12px; right: -12px; }
   .floater:nth-child(3) .floater-badge { width: 26px; height: 26px; font-size: 13px; top: -10px; right: -10px; }
   .name-line + .name-line { padding-left: 0.3em; }
-  .hero-name { font-size: clamp(88px, 24vw, 140px); }
+  /* three lines (Raywel / Francis / Martin), so a touch smaller to keep the old height */
+  .hero-name { font-size: clamp(64px, 18.5vw, 118px); }
   .roles { letter-spacing: 0.14em; }
   .scroll-hint { display: none; }
 }

@@ -10,6 +10,7 @@
 
 const SITE = {
   firstName: "Raywel",
+  middleName: "Francis",
   lastName: "Martin",
   fullName: "Raywel Francis Martin",
   initials: "RFM",
@@ -173,7 +174,7 @@ const SITE = {
         pos: "My player", text: "Me", note: "the Court's Coder",
         image: "assets/five/raywel-jacket.webp", alt: "Me in sunglasses, holding my custom RAYWEL jacket at a clothing shop",
         card: {
-          style: "career", ovr: 95, tier: "G.O.A.T.", label: "G.O.A.T. Build", name: "Raywel Martin", pos: "PF",
+          style: "career", ovr: 95, tier: "G.O.A.T.", label: "G.O.A.T. Build", name: "Raywel Francis Martin", pos: "PF",
           player: "Yao Ming", // my MyPLAYER's name (and what they call me on the court)
           face: "assets/five/raywel-mycareer.webp",
           archetype: "2-Way Middy-Slashing Cleaner",
@@ -338,7 +339,7 @@ const SITE = {
       soundSwitch: true, // an on/off switch for the wall's sounds
       intro: "Sova main. Some of the clips are on my YouTube and TikTok.",
       art: { src: "assets/valorant/sova.webp", alt: "Official art of Sova, the Valorant agent", glow: "#355285", lockIn: true },
-      notice: "\u201cRaywel Martin\u201d (this site) was created under Riot Games' \u201cLegal Jibber Jabber\u201d policy using assets owned by Riot Games. Riot Games does not endorse or sponsor this project.",
+      notice: "\u201cRaywel Francis Martin\u201d (this site) was created under Riot Games' \u201cLegal Jibber Jabber\u201d policy using assets owned by Riot Games. Riot Games does not endorse or sponsor this project.",
       specs: [
         { label: "Crosshair", value: "0;p;0;c;1;s;1;P;u;000000FF;h;0;f;0;m;1;0l;2;0v;2;0o;0;0a;1;0f;0;1b;0;A;c;8;d;1;b;1;0b;0;1b;0;S;d;0", copy: true },
         { label: "Sens", value: "0.37" },
