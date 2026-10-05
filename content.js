@@ -479,7 +479,7 @@ const SITE = {
     },
     {
       title: "The Hive Kiosk",
-      tags: ["Code", "C#", "GDI+"],
+      tags: ["Code", "C#", "WinForms"],
       year: "2026",
       emoji: "🐝",
       images: [
