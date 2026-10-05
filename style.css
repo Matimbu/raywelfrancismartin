@@ -4715,3 +4715,19 @@ button.craft-row {
 @keyframes ll-down { from { transform: translateY(-100%); } to { transform: translateY(20%); } }
 @keyframes ll-up { from { transform: translateY(100%); } to { transform: translateY(-20%); } }
 @media (prefers-reduced-motion: reduce) { .ll-line i { display: none; } }
+
+/* "Where I'm from": the Labuan story, before the timeline. The title in the
+   serif, the story in calm muted paragraphs, and its lesson set apart */
+.origin-title { margin-top: 10px; font-family: var(--serif); font-weight: 400; font-size: clamp(36px, 5vw, 64px); line-height: 1; letter-spacing: -0.02em; }
+.origin-body { display: grid; gap: 1.1em; max-width: 62ch; color: var(--muted); font-size: clamp(16px, 1.5vw, 18px); line-height: 1.7; }
+.origin-body p { margin: 0; }
+.origin-lesson {
+  margin-top: 0.6em !important;
+  padding-left: 18px;
+  border-left: 2px solid var(--accent);
+  color: var(--fg);
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(20px, 2.2vw, 26px);
+  line-height: 1.35;
+}

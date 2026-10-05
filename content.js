@@ -26,6 +26,7 @@ const SITE = {
   // new since their last visit; anything older than 30 days never shows.
   // `href` is a spot on the page (#five, #court, #channels...) or a page.
   recent: [
+    { date: "2026-10-05", text: "Where I'm from: born on an island in Malaysia", href: "#about" },
     { date: "2026-09-28", text: "CampusQue, a campus queue system, in the works", href: "#crafts" },
     { date: "2026-09-28", text: "My motorparts inventory and POS", href: "#crafts" },
     { date: "2026-09-27", text: "How I started coding, in my story", href: "#about" },
@@ -394,6 +395,21 @@ const SITE = {
   // adds a button that opens that photo; `until` shows "to now" under the year;
   // `runner: true` sends a tiny runner along the row's line as you read it,
   // Subway Surfers style (Malolos Rush plays like it): hopping, grabbing coins.
+  // `origin`: where I'm from, before the timeline (my words, from my answers).
+  // `lesson` is the line it ends on.
+  origin: {
+    label: "Where I'm from",
+    title: "Born on an island.",
+    paragraphs: [
+      "I was born and raised in Labuan, a small island in Malaysia, off the coast of Sabah near Kota Kinabalu. Wherever you went, there was a beach close by. Some were clean, some were rough around the edges, and a few had the whitest sand I've ever seen. Life was simple. Nobody was racing anybody.",
+      "Growing up in a Muslim-majority country taught me respect early. It was on me to respect the customs, keep my pride in check, and learn from the people around me. Malay, Chinese and Indian families, side by side, every day. When that's your normal, you learn how to get along with everyone.",
+      "I grew up on nasi lemak and roti canai, talking in English, Malay and some very rough Tagalog. Knowing the local language changes everything. It's how a place starts to feel like home.",
+      "I was 12, turning 13, when we moved to the Philippines. What hit me first was how much diskarte people need just to cover the basics. The school system took some getting used to. And the talent here is real: I've met a lot of people who are seriously good at what they do. One more thing I noticed: a suntukan here usually means fists. Back home, kicks were part of it too. Blame the football.",
+      "I haven't been back since. Moving made me think about what I wanted beyond the life I knew. The grass always looks greener on the other side, until you look back at what you had."
+    ],
+    lesson: "Appreciate the little things while they're still part of your everyday. A place, a routine, a moment with someone. Some things only make sense when you're older."
+  },
+
   story: {
     label: "The story so far",
     intro: "How I got here.",

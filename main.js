@@ -2954,6 +2954,18 @@ renderUltPoints();
 // As you read a row, the line under it draws itself; once the row has slid
 // fully in (.landed), its medals drop in and swing on their ribbons and its
 // photo opens like a gallery tile (all in style.css).
+// "Where I'm from": my Labuan story, before the timeline, ending on its lesson
+if (SITE.origin && SITE.origin.paragraphs) {
+  const o = SITE.origin;
+  const block = el("div", "wordwall origin");
+  const head = el("div", "wordwall-head reveal");
+  head.append(el("p", "now-label mono", o.label), staggerWords(el("h3", "origin-title", o.title || "")));
+  const body = el("div", "origin-body reveal");
+  o.paragraphs.forEach((text) => body.appendChild(el("p", "", text)));
+  if (o.lesson) body.appendChild(el("p", "origin-lesson", o.lesson));
+  block.append(head, body);
+  $("about").appendChild(block);
+}
 if (SITE.story && SITE.story.items && SITE.story.items.length) {
   const block = el("div", "wordwall story");
   const head = el("div", "wordwall-head reveal");
