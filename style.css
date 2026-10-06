@@ -782,7 +782,9 @@ button { font: inherit; color: inherit; }
 .ww-note {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  flex-wrap: wrap; /* long notes (the ult and its pips) wrap on small phones */
+  row-gap: 4px;
+  column-gap: 8px;
   color: var(--accent);
   font-size: 10px;
 }
@@ -4422,7 +4424,7 @@ button.craft-row {
   .kit-info { position: static; width: 100%; margin-top: -4px; }
 
   .about-grid { grid-template-columns: 1fr; }
-  .wordwall, .wordwall.has-art { grid-template-columns: 1fr; }
+  .wordwall, .wordwall.has-art { grid-template-columns: minmax(0, 1fr); } /* minmax: a long line can never widen the page */
   .ww-credits, .ww-specs { grid-column: 1; }
   .story-item { grid-template-columns: 72px 1fr; gap: 6px 18px; }
   .wordwall-art { grid-column: 1; grid-row: auto; justify-self: center; width: min(260px, 70%); }
