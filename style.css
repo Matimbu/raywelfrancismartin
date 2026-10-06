@@ -61,6 +61,7 @@
   --serif: "Instrument Serif", Georgia, serif;
   --sans: "Geist", system-ui, sans-serif;
   --mono: "Geist Mono", ui-monospace, monospace;
+  --loud: "Archivo", "Arial Black", sans-serif; /* the in-the-zone voice: Valorant and the golds */
   --cond: "Barlow Condensed", "Arial Narrow", sans-serif; /* 2K's cards and HUD */
   --pad: clamp(16px, 4vw, 48px);
 }
@@ -4730,4 +4731,23 @@ button.craft-row {
   font-style: italic;
   font-size: clamp(20px, 2.2vw, 26px);
   line-height: 1.35;
+}
+
+/* The loud voice: heavy wide italics, only where I'm in the zone */
+.wordwall[data-ign] .ww-text,
+.story-loud {
+  font-family: var(--loud);
+  font-weight: 900;
+  font-style: italic;
+  font-stretch: 125%;
+  text-transform: uppercase;
+  letter-spacing: -0.025em;
+  line-height: 0.9;
+}
+.wordwall[data-ign] .ww-text { font-size: clamp(24px, 2.7vw, 40px); }
+.wordwall[data-ign] .ww-top .ww-text { font-size: clamp(40px, 5vw, 72px); color: var(--fg); }
+.story-loud { font-size: clamp(26px, 3vw, 40px); margin-bottom: 10px; }
+@media (max-width: 600px) {
+  .wordwall[data-ign] .ww-text { font-size: clamp(20px, 6.4vw, 30px); }
+  .wordwall[data-ign] .ww-top .ww-text { font-size: clamp(36px, 12vw, 52px); }
 }

@@ -2979,6 +2979,7 @@ if (SITE.story && SITE.story.items && SITE.story.items.length) {
     const body = el("div", "story-body");
     const title = staggerWords(el("p", "story-title", s.title));
     if (s.medals) {
+      title.classList.add("story-loud");
       const medals = el("span", "story-medals");
       medals.setAttribute("role", "img");
       medals.setAttribute("aria-label", `${s.medals} gold medal${s.medals > 1 ? "s" : ""}`);
