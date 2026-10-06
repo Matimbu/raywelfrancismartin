@@ -2960,8 +2960,30 @@ if (SITE.origin && SITE.origin.paragraphs) {
   const block = el("div", "wordwall origin");
   const head = el("div", "wordwall-head reveal");
   head.append(el("p", "now-label mono", o.label), staggerWords(el("h3", "origin-title", o.title || "")));
+  // the route: a dot on Labuan, a dotted line that draws itself across the
+  // sea (as the section comes on screen) to a dot on Malolos
+  if (o.map) {
+    const map = el("div", "origin-map reveal");
+    map.setAttribute("role", "img");
+    map.setAttribute("aria-label", `From ${o.map.from} to ${o.map.to}, about ${o.map.km} km`);
+    map.innerHTML = `<svg viewBox="0 0 240 230" aria-hidden="true">
+      <defs><mask id="routeMask"><path class="route-draw" pathLength="1" d="M44 196 Q 52 70 196 42"/></mask></defs>
+      <path class="route" d="M44 196 Q 52 70 196 42" mask="url(#routeMask)"/>
+      <circle class="route-dot route-from" cx="44" cy="196" r="5"/><circle class="route-ring" cx="44" cy="196" r="5"/>
+      <circle class="route-dot route-to" cx="196" cy="42" r="5"/>
+      <text class="route-label" x="58" y="212">${o.map.from}</text>
+      <text class="route-label" x="196" y="24" text-anchor="end">${o.map.to}</text>
+      <text class="route-km" x="132" y="132">≈ ${o.map.km} km</text>
+    </svg>`;
+    head.appendChild(map);
+  }
   const body = el("div", "origin-body reveal");
-  o.paragraphs.forEach((text) => body.appendChild(el("p", "", text)));
+  o.paragraphs.forEach((text, i) => {
+    const moment = el("div", "origin-moment");
+    if (o.labels && o.labels[i]) moment.appendChild(el("p", "origin-label mono", o.labels[i]));
+    moment.appendChild(el("p", "", text));
+    body.appendChild(moment);
+  });
   if (o.lesson) body.appendChild(el("p", "origin-lesson", o.lesson));
   block.append(head, body);
   $("about").appendChild(block);
@@ -4514,7 +4536,14 @@ if (SITE.facts && SITE.facts.length) {
   SITE.facts.forEach((f, i) => {
     const card = el("div", "fact reveal");
     card.style.setProperty("--d", i % 3);
-    card.append(el("p", "fact-q mono", f.q), el("p", "fact-a", f.a));
+    card.appendChild(el("p", "fact-q mono", f.q));
+    f.a.split(/\n\n+/).forEach((part) => {
+      const p = el("p", "fact-a");
+      part.split(/(\*[^*]+\*)/).filter(Boolean).forEach((bit) => {
+        p.appendChild(bit.startsWith("*") ? el("em", "", bit.slice(1, -1)) : document.createTextNode(bit));
+      });
+      card.appendChild(p);
+    });
     grid.appendChild(card);
   });
   block.appendChild(grid);

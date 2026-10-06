@@ -4789,3 +4789,24 @@ button.craft-row {
   text-transform: uppercase;
   overflow-wrap: anywhere;
 }
+
+/* "Where I'm from", redesigned: each paragraph a small labelled moment, and
+   beside the title a route that draws itself from Labuan to Malolos */
+.origin-body { gap: 2.2em; }
+.origin-moment { display: grid; gap: 8px; }
+.origin-label { margin: 0; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
+.origin-map { width: min(260px, 100%); margin-top: 28px; }
+.origin-map svg { display: block; width: 100%; height: auto; overflow: visible; }
+.route { fill: none; stroke: var(--fg); stroke-width: 1.4; stroke-dasharray: 2 6; stroke-linecap: round; }
+.route-draw { fill: none; stroke: #fff; stroke-width: 8; stroke-dasharray: 1 1; stroke-dashoffset: 1; transition: stroke-dashoffset 1.8s var(--ease-in-out) 0.3s; }
+.origin-map.in .route-draw { stroke-dashoffset: 0; }
+.route-dot { fill: var(--accent); }
+.route-to { fill: var(--fg); opacity: 0; transition: opacity 0.4s ease 2s; }
+.origin-map.in .route-to { opacity: 1; }
+.route-ring { fill: none; stroke: var(--accent); stroke-width: 1; transform-box: fill-box; transform-origin: center; animation: route-ping 2.4s ease-out infinite; }
+@keyframes route-ping { from { opacity: 0.9; transform: scale(1); } to { opacity: 0; transform: scale(3.4); } }
+.route-label { fill: var(--muted); font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; }
+.route-km { fill: var(--fg); font-family: var(--serif); font-style: italic; font-size: 17px; }
+/* the answers in Off the record can run to a few paragraphs */
+.fact-a + .fact-a { margin-top: -2px; }
+@media (prefers-reduced-motion: reduce) { .route-draw { transition: none; stroke-dashoffset: 0; } .route-to { opacity: 1; transition: none; } .route-ring { animation: none; opacity: 0; } }
