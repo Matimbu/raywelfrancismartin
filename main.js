@@ -3427,7 +3427,9 @@ SITE.beliefs.forEach((text, i) => {
 if (SITE.quote && SITE.quote.text) {
   const figure = el("figure", "belief-quote");
   const quote = el("blockquote");
-  const p = el("p", "belief");
+  // (after Originkit's Block Text Reveal: an orange block sits on each word
+  // and clears off in a sweep as you scroll, see updateBeliefs)
+  const p = el("p", "belief blocks");
   splitWords(p, `*${SITE.quote.text}*`);
   quote.appendChild(p);
   const by = el("figcaption", "mono");
@@ -3447,6 +3449,16 @@ function updateBeliefs() {
     later(() => {
       const words = p.querySelectorAll(".fw");
       const lit = Math.round(progress * words.length);
+      if (p.classList.contains("blocks")) {
+        // each word's block clears over a few words' worth of scroll, so
+        // the sweep runs as a soft front, not one word at a time
+        const spread = 3;
+        words.forEach((w, i) => {
+          const local = Math.min(1, Math.max(0, (progress * (words.length + spread) - i) / spread));
+          w.style.setProperty("--b", (1 - local).toFixed(3));
+        });
+        return;
+      }
       words.forEach((w, i) => w.classList.toggle("lit", i < lit));
       const side = p.previousElementSibling;
       if (!side) return; // (the quote has no number)

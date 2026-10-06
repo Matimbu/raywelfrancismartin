@@ -4753,3 +4753,18 @@ button.craft-row {
   .wordwall[data-ign] .ww-text { font-size: clamp(20px, 6.4vw, 30px); }
   .wordwall[data-ign] .ww-top .ww-text { font-size: clamp(36px, 12vw, 52px); }
 }
+/* Block Text Reveal (after Originkit) on the quote: every word sits under a
+   solid orange block that clears off to the right as you scroll */
+.js .blocks .fw { position: relative; display: inline-block; opacity: 1; }
+.js .blocks .fw::after {
+  content: "";
+  position: absolute;
+  left: -0.04em;
+  right: -0.06em;
+  top: 0.1em;
+  bottom: 0;
+  background: var(--accent);
+  transform: scaleX(var(--b, 1));
+  transform-origin: right;
+}
+@media (prefers-reduced-motion: reduce) { .js .blocks .fw::after { display: none; } }
