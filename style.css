@@ -4768,3 +4768,24 @@ button.craft-row {
   transform-origin: right;
 }
 @media (prefers-reduced-motion: reduce) { .js .blocks .fw::after { display: none; } }
+
+/* "Off the record": my answers as a grid of small cards after the hobbies */
+.facts { margin-top: clamp(56px, 8vw, 96px); padding-top: 28px; border-top: 1px solid var(--line); }
+.facts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 36px 28px; margin-top: 22px; }
+.fact { display: grid; gap: 10px; align-content: start; }
+.fact-q { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+.fact-a { color: var(--muted); font-size: 15px; line-height: 1.65; }
+/* The closing line, as big as the page is wide, in the loud voice */
+.motto-big {
+  margin: clamp(48px, 8vw, 120px) 0 0;
+  padding: 0 var(--pad) clamp(20px, 3vw, 40px);
+  font-family: var(--loud);
+  font-weight: 900;
+  font-style: italic;
+  font-stretch: 125%;
+  font-size: clamp(36px, 8.4vw, 150px);
+  line-height: 0.88;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}

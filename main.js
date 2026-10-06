@@ -4505,6 +4505,27 @@ if (SITE.faq && SITE.faq.length) {
   }
 })();
 
+// "Off the record": things people don't know about me, after the hobbies,
+// each with its question in small mono over my answer
+if (SITE.facts && SITE.facts.length) {
+  const block = el("div", "facts");
+  block.appendChild(el("p", "now-label mono reveal", "Off the record"));
+  const grid = el("div", "facts-grid");
+  SITE.facts.forEach((f, i) => {
+    const card = el("div", "fact reveal");
+    card.style.setProperty("--d", i % 3);
+    card.append(el("p", "fact-q mono", f.q), el("p", "fact-a", f.a));
+    grid.appendChild(card);
+  });
+  block.appendChild(grid);
+  $("hobbyGrid").after(block);
+}
+// The giant line that closes the page (like Lando Norris's site ends on
+// "Always bringing the fight."): my motto, loud, right over the footer
+if (SITE.closingLine) {
+  const big = el("p", "motto-big reveal", SITE.closingLine);
+  document.querySelector("footer").before(big);
+}
 // Section titles: the letters drift in from both sides, meet as the title
 // reaches the middle of the screen, and dissolve upward as it leaves
 document.querySelectorAll(".title.split, .contact-title.split, .channel-name.split").forEach((title) => {

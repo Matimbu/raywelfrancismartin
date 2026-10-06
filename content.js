@@ -26,6 +26,7 @@ const SITE = {
   // new since their last visit; anything older than 30 days never shows.
   // `href` is a spot on the page (#five, #court, #channels...) or a page.
   recent: [
+    { date: "2026-10-06", text: "Off the record: things you don’t know about me", href: "#hobbies" },
     { date: "2026-10-05", text: "Where I'm from: born on an island in Malaysia", href: "#about" },
     { date: "2026-09-28", text: "CampusQue, a campus queue system, in the works", href: "#crafts" },
     { date: "2026-09-28", text: "My motorparts inventory and POS", href: "#crafts" },
@@ -521,6 +522,26 @@ const SITE = {
       ticket: { code: "C-0104", service: "Cashier", ahead: 3 }
     }
   ],
+
+  // "Off the record": things people don't know about me, in my own words
+  // (from my answers), at the end of What I do for fun. `q` is the small
+  // label over each one.
+  facts: [
+    { q: "A skill people don't expect", a: "Singing and dancing. Music is a big part of my life. It can shift my whole mood and energy—sometimes all it takes is the right song." },
+    { q: "My go-to coding song", a: "“#thatPOWER” by will.i.am featuring Justin Bieber. That one gets me moving." },
+    { q: "My most competitive moment", a: "Honestly, it’s trying to outgrow the person I used to be. Sounds cliché, I know. Haha. But seeing myself improve at something I used to struggle with is what keeps me going." },
+    { q: "My worst project disaster", a: "Probably our second-year group project. I was still finding my footing with coding, so that project really tested what I knew—and showed me how much I still had to learn. It needed a refactor, haha, but my classmate saved our asses for real." },
+    { q: "Food I’ll always defend, and one I can’t stand", a: "Chicken. No hesitation. Fried chicken, I know it’s simple, but that’s how it is. Cherries, though? You can have my share." },
+    { q: "Something small that makes me happy", a: "Seeing my cat Nubi sleep with her legs in the air. Completely unbothered. Haha. Also, when my AirPods die during a late-night music session, I take it as my cue to finally go to sleep. Fair enough." },
+    { q: "My “I’m built different” moment", a: "I can be pretty persuasive when I believe in what I’m saying. I know how to get a point across and get people to consider my perspective." },
+    { q: "My hot take", a: "Competitive gaming can sharpen how you think and make decisions under pressure. There’s more going on than people give it credit for. My other take? We might be living in a simulation. If you know, you know… Life has a pattern to it: problems, issues, events and drama that never end. History doesn’t repeat, but it rhymes. That’s real deep." },
+    { q: "How I found Stoicism", a: "Honestly, it started with a campus crush. Haha. I thought she was way out of my league, and it got me thinking about how I carried myself. How would I approach her? Could I hold a conversation without getting in my own head? That pushed me to work on my confidence and figure out the kind of man I wanted to become. Along the way, I found Stoicism. What stayed with me was learning to control my reactions, put effort into what I could change, and stop tying my confidence to someone else’s approval. A crush got me started, but the lessons went well beyond her. Funny thing: it’s The Matrix. She was never the main target. She was the white rabbit. I chased the white rabbit, then I met Morpheus, and Morpheus was Stoicism." },
+    { q: "What I’d build with a free year", a: "A university. Seriously. A school that gives students a reason to care about what they’re learning and challenges them to put it into practice. I’d want students to leave with skills, direction, and the confidence to build something of their own. Finishing a degree should feel like you’re ready for something, instead of leaving you asking, “Now what?” Its motto: mistakes are proof you’re trying." },
+    { q: "Can I still speak Malay?", a: "Of course. I grew up speaking it—it’s still part of me. Haiya…" },
+    { q: "My nickname", a: "All my close friends call me by it. If you watch the NBA and meet me in person, you’ll probably figure out the connection pretty quickly. Haha." }
+  ],
+  // the giant line that closes the page, over the footer
+  closingLine: "Mistakes are proof you’re trying.",
 
   hobbies: [
     // `link` + `linkText`: a small link under the card (here, the Airball
