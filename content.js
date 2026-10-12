@@ -412,7 +412,7 @@ const SITE = {
     photos: [
       { src: "assets/origin/beach.webp", alt: "Me as a kid standing on a quiet beach in Labuan, the sea behind me", caption: "Labuan." },
       { src: "assets/origin/roar.webp", alt: "Me as a little kid on a paved path under the trees, hands up like claws, mid-roar", caption: "Mid-roar." },
-      { src: "assets/origin/f1-car.webp", alt: "Me as a kid in an orange shirt, standing beside a Mercedes Formula 1 show car", caption: "Me and an F1 car." }
+      { src: "assets/origin/f1-car.webp", alt: "Me as a kid in an orange shirt, standing beside a Mercedes Formula 1 show car", caption: "Kuala Lumpur, with an F1 car." }
     ],
     paragraphs: [
       "It starts in Labuan, a small island territory off the coast of Sabah. The sea was everywhere, and life moved at an unhurried pace. Some beaches were wild and rough around the edges; others had white sand that seemed to go on forever. Back then there was nothing to prove and no one to race, just a calm foundation.",
