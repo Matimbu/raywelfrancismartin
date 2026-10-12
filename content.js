@@ -404,14 +404,14 @@ const SITE = {
     // a small label over each paragraph, in order
     labels: ["The island", "Three cultures", "Different, but home", "Nasi lemak & roti canai", "The move", "Suntukan rules", "Haven’t been back"],
     // the route on the map beside the title: where I was born to where I live
-    // the route over a real map (satellite imagery © Google): from and to are
-    // where Labuan and Malolos sit on the picture (984 x 737)
-    map: { src: "assets/origin/map.webp", from: { name: "Labuan", x: 416, y: 625 }, to: { name: "Malolos", x: 647, y: 225 }, km: "1,230", credit: "Imagery © Google" },
+    // the route, on my own dot-matrix map (the land traced from a real map
+    // into a grid of dots, assets/origin/map-dots.json)
+    map: { dots: "assets/origin/map-dots.json", km: "1,230", seas: [["South China Sea", 30, 31], ["Sulu Sea", 55, 46]], lands: [["Borneo", 43, 70], ["Luzon", 60, 9], ["Palawan", 40, 49]] },
     // little polaroids beside the route (tap one to flip to the next).
     // The masters are in images/labuan/; these are cleaned up copies.
     photos: [
       { src: "assets/origin/beach.webp", alt: "Me as a kid standing on a quiet beach in Labuan, the sea behind me", caption: "Labuan." },
-      { src: "assets/origin/roar.webp", alt: "Me as a little kid on a paved path under the trees, hands up like claws, mid-roar", caption: "Mid-roar." },
+      { src: "assets/origin/roar.webp", alt: "Me as a little kid on a paved path under the trees, hands up like claws, mid-roar", caption: "Labuan, mid-roar." },
       { src: "assets/origin/f1-car.webp", alt: "Me as a kid in an orange shirt, standing beside a Mercedes Formula 1 show car", caption: "Kuala Lumpur, with an F1 car." }
     ],
     paragraphs: [

@@ -4856,3 +4856,6 @@ button.craft-row {
 .origin-map.in .route-traveler { opacity: 1; }
 .origin-map figcaption { display: flex; justify-content: space-between; gap: 12px; margin-top: 10px; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { .origin-map.in .map-drift { animation: none; } .route-traveler { display: none; } }
+/* the dot-matrix map: no picture, just the canvas on the page's dark */
+.dot-map .map-frame { aspect-ratio: 86 / 73; background: none; border-radius: 0; overflow: visible; }
+.dot-map canvas { display: block; width: 100%; height: 100%; }

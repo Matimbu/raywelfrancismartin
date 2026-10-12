@@ -2960,29 +2960,150 @@ if (SITE.origin && SITE.origin.paragraphs) {
   const block = el("div", "wordwall origin");
   const head = el("div", "wordwall-head reveal");
   head.append(el("p", "now-label mono", o.label), staggerWords(el("h3", "origin-title", o.title || "")));
-  // the route, over the real map: a dot pings on Labuan, a dotted line draws
-  // itself across the sea when the map comes on screen, a light then keeps
-  // travelling it, and the map drifts in slowly underneath
+  // the route, on a dot-matrix map I made: the land as a grid of dots (traced
+  // from a real map), a dotted line drawing itself from Labuan to Malolos
+  // when it comes on screen, then a light that keeps travelling it and makes
+  // the land near it glow as it passes. Drawn on a canvas, and only moving
+  // while it's on screen.
   let mapFigure = null;
-  if (o.map && o.map.src) {
-    const { from, to } = o.map;
-    const cx = (from.x + to.x) / 2 - 90;
-    const cy = (from.y + to.y) / 2 + 10;
-    const route = `M${from.x} ${from.y} Q ${cx} ${cy} ${to.x} ${to.y}`;
-    mapFigure = el("figure", "origin-map reveal");
-    mapFigure.innerHTML = `<div class="map-frame" role="img" aria-label="Map: from ${from.name}, Malaysia to ${to.name}, Philippines, about ${o.map.km} km">
-      <div class="map-drift"><img src="${o.map.src}" alt="" loading="lazy" decoding="async">
-      <svg viewBox="0 0 984 737" aria-hidden="true">
-        <defs><mask id="routeMask"><path class="route-draw" pathLength="1" d="${route}"/></mask></defs>
-        <path class="route" d="${route}" mask="url(#routeMask)"/>
-        <circle class="route-traveler" r="6"><animateMotion dur="3.6s" repeatCount="indefinite" path="${route}"/></circle>
-        <circle class="route-ring" cx="${from.x}" cy="${from.y}" r="9"/>
-        <circle class="route-dot" cx="${from.x}" cy="${from.y}" r="9"/>
-        <circle class="route-dot route-to" cx="${to.x}" cy="${to.y}" r="9"/>
-        <text class="route-label" x="${from.x + 20}" y="${from.y + 8}">${from.name}</text>
-        <text class="route-label route-to" x="${to.x + 20}" y="${to.y + 8}">${to.name}</text>
-      </svg></div></div>
-      <figcaption class="mono"><span>${from.name} → ${to.name} · ≈ ${o.map.km} km</span><span>${o.map.credit || ""}</span></figcaption>`;
+  if (o.map && o.map.dots) {
+    mapFigure = el("figure", "origin-map dot-map reveal");
+    const frame = el("div", "map-frame");
+    frame.setAttribute("role", "img");
+    frame.setAttribute("aria-label", `Map: from Labuan, Malaysia to Malolos, Philippines, about ${o.map.km} km`);
+    const canvas = el("canvas");
+    frame.appendChild(canvas);
+    const caption = el("figcaption", "mono");
+    caption.append(el("span", "", `Labuan → Malolos · ≈ ${o.map.km} km`), el("span", "", "Illustrated map"));
+    mapFigure.append(frame, caption);
+    let map = null;
+    let born = 0;
+    let raf = 0;
+    let onScreen = false;
+    const g = canvas.getContext("2d");
+    const colors = () => {
+      const css = getComputedStyle(document.documentElement);
+      return { fg: css.getPropertyValue("--fg").trim() || "#f2f0eb", accent: css.getPropertyValue("--accent").trim() || "#ff5a1f", muted: css.getPropertyValue("--muted").trim() || "#8f8c86" };
+    };
+    const curve = () => {
+      const { from: a, to: b } = map;
+      const mx = (a.x + b.x) / 2;
+      const my = (a.y + b.y) / 2;
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const len = Math.hypot(dx, dy);
+      return { a, b, c: { x: mx + (dy / len) * 7, y: my - (dx / len) * 7 } };
+    };
+    const along = ({ a, b, c }, t) => ({ x: (1 - t) ** 2 * a.x + 2 * (1 - t) * t * c.x + t * t * b.x, y: (1 - t) ** 2 * a.y + 2 * (1 - t) * t * c.y + t * t * b.y });
+    const draw = (now) => {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const w = frame.clientWidth;
+      if (!w) return;
+      const cell = w / map.cols;
+      const h = cell * map.rows;
+      if (canvas.width !== Math.round(w * dpr)) {
+        canvas.width = Math.round(w * dpr);
+        canvas.height = Math.round(h * dpr);
+      }
+      g.setTransform(dpr * cell, 0, 0, dpr * cell, 0, 0); // (drawing in grid cells)
+      g.clearRect(0, 0, map.cols, map.rows);
+      const col = colors();
+      const still = reduceMotion;
+      const age = still ? 99 : (now - born) / 1000;
+      const drawn = Math.min(1, Math.max(0, (age - 0.4) / 2.2)); // the route draws in over 2.2 s
+      const route = curve();
+      const travel = drawn < 1 ? null : along(route, ((age - 2.6) / 3.6) % 1);
+      // the land: every dot faint, the ones near the travelling light lit
+      for (let j = 0; j < map.rows; j++) {
+        const row = map.grid[j];
+        for (let i = 0; i < map.cols; i++) {
+          if (row[i] !== "1") continue;
+          let glow = 0;
+          if (travel) glow = Math.exp(-((i - travel.x) ** 2 + (j - travel.y) ** 2) / 18);
+          g.globalAlpha = 0.26 + 0.7 * glow;
+          g.fillStyle = glow > 0.25 ? col.accent : col.fg;
+          g.beginPath();
+          g.arc(i + 0.5, j + 0.5, 0.3 + 0.12 * glow, 0, Math.PI * 2);
+          g.fill();
+        }
+      }
+      // names: seas in italics, land in small capitals
+      g.globalAlpha = 0.5;
+      g.fillStyle = col.muted;
+      g.font = "italic 1.5px 'Instrument Serif', Georgia, serif";
+      (o.map.seas || []).forEach(([name, x, y]) => g.fillText(name, x, y));
+      g.font = "1px 'Geist Mono', monospace";
+      (o.map.lands || []).forEach(([name, x, y]) => g.fillText(name.toUpperCase().split("").join(" "), x, y));
+      // the route, dotted, as far as it has drawn
+      g.globalAlpha = 1;
+      g.strokeStyle = col.fg;
+      g.lineWidth = 0.22;
+      g.setLineDash([0.2, 0.9]);
+      g.lineCap = "round";
+      g.beginPath();
+      for (let k = 0; k <= 60 * drawn; k++) {
+        const p = along(route, k / 60);
+        if (k) g.lineTo(p.x, p.y);
+        else g.moveTo(p.x, p.y);
+      }
+      g.stroke();
+      g.setLineDash([]);
+      // Labuan: an orange dot with a ring pinging out of it
+      const ring = still ? 0 : (age % 2.2) / 2.2;
+      g.strokeStyle = col.accent;
+      g.lineWidth = 0.15;
+      g.globalAlpha = 1 - ring;
+      g.beginPath();
+      g.arc(route.a.x, route.a.y, 0.8 + ring * 2.6, 0, Math.PI * 2);
+      g.stroke();
+      g.globalAlpha = 1;
+      g.fillStyle = col.accent;
+      g.beginPath();
+      g.arc(route.a.x, route.a.y, 0.8, 0, Math.PI * 2);
+      g.fill();
+      // Malolos, once the route gets there
+      if (drawn >= 1) {
+        g.fillStyle = col.fg;
+        g.beginPath();
+        g.arc(route.b.x, route.b.y, 0.75, 0, Math.PI * 2);
+        g.fill();
+      }
+      // the travelling light
+      if (travel && !still) {
+        g.fillStyle = col.fg;
+        g.shadowColor = col.accent;
+        g.shadowBlur = 8 * dpr;
+        g.beginPath();
+        g.arc(travel.x, travel.y, 0.45, 0, Math.PI * 2);
+        g.fill();
+        g.shadowBlur = 0;
+      }
+      g.font = "1.25px 'Geist Mono', monospace";
+      g.fillStyle = col.fg;
+      g.fillText("LABUAN", route.a.x + 1.6, route.a.y + 0.45);
+      g.globalAlpha = drawn >= 1 ? 1 : 0.35;
+      g.fillText("MALOLOS", route.b.x + 1.6, route.b.y + 0.45);
+      g.globalAlpha = 1;
+    };
+    const loop = (now) => {
+      draw(now);
+      if (onScreen && !reduceMotion) raf = requestAnimationFrame(loop);
+    };
+    const start = () => {
+      cancelAnimationFrame(raf);
+      if (!born) born = performance.now();
+      raf = requestAnimationFrame(loop);
+    };
+    new IntersectionObserver(([entry]) => {
+      onScreen = entry.isIntersecting;
+      if (!onScreen) return cancelAnimationFrame(raf);
+      if (map) return start();
+      fetch(o.map.dots).then((r) => r.json()).then((data) => {
+        map = data;
+        start();
+      }).catch(() => {});
+    }, { rootMargin: "200px 0px" }).observe(frame);
+    addEventListener("resize", () => map && draw(performance.now()));
   }
   // the photos, as a little stack of polaroids: tap (or click) the one in
   // front and it tucks in behind the others
