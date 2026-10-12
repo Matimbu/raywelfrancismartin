@@ -407,7 +407,7 @@ const SITE = {
     // the route, on my own dot-matrix map (the land traced from a real map
     // into a grid of dots, assets/origin/map-dots.json)
     map: {
-      dots: "assets/origin/map-dots.json",
+      dots: "assets/origin/map-dots.json?v=20261013-2",
       km: "1,230",
       seas: [["South China Sea", 58, 18], ["Sulu Sea", 83, 39], ["Andaman Sea", 2, 28]],
       lands: [["Malaysia", 12, 50], ["Borneo", 58, 62], ["Luzon", 88, 8]],
@@ -427,13 +427,13 @@ const SITE = {
       { src: "assets/origin/f1-car.webp", alt: "Me as a kid in an orange shirt, standing beside a Mercedes Formula 1 show car", caption: "Kuala Lumpur, with an F1 car." }
     ],
     paragraphs: [
-      "It starts in Labuan, a small island territory off the coast of Sabah. The sea was everywhere, and life moved at an unhurried pace. Some beaches were wild and rough around the edges; others had white sand that seemed to go on forever. Back then there was nothing to prove and no one to race, just a calm foundation.",
-      "Growing up in a Muslim-majority country, you learn respect by watching, not by being told. You keep your ego in check, honor local traditions and learn to read the room. Living alongside Malay, Chinese and Indian communities every day taught me how to connect with anyone without losing my balance.",
-      "Filipino with Chinese heritage, raised Catholic in a predominantly Muslim country. Some moments made me feel like an outsider, but Malaysia was home through and through. Living at that crossroads taught me to respect other people’s beliefs while staying rooted in my own. Both places built who I am.",
-      "Nasi lemak and roti canai: non-negotiable, and they stay with you forever. I spoke a mix of English, Malay and rough Tagalog. Speaking the local language breaks down barriers fast. It turns strangers into brothers and any place into home.",
-      "I was 12, turning 13, when we moved to the Philippines. The real culture shock was diskarte: people hustling and solving problems out of sheer necessity. It gave me a deep respect for grit. The move tested how well I could adapt, and it introduced me to unbelievable talent.",
-      "On a lighter note, even fights followed different rules. Here, suntukan meant hands, pure boxing. Back in Malaysia, kicks were fair game, probably from all the football on every open field. A small detail, but a funny reminder of how a place shapes the way people handle pressure.",
-      "I haven’t been back to Malaysia since we left. Moving early made me look ahead instead of staying comfortable with what I knew. The island and everything it taught me are still part of how I think and move."
+      "I was born and raised in Labuan, a small island off the coast of Sabah, near Kota Kinabalu. Wherever I went, there was a beach nearby. Some were clean, some were rough around the edges, and some had the whitest sand I’d ever seen. Life felt simple back then. I didn’t feel much pressure to compete with anyone.",
+      "Growing up in a Muslim-majority country taught me respect early. I knew I had to respect the local customs, keep my pride in check, and learn from the people around me. I grew up around Malay, Chinese and Indian communities, and when that’s your everyday, you learn how to get along with everyone.",
+      "I’m Filipino with Chinese heritage, raised Catholic in a Muslim-majority country. There were moments when my background made me feel separate, but Malaysia was still home throughout my childhood. It taught me to respect other people’s beliefs and stay grounded in my own. I’m proud of my roots.",
+      "Nasi lemak and roti canai, easily. Those two will always stay with me. I spoke English, Malay and some rough Tagalog back then. Haha. Knowing the local language made a big difference. It’s how Labuan felt like home.",
+      "I was 12, turning 13, when we moved to the Philippines. My biggest culture shock was how much “diskarte” people needed just to cover everyday necessities. Seeing that up close stayed with me. School took some adjusting to, but the talent here stood out. I’ve met a lot of talented people.",
+      "Even fights felt different. From what I remember, “suntukan” here usually meant fists. Back in Malaysia, kicks could come into it too. Maybe all that football had something to do with it. Haha.",
+      "I haven’t been back since we left. The grass always seems greener somewhere else, and moving made me think about what I wanted beyond the life I’d grown up knowing. Labuan is still part of me."
     ],
     lesson: "Appreciate the little things while they’re still part of your everyday life. A place, a routine, a moment with someone—you might not think much of it at the time. Years later, you realize how much it meant. Some things only make sense as you get older."
   },
