@@ -4835,3 +4835,24 @@ button.craft-row {
 @keyframes polaroid-tuck { 45% { translate: 70% -6%; rotate: 12deg; } }
 .polaroid:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 @media (prefers-reduced-motion: reduce) { .polaroid { transition: none; } .polaroid.tuck { animation: none; } }
+
+/* The real map (replacing the drawn one): a dimmed satellite picture that
+   drifts in slowly, the route drawn over it in the accent */
+.origin-map { width: 100%; margin: 0 0 8px; }
+.map-frame { position: relative; overflow: hidden; border-radius: 6px; aspect-ratio: 984 / 737; background: #0b1630; }
+.map-drift { position: absolute; inset: 0; transform-origin: 46% 60%; }
+.origin-map.in .map-drift { animation: map-drift 22s ease-in-out infinite alternate; }
+@keyframes map-drift { from { transform: scale(1); } to { transform: scale(1.08); } }
+.map-drift img { width: 100%; height: 100%; object-fit: cover; filter: brightness(0.62) saturate(0.85); }
+.map-drift svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.map-frame .route { stroke: #fff; stroke-width: 3.5; stroke-dasharray: 2 12; }
+.map-frame .route-draw { stroke-width: 24; transition: stroke-dashoffset 2.2s var(--ease-in-out) 0.4s; }
+.map-frame .route-dot { fill: var(--accent); }
+.map-frame .route-to { fill: #fff; transition: opacity 0.5s ease 2.4s; }
+.map-frame .route-ring { stroke-width: 2.5; }
+.map-frame .route-label { fill: #fff; font-size: 24px; letter-spacing: 0.12em; opacity: 0.9; }
+.map-frame text.route-to { fill: #fff; }
+.route-traveler { fill: #fff; opacity: 0; filter: drop-shadow(0 0 6px var(--accent)); transition: opacity 0.5s ease 2.6s; }
+.origin-map.in .route-traveler { opacity: 1; }
+.origin-map figcaption { display: flex; justify-content: space-between; gap: 12px; margin-top: 10px; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .origin-map.in .map-drift { animation: none; } .route-traveler { display: none; } }

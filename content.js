@@ -404,21 +404,24 @@ const SITE = {
     // a small label over each paragraph, in order
     labels: ["The island", "Three cultures", "Different, but home", "Nasi lemak & roti canai", "The move", "Suntukan rules", "Haven’t been back"],
     // the route on the map beside the title: where I was born to where I live
-    map: { from: "Labuan, MY", to: "Malolos, PH", km: "1,230" },
+    // the route over a real map (satellite imagery © Google): from and to are
+    // where Labuan and Malolos sit on the picture (984 x 737)
+    map: { src: "assets/origin/map.webp", from: { name: "Labuan", x: 416, y: 625 }, to: { name: "Malolos", x: 647, y: 225 }, km: "1,230", credit: "Imagery © Google" },
     // little polaroids beside the route (tap one to flip to the next).
     // The masters are in images/labuan/; these are cleaned up copies.
     photos: [
+      { src: "assets/origin/beach.webp", alt: "Me as a kid standing on a quiet beach in Labuan, the sea behind me", caption: "Labuan." },
       { src: "assets/origin/roar.webp", alt: "Me as a little kid on a paved path under the trees, hands up like claws, mid-roar", caption: "Mid-roar." },
       { src: "assets/origin/f1-car.webp", alt: "Me as a kid in an orange shirt, standing beside a Mercedes Formula 1 show car", caption: "Me and an F1 car." }
     ],
     paragraphs: [
-      "I was born and raised in Labuan, a small island and federal territory in Malaysia, near Kota Kinabalu. The beaches are what I remember most. Wherever you went, there was always a beach nearby. Some were clean, some were rough around the edges, and some had the whitest sand I’d ever seen. Life felt simple back then. I didn’t feel much pressure to compete with anyone.",
-      "Growing up in a Muslim-majority country also taught me respect. Even though I was raised there, I understood that I had to respect the local customs, keep my pride in check, and learn from the people around me. I also appreciated growing up around Malay, Chinese, and Indian communities. Different cultures, different traditions, all part of everyday life. You learn how to get along with people when that’s the environment you grow up in.",
-      "I noticed the differences growing up. I’m Filipino with Chinese heritage and was raised Catholic in a Muslim-majority country. There were moments when my background made me feel separate, but Malaysia was still home throughout my childhood. Growing up around different cultures taught me to respect other people’s beliefs and stay grounded in my own. I’m proud of my roots, and I appreciate how both Malaysia and the Philippines have shaped me.",
-      "Nasi lemak and roti canai, easily. Those two will always stay with me. I spoke English, Malay, and some rough Tagalog back then. Haha. Knowing the local language makes a big difference. It helps you connect with people and feel more at home.",
-      "I was 12, turning 13, when we moved to the Philippines. My biggest culture shock was how much “diskarte” people needed just to cover everyday necessities. Seeing that up close stayed with me. The education system took some adjusting to as well. But one thing that stood out was the talent. I’ve met a lot of talented people here in the Philippines.",
-      "On a lighter note, even the way people talked about fighting felt different. From what I remember, “suntukan” here usually meant fists. Back in Malaysia, kicks could come into it too. Maybe all that football had something to do with it. Haha. That’s just a personal observation from growing up.",
-      "I haven’t been back to Malaysia since we left. “The grass is always greener on the other side” comes to mind. There’s always that thought that life could be better somewhere else, or that another path might lead to something you haven’t found yet. Moving gave me a reason to think about what I wanted beyond the life I’d grown up knowing."
+      "It starts in Labuan, a small island territory off the coast of Sabah. The sea was everywhere, and life moved at an unhurried pace. Some beaches were wild and rough around the edges; others had white sand that seemed to go on forever. Back then there was nothing to prove and no one to race, just a calm foundation.",
+      "Growing up in a Muslim-majority country, you learn respect by watching, not by being told. You keep your ego in check, honor local traditions and learn to read the room. Living alongside Malay, Chinese and Indian communities every day taught me how to connect with anyone without losing my balance.",
+      "Filipino with Chinese heritage, raised Catholic in a predominantly Muslim country. Some moments made me feel like an outsider, but Malaysia was home through and through. Living at that crossroads taught me to respect other people’s beliefs while staying rooted in my own. Both places built who I am.",
+      "Nasi lemak and roti canai: non-negotiable, and they stay with you forever. I spoke a mix of English, Malay and rough Tagalog. Speaking the local language breaks down barriers fast. It turns strangers into brothers and any place into home.",
+      "I was 12, turning 13, when we moved to the Philippines. The real culture shock was diskarte: people hustling and solving problems out of sheer necessity. It gave me a deep respect for grit. The move tested how well I could adapt, and it introduced me to unbelievable talent.",
+      "On a lighter note, even fights followed different rules. Here, suntukan meant hands, pure boxing. Back in Malaysia, kicks were fair game, probably from all the football on every open field. A small detail, but a funny reminder of how a place shapes the way people handle pressure.",
+      "I haven’t been back to Malaysia since we left. Moving early made me look ahead instead of staying comfortable with what I knew. The island and everything it taught me are still part of how I think and move."
     ],
     lesson: "Appreciate the little things while they’re still part of your everyday life. A place, a routine, a moment with someone—you might not think much of it at the time. Years later, you realize how much it meant. Some things only make sense as you get older."
   },

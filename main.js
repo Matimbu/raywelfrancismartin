@@ -2960,22 +2960,29 @@ if (SITE.origin && SITE.origin.paragraphs) {
   const block = el("div", "wordwall origin");
   const head = el("div", "wordwall-head reveal");
   head.append(el("p", "now-label mono", o.label), staggerWords(el("h3", "origin-title", o.title || "")));
-  // the route: a dot on Labuan, a dotted line that draws itself across the
-  // sea (as the section comes on screen) to a dot on Malolos
-  if (o.map) {
-    const map = el("div", "origin-map reveal");
-    map.setAttribute("role", "img");
-    map.setAttribute("aria-label", `From ${o.map.from} to ${o.map.to}, about ${o.map.km} km`);
-    map.innerHTML = `<svg viewBox="0 0 240 230" aria-hidden="true">
-      <defs><mask id="routeMask"><path class="route-draw" pathLength="1" d="M44 196 Q 52 70 196 42"/></mask></defs>
-      <path class="route" d="M44 196 Q 52 70 196 42" mask="url(#routeMask)"/>
-      <circle class="route-dot route-from" cx="44" cy="196" r="5"/><circle class="route-ring" cx="44" cy="196" r="5"/>
-      <circle class="route-dot route-to" cx="196" cy="42" r="5"/>
-      <text class="route-label" x="58" y="212">${o.map.from}</text>
-      <text class="route-label" x="196" y="24" text-anchor="end">${o.map.to}</text>
-      <text class="route-km" x="132" y="132">≈ ${o.map.km} km</text>
-    </svg>`;
-    head.appendChild(map);
+  // the route, over the real map: a dot pings on Labuan, a dotted line draws
+  // itself across the sea when the map comes on screen, a light then keeps
+  // travelling it, and the map drifts in slowly underneath
+  let mapFigure = null;
+  if (o.map && o.map.src) {
+    const { from, to } = o.map;
+    const cx = (from.x + to.x) / 2 - 90;
+    const cy = (from.y + to.y) / 2 + 10;
+    const route = `M${from.x} ${from.y} Q ${cx} ${cy} ${to.x} ${to.y}`;
+    mapFigure = el("figure", "origin-map reveal");
+    mapFigure.innerHTML = `<div class="map-frame" role="img" aria-label="Map: from ${from.name}, Malaysia to ${to.name}, Philippines, about ${o.map.km} km">
+      <div class="map-drift"><img src="${o.map.src}" alt="" loading="lazy" decoding="async">
+      <svg viewBox="0 0 984 737" aria-hidden="true">
+        <defs><mask id="routeMask"><path class="route-draw" pathLength="1" d="${route}"/></mask></defs>
+        <path class="route" d="${route}" mask="url(#routeMask)"/>
+        <circle class="route-traveler" r="6"><animateMotion dur="3.6s" repeatCount="indefinite" path="${route}"/></circle>
+        <circle class="route-ring" cx="${from.x}" cy="${from.y}" r="9"/>
+        <circle class="route-dot" cx="${from.x}" cy="${from.y}" r="9"/>
+        <circle class="route-dot route-to" cx="${to.x}" cy="${to.y}" r="9"/>
+        <text class="route-label" x="${from.x + 20}" y="${from.y + 8}">${from.name}</text>
+        <text class="route-label route-to" x="${to.x + 20}" y="${to.y + 8}">${to.name}</text>
+      </svg></div></div>
+      <figcaption class="mono"><span>${from.name} → ${to.name} · ≈ ${o.map.km} km</span><span>${o.map.credit || ""}</span></figcaption>`;
   }
   // the photos, as a little stack of polaroids: tap (or click) the one in
   // front and it tucks in behind the others
@@ -3015,6 +3022,7 @@ if (SITE.origin && SITE.origin.paragraphs) {
     head.appendChild(stack);
   }
   const body = el("div", "origin-body reveal");
+  if (mapFigure) body.appendChild(mapFigure);
   o.paragraphs.forEach((text, i) => {
     const moment = el("div", "origin-moment");
     if (o.labels && o.labels[i]) moment.appendChild(el("p", "origin-label mono", o.labels[i]));
