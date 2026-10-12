@@ -406,11 +406,22 @@ const SITE = {
     // the route on the map beside the title: where I was born to where I live
     // the route, on my own dot-matrix map (the land traced from a real map
     // into a grid of dots, assets/origin/map-dots.json)
-    map: { dots: "assets/origin/map-dots.json", km: "1,230", seas: [["South China Sea", 30, 31], ["Sulu Sea", 55, 46]], lands: [["Borneo", 43, 70], ["Luzon", 60, 9], ["Palawan", 40, 49]] },
+    map: {
+      dots: "assets/origin/map-dots.json",
+      km: "1,230",
+      seas: [["South China Sea", 58, 18], ["Sulu Sea", 83, 39], ["Andaman Sea", 2, 28]],
+      lands: [["Malaysia", 12, 50], ["Borneo", 58, 62], ["Luzon", 88, 8]],
+      // pins on the map: point at one (or tap it) and its photo pops up
+      pins: [
+        { name: "Labuan", at: "from", photo: "assets/origin/beach.webp", caption: "Labuan." },
+        { name: "Kuala Lumpur", x: 20.8, y: 55.3, photo: "assets/origin/f1-car.webp", caption: "Kuala Lumpur, with an F1 car." }
+      ]
+    },
     // little polaroids beside the route (tap one to flip to the next).
     // The masters are in images/labuan/; these are cleaned up copies.
     photos: [
       { src: "assets/origin/beach.webp", alt: "Me as a kid standing on a quiet beach in Labuan, the sea behind me", caption: "Labuan." },
+      { src: "assets/origin/tree.webp", alt: "Me as a kid grinning in a tree by the beach in Labuan", caption: "Labuan, another beach." },
       { src: "assets/origin/roar.webp", alt: "Me as a little kid on a paved path under the trees, hands up like claws, mid-roar", caption: "Labuan, mid-roar." },
       { src: "assets/origin/f1-car.webp", alt: "Me as a kid in an orange shirt, standing beside a Mercedes Formula 1 show car", caption: "Kuala Lumpur, with an F1 car." }
     ],

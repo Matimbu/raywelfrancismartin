@@ -4859,3 +4859,38 @@ button.craft-row {
 /* the dot-matrix map: no picture, just the canvas on the page's dark */
 .dot-map .map-frame { aspect-ratio: 86 / 73; background: none; border-radius: 0; overflow: visible; }
 .dot-map canvas { display: block; width: 100%; height: 100%; }
+/* pins on the map: a small dot you can point at (or tap), popping up the
+   photo taken there as a tilted polaroid */
+.dot-map .map-frame { position: relative; aspect-ratio: 120 / 66; }
+.map-pin { position: absolute; width: 30px; height: 30px; margin: -15px 0 0 -15px; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; }
+.map-pin-dot { position: absolute; left: 50%; top: 50%; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: var(--fg); box-shadow: 0 0 0 4px color-mix(in srgb, var(--fg) 18%, transparent); }
+.map-pin-dot::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 1px solid var(--fg); animation: pin-ping 2.4s ease-out infinite; }
+@keyframes pin-ping { from { opacity: 0.8; transform: scale(1); } to { opacity: 0; transform: scale(2.6); } }
+.map-pop {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  z-index: 2;
+  display: grid;
+  gap: 6px;
+  width: 170px;
+  padding: 6px 6px 8px;
+  background: #f2efe8;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 8px) rotate(-3deg) scale(0.92);
+  transform-origin: 50% 100%;
+  transition: opacity 0.2s ease, transform 0.3s var(--ease-out);
+}
+.map-pin.pop-left .map-pop { left: auto; right: 50%; transform: translate(0, 8px) rotate(3deg) scale(0.92); transform-origin: 100% 100%; }
+.map-pop img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+.map-pop-caption { color: #2a2620; font-family: var(--serif); font-style: italic; font-size: 14px; text-align: left; }
+.map-pin.open .map-pop, .map-pin:focus-visible .map-pop { opacity: 1; transform: translate(-50%, 0) rotate(-3deg); }
+.map-pin.pop-left.open .map-pop, .map-pin.pop-left:focus-visible .map-pop { transform: translate(0, 0) rotate(3deg); }
+@media (hover: hover) and (pointer: fine) {
+  .map-pin:hover .map-pop { opacity: 1; transform: translate(-50%, 0) rotate(-3deg); }
+  .map-pin.pop-left:hover .map-pop { transform: translate(0, 0) rotate(3deg); }
+}
+.map-pin:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .map-pin-dot::after { animation: none; } }

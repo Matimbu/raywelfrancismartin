@@ -3006,6 +3006,7 @@ if (SITE.origin && SITE.origin.paragraphs) {
         canvas.height = Math.round(h * dpr);
       }
       g.setTransform(dpr * cell, 0, 0, dpr * cell, 0, 0); // (drawing in grid cells)
+      const u = 1 / cell; // (one CSS pixel, in cells)
       g.clearRect(0, 0, map.cols, map.rows);
       const col = colors();
       const still = reduceMotion;
@@ -3019,7 +3020,7 @@ if (SITE.origin && SITE.origin.paragraphs) {
         for (let i = 0; i < map.cols; i++) {
           if (row[i] !== "1") continue;
           let glow = 0;
-          if (travel) glow = Math.exp(-((i - travel.x) ** 2 + (j - travel.y) ** 2) / 18);
+          if (travel) glow = Math.exp(-((i - travel.x) ** 2 + (j - travel.y) ** 2) / 30);
           g.globalAlpha = 0.26 + 0.7 * glow;
           g.fillStyle = glow > 0.25 ? col.accent : col.fg;
           g.beginPath();
@@ -3030,15 +3031,15 @@ if (SITE.origin && SITE.origin.paragraphs) {
       // names: seas in italics, land in small capitals
       g.globalAlpha = 0.5;
       g.fillStyle = col.muted;
-      g.font = "italic 1.5px 'Instrument Serif', Georgia, serif";
+      g.font = `italic ${14 * u}px 'Instrument Serif', Georgia, serif`;
       (o.map.seas || []).forEach(([name, x, y]) => g.fillText(name, x, y));
-      g.font = "1px 'Geist Mono', monospace";
+      g.font = `${9 * u}px 'Geist Mono', monospace`;
       (o.map.lands || []).forEach(([name, x, y]) => g.fillText(name.toUpperCase().split("").join(" "), x, y));
       // the route, dotted, as far as it has drawn
       g.globalAlpha = 1;
       g.strokeStyle = col.fg;
-      g.lineWidth = 0.22;
-      g.setLineDash([0.2, 0.9]);
+      g.lineWidth = 1.8 * u;
+      g.setLineDash([1.5 * u, 6 * u]);
       g.lineCap = "round";
       g.beginPath();
       for (let k = 0; k <= 60 * drawn; k++) {
@@ -3051,21 +3052,21 @@ if (SITE.origin && SITE.origin.paragraphs) {
       // Labuan: an orange dot with a ring pinging out of it
       const ring = still ? 0 : (age % 2.2) / 2.2;
       g.strokeStyle = col.accent;
-      g.lineWidth = 0.15;
+      g.lineWidth = 1.2 * u;
       g.globalAlpha = 1 - ring;
       g.beginPath();
-      g.arc(route.a.x, route.a.y, 0.8 + ring * 2.6, 0, Math.PI * 2);
+      g.arc(route.a.x, route.a.y, (5 + ring * 16) * u, 0, Math.PI * 2);
       g.stroke();
       g.globalAlpha = 1;
       g.fillStyle = col.accent;
       g.beginPath();
-      g.arc(route.a.x, route.a.y, 0.8, 0, Math.PI * 2);
+      g.arc(route.a.x, route.a.y, 5 * u, 0, Math.PI * 2);
       g.fill();
       // Malolos, once the route gets there
       if (drawn >= 1) {
         g.fillStyle = col.fg;
         g.beginPath();
-        g.arc(route.b.x, route.b.y, 0.75, 0, Math.PI * 2);
+        g.arc(route.b.x, route.b.y, 4.5 * u, 0, Math.PI * 2);
         g.fill();
       }
       // the travelling light
@@ -3074,17 +3075,40 @@ if (SITE.origin && SITE.origin.paragraphs) {
         g.shadowColor = col.accent;
         g.shadowBlur = 8 * dpr;
         g.beginPath();
-        g.arc(travel.x, travel.y, 0.45, 0, Math.PI * 2);
+        g.arc(travel.x, travel.y, 3 * u, 0, Math.PI * 2);
         g.fill();
         g.shadowBlur = 0;
       }
-      g.font = "1.25px 'Geist Mono', monospace";
+      g.font = `${11 * u}px 'Geist Mono', monospace`;
       g.fillStyle = col.fg;
-      g.fillText("LABUAN", route.a.x + 1.6, route.a.y + 0.45);
+      g.fillText("LABUAN", route.a.x + 10 * u, route.a.y + 4 * u);
       g.globalAlpha = drawn >= 1 ? 1 : 0.35;
-      g.fillText("MALOLOS", route.b.x + 1.6, route.b.y + 0.45);
+      g.fillText("MALOLOS", route.b.x + 10 * u, route.b.y + 4 * u);
       g.globalAlpha = 1;
     };
+    const addPins = () => (o.map.pins || []).forEach((pin) => {
+      const at = pin.at === "from" ? map.from : pin.at === "to" ? map.to : pin;
+      const button = el("button", "map-pin");
+      button.type = "button";
+      button.style.left = `${(at.x / map.cols) * 100}%`;
+      button.style.top = `${(at.y / map.rows) * 100}%`;
+      button.setAttribute("aria-label", `${pin.name}: show the photo`);
+      if (!pin.at) button.appendChild(el("span", "map-pin-dot"));
+      const pop = el("span", "map-pop");
+      const img = el("img");
+      img.src = pin.photo;
+      img.alt = "";
+      img.loading = "lazy";
+      pop.append(img, el("span", "map-pop-caption", pin.caption || pin.name));
+      button.appendChild(pop);
+      if (at.x / map.cols > 0.6) button.classList.add("pop-left");
+      button.addEventListener("click", () => {
+        const open = !button.classList.contains("open");
+        frame.querySelectorAll(".map-pin.open").forEach((p) => p.classList.remove("open"));
+        button.classList.toggle("open", open);
+      });
+      frame.appendChild(button);
+    });
     const loop = (now) => {
       draw(now);
       if (onScreen && !reduceMotion) raf = requestAnimationFrame(loop);
@@ -3100,6 +3124,8 @@ if (SITE.origin && SITE.origin.paragraphs) {
       if (map) return start();
       fetch(o.map.dots).then((r) => r.json()).then((data) => {
         map = data;
+        frame.style.aspectRatio = `${map.cols} / ${map.rows}`;
+        addPins();
         start();
       }).catch(() => {});
     }, { rootMargin: "200px 0px" }).observe(frame);
