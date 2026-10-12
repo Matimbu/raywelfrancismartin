@@ -427,13 +427,13 @@ const SITE = {
       { src: "assets/origin/f1-car.webp", alt: "Me as a kid in an orange shirt, standing beside a Mercedes Formula 1 show car", caption: "Kuala Lumpur, with an F1 car." }
     ],
     paragraphs: [
-      "I was born and raised in Labuan, a small island off the coast of Sabah, near Kota Kinabalu. Wherever I went, there was a beach nearby. Some were clean, some were rough around the edges, and some had the whitest sand I’d ever seen. Life felt simple back then. I didn’t feel much pressure to compete with anyone.",
-      "Growing up in a Muslim-majority country taught me respect early. I knew I had to respect the local customs, keep my pride in check, and learn from the people around me. I grew up around Malay, Chinese and Indian communities, and when that’s your everyday, you learn how to get along with everyone.",
-      "I’m Filipino with Chinese heritage, raised Catholic in a Muslim-majority country. There were moments when my background made me feel separate, but Malaysia was still home throughout my childhood. It taught me to respect other people’s beliefs and stay grounded in my own. I’m proud of my roots.",
-      "Nasi lemak and roti canai, easily. Those two will always stay with me. I spoke English, Malay and some rough Tagalog back then. Haha. Knowing the local language made a big difference.",
-      "I was 12, turning 13, when we moved to the Philippines. My biggest culture shock was how much “diskarte” people needed just to cover everyday necessities. Seeing that up close stayed with me. School took some adjusting to, but the talent here stood out. I’ve met a lot of talented people.",
-      "Even fights felt different. From what I remember, “suntukan” here usually meant fists. Back in Malaysia, kicks could come into it too. Maybe all that football had something to do with it. Haha.",
-      "I haven’t been back since we left. The grass always seems greener somewhere else, and moving made me think about what I wanted beyond the life I’d grown up knowing. Labuan is still part of me."
+      "I was born and raised in Labuan, a small island off the coast of Sabah. There was always a beach nearby, some with the whitest sand I’d ever seen. Life felt simple. No pressure to compete with anyone.",
+      "Growing up in a Muslim-majority country taught me respect early: honor the customs, keep my pride in check, learn from the people around me. With Malay, Chinese and Indian communities all around, you learn to get along with everyone.",
+      "I’m Filipino with Chinese heritage, raised Catholic. Sometimes that made me feel separate, but Malaysia was still home. It taught me to respect other people’s beliefs and stay grounded in my own.",
+      "Nasi lemak and roti canai, easily. I spoke English, Malay and some rough Tagalog back then. Haha.",
+      "I was 12, turning 13, when we moved to the Philippines. My biggest culture shock was how much “diskarte” people needed just to get by. The talent here stood out too.",
+      "Even fights felt different. Here, “suntukan” meant fists. Back in Malaysia, kicks came into it too. Blame the football. Haha.",
+      "I haven’t been back since we left. Labuan is still part of me."
     ],
     lesson: "Appreciate the little things while they’re still part of your everyday life. A place, a routine, a moment with someone—you might not think much of it at the time. Years later, you realize how much it meant. Some things only make sense as you get older."
   },
