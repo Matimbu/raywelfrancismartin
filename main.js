@@ -4755,6 +4755,9 @@ if (SITE.facts && SITE.facts.length) {
       if (busy) return;
       busy = true;
       chip.classList.add("asked");
+      // (on a phone the thread can be off screen: bring the chat into view)
+      const box = chat.getBoundingClientRect();
+      if (box.top < 0 || box.bottom > innerHeight) chat.scrollIntoView({ block: "nearest", behavior: reduceMotion ? "auto" : "smooth" });
       bubble("me", [f.ask || f.q]);
       const typing = el("div", "bubble them typing");
       typing.innerHTML = "<i></i><i></i><i></i>";
