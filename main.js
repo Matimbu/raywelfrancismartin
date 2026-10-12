@@ -2977,6 +2977,43 @@ if (SITE.origin && SITE.origin.paragraphs) {
     </svg>`;
     head.appendChild(map);
   }
+  // the photos, as a little stack of polaroids: tap (or click) the one in
+  // front and it tucks in behind the others
+  if (o.photos && o.photos.length) {
+    const stack = el("div", "origin-photos reveal");
+    const cards = o.photos.map((ph, i) => {
+      const card = el("button", "polaroid");
+      card.type = "button";
+      card.setAttribute("aria-label", `${ph.alt}. Show the next photo`);
+      const img = el("img");
+      img.src = ph.src;
+      img.alt = "";
+      img.loading = "lazy";
+      img.decoding = "async";
+      card.append(img, el("span", "polaroid-caption", ph.caption || ""));
+      card.style.setProperty("--k", i);
+      stack.appendChild(card);
+      return card;
+    });
+    let order = cards.slice();
+    const lay = () => order.forEach((card, k) => {
+      card.style.setProperty("--k", k);
+      card.style.zIndex = String(order.length - k);
+      card.tabIndex = k ? -1 : 0;
+    });
+    lay();
+    stack.addEventListener("click", (e) => {
+      const card = e.target.closest(".polaroid");
+      if (!card || card !== order[0] || order.length < 2) return;
+      order = [...order.slice(1), card];
+      card.classList.remove("tuck");
+      void card.offsetWidth;
+      card.classList.add("tuck");
+      lay();
+      order[0].focus({ preventScroll: true });
+    });
+    head.appendChild(stack);
+  }
   const body = el("div", "origin-body reveal");
   o.paragraphs.forEach((text, i) => {
     const moment = el("div", "origin-moment");

@@ -405,6 +405,12 @@ const SITE = {
     labels: ["The island", "Three cultures", "Different, but home", "Nasi lemak & roti canai", "The move", "Suntukan rules", "Haven’t been back"],
     // the route on the map beside the title: where I was born to where I live
     map: { from: "Labuan, MY", to: "Malolos, PH", km: "1,230" },
+    // little polaroids beside the route (tap one to flip to the next).
+    // The masters are in images/labuan/; these are cleaned up copies.
+    photos: [
+      { src: "assets/origin/roar.webp", alt: "Me as a little kid on a paved path under the trees, hands up like claws, mid-roar", caption: "Mid-roar." },
+      { src: "assets/origin/f1-car.webp", alt: "Me as a kid in an orange shirt, standing beside a Mercedes Formula 1 show car", caption: "Me and an F1 car." }
+    ],
     paragraphs: [
       "I was born and raised in Labuan, a small island and federal territory in Malaysia, near Kota Kinabalu. The beaches are what I remember most. Wherever you went, there was always a beach nearby. Some were clean, some were rough around the edges, and some had the whitest sand I’d ever seen. Life felt simple back then. I didn’t feel much pressure to compete with anyone.",
       "Growing up in a Muslim-majority country also taught me respect. Even though I was raised there, I understood that I had to respect the local customs, keep my pride in check, and learn from the people around me. I also appreciated growing up around Malay, Chinese, and Indian communities. Different cultures, different traditions, all part of everyday life. You learn how to get along with people when that’s the environment you grow up in.",

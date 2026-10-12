@@ -4810,3 +4810,28 @@ button.craft-row {
 /* the answers in Off the record can run to a few paragraphs */
 .fact-a + .fact-a { margin-top: -2px; }
 @media (prefers-reduced-motion: reduce) { .route-draw { transition: none; stroke-dashoffset: 0; } .route-to { opacity: 1; transition: none; } .route-ring { animation: none; opacity: 0; } }
+
+/* Labuan photos: a little stack of polaroids beside the route, each tilted
+   its own way; the one in front tucks in behind on a tap */
+.origin-photos { position: relative; width: min(230px, 80%); aspect-ratio: 4 / 4.2; margin-top: 30px; }
+.polaroid {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 8px;
+  padding: 8px 8px 10px;
+  border: 0;
+  background: #f2efe8;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.35);
+  cursor: pointer;
+  rotate: calc(-3deg + var(--k, 0) * 6deg);
+  translate: calc(var(--k, 0) * 10px) calc(var(--k, 0) * 6px);
+  transition: rotate 0.5s var(--ease-out), translate 0.5s var(--ease-out);
+}
+.polaroid img { width: 100%; height: 100%; object-fit: cover; }
+.polaroid-caption { color: #2a2620; font-family: var(--serif); font-style: italic; font-size: 16px; text-align: left; }
+.polaroid.tuck { animation: polaroid-tuck 0.55s var(--ease-in-out); }
+@keyframes polaroid-tuck { 45% { translate: 70% -6%; rotate: 12deg; } }
+.polaroid:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+@media (prefers-reduced-motion: reduce) { .polaroid { transition: none; } .polaroid.tuck { animation: none; } }
