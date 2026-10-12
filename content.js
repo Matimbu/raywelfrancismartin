@@ -414,11 +414,12 @@ const SITE = {
       // pins on the map: point at one (or tap it) and its photo pops up
       pins: [
         { name: "Labuan", at: "from", photo: "assets/origin/beach.webp", caption: "Labuan." },
+        { name: "Labuan, mid-roar", x: 67.5, y: 45.9, photo: "assets/origin/roar.webp", caption: "Labuan, mid-roar." },
         { name: "Kuala Lumpur", x: 20.8, y: 55.3, photo: "assets/origin/f1-car.webp", caption: "Kuala Lumpur, with an F1 car." }
       ]
     },
     // little polaroids beside the route (tap one to flip to the next).
-    // The masters are in images/labuan/; these are cleaned up copies.
+    // The masters are in images/labuan/; these are the same photos as WebP.
     photos: [
       { src: "assets/origin/beach.webp", alt: "Me as a kid standing on a quiet beach in Labuan, the sea behind me", caption: "Labuan." },
       { src: "assets/origin/tree.webp", alt: "Me as a kid grinning in a tree by the beach in Labuan", caption: "Labuan, another beach." },
