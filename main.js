@@ -4719,26 +4719,58 @@ if (SITE.faq && SITE.faq.length) {
   }
 })();
 
-// "Off the record": things people don't know about me, after the hobbies,
-// each with its question in small mono over my answer
+// "Off the record", as a chat: my answers to questions people don't usually
+// ask. Tap a question and it's sent like a message, a beat of "typing…",
+// then my answer comes back as a reply.
 if (SITE.facts && SITE.facts.length) {
   const block = el("div", "facts");
   block.appendChild(el("p", "now-label mono reveal", "Off the record"));
-  const grid = el("div", "facts-grid");
-  SITE.facts.forEach((f, i) => {
-    const card = el("div", "fact reveal");
-    card.style.setProperty("--d", i % 3);
-    card.appendChild(el("p", "fact-q mono", f.q));
-    f.a.split(/\n\n+/).forEach((part) => {
-      const p = el("p", "fact-a");
+  const chat = el("div", "chat reveal");
+  const top = el("div", "chat-top");
+  top.append(el("span", "chat-dot"), el("b", "", "Raywel"), el("span", "chat-status mono", "online · ask me anything"));
+  const thread = el("div", "chat-thread");
+  thread.setAttribute("aria-live", "polite");
+  const chips = el("div", "chat-chips");
+  chat.append(top, thread, chips);
+  block.appendChild(chat);
+  const bubble = (who, parts) => {
+    const b = el("div", `bubble ${who}`);
+    parts.forEach((part) => {
+      const p = el("p");
       part.split(/(\*[^*]+\*)/).filter(Boolean).forEach((bit) => {
         p.appendChild(bit.startsWith("*") ? el("em", "", bit.slice(1, -1)) : document.createTextNode(bit));
       });
-      card.appendChild(p);
+      b.appendChild(p);
     });
-    grid.appendChild(card);
+    thread.appendChild(b);
+    thread.scrollTop = thread.scrollHeight;
+    return b;
+  };
+  bubble("them", ["Ask me anything. Off the record."]);
+  let busy = false;
+  SITE.facts.forEach((f) => {
+    const chip = el("button", "chat-chip", f.q);
+    chip.type = "button";
+    chip.addEventListener("click", () => {
+      if (busy) return;
+      busy = true;
+      chip.classList.add("asked");
+      bubble("me", [f.ask || f.q]);
+      const typing = el("div", "bubble them typing");
+      typing.innerHTML = "<i></i><i></i><i></i>";
+      typing.setAttribute("aria-label", "typing");
+      setTimeout(() => {
+        thread.appendChild(typing);
+        thread.scrollTop = thread.scrollHeight;
+      }, reduceMotion ? 0 : 250);
+      setTimeout(() => {
+        typing.remove();
+        bubble("them", f.a.split(/\n\n+/));
+        busy = false;
+      }, reduceMotion ? 0 : 1100);
+    });
+    chips.appendChild(chip);
   });
-  block.appendChild(grid);
   $("hobbyGrid").after(block);
 }
 // The giant line that closes the page (like Lando Norris's site ends on
