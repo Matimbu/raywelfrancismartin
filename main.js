@@ -305,6 +305,18 @@ function splitWords(node, text) {
   });
 }
 
+// Line icons, drawn here in one stroke (in place of emoji: on the hero's
+// photo badges and the hobby cards)
+const LINE_ICONS = {
+  ball: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3v18M5.6 5.6c3.3 2.6 3.3 10.2 0 12.8M18.4 5.6c-3.3 2.6-3.3 10.2 0 12.8"/>',
+  brush: '<path d="M15 4.5 19.5 9 11 17.5 6.5 13z"/><path d="M6.5 13c-2 .4-3 2-3 4.5 2.5 0 4.1-1 4.5-3"/><path d="M17.3 6.7l2.2-2.2"/>',
+  controller: '<path d="M7 8h10a4 4 0 0 1 3.9 4.8l-.8 3.6a2.3 2.3 0 0 1-4 .8L14.5 15h-5l-1.6 2.2a2.3 2.3 0 0 1-4-.8l-.8-3.6A4 4 0 0 1 7 8z"/><path d="M8 10.5v3M6.5 12h3"/><circle cx="15.5" cy="11.2" r=".6"/><circle cx="17" cy="12.8" r=".6"/>',
+  camera: '<path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+  crosshair: '<circle cx="12" cy="12" r="7"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/><circle cx="12" cy="12" r=".8"/>',
+  headphones: '<path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/>'
+};
+const lineIcon = (name) => (LINE_ICONS[name] ? `<svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true">${LINE_ICONS[name]}</svg>` : "");
+
 // Stagger Text (after Vengeance UI): a title's words each rise into place,
 // one after another, when it comes on screen
 const staggerWatch = "IntersectionObserver" in window
@@ -589,8 +601,9 @@ const floaterEls = SITE.floaters.map((f, i) => {
     inner.appendChild(el("span", "", f.emoji));
   }
   card.appendChild(inner);
-  if (f.badge) {
-    const badge = el("span", "floater-badge", f.badge);
+  if (f.icon || f.badge) {
+    const badge = el("span", "floater-badge");
+    badge.innerHTML = f.icon ? lineIcon(f.icon) : f.badge;
     card.appendChild(badge);
     // Hovering wiggles the badge (CSS); a tap does the same on phones
     card.addEventListener("click", () => {
@@ -3180,66 +3193,55 @@ if (SITE.origin && SITE.origin.paragraphs) {
   block.append(head, body);
   $("about").appendChild(block);
 }
+// "The story so far", as a git log: newest commit on top, a graph line with a
+// dot per commit, a short hash, (HEAD -> main) on the latest, a commit type
+// and my title as the message, the date, and my text as the body. The
+// commits come in one after another as the log scrolls in.
 if (SITE.story && SITE.story.items && SITE.story.items.length) {
   const block = el("div", "wordwall story");
   const head = el("div", "wordwall-head reveal");
   head.append(el("p", "now-label mono", SITE.story.label), el("p", "wordwall-intro", SITE.story.intro || ""));
-  const list = el("ol", "story-list");
-  SITE.story.items.forEach((s, i) => {
-    const li = el("li", "story-item");
-    if (reduceMotion) li.classList.add("reveal");
-    else addScene(li, 0.2); // the year and the story slide together
-    li.style.setProperty("--d", i);
-    const body = el("div", "story-body");
-    const title = staggerWords(el("p", "story-title", s.title));
-    if (s.medals) {
-      title.classList.add("story-loud");
-      const medals = el("span", "story-medals");
-      medals.setAttribute("role", "img");
-      medals.setAttribute("aria-label", `${s.medals} gold medal${s.medals > 1 ? "s" : ""}`);
-      for (let m = 0; m < s.medals; m++) {
-        const medal = el("span", "medal", "🥇");
-        medal.style.setProperty("--m", m);
-        medals.appendChild(medal);
-      }
-      title.appendChild(medals);
+  const log = el("div", "gitlog reveal");
+  const prompt = el("p", "gitlog-prompt mono");
+  prompt.append(el("span", "gitlog-path", "~/raywel"), el("span", "gitlog-dollar", " $ "), document.createTextNode("git log --graph"));
+  log.appendChild(prompt);
+  // (a commit's hash: 7 hex characters worked out from its year and title, so
+  // it never changes)
+  const hash = (text) => {
+    let h = 2166136261;
+    for (const ch of text) h = Math.imul(h ^ ch.codePointAt(0), 16777619) >>> 0;
+    return h.toString(16).padStart(8, "0").slice(0, 7);
+  };
+  const items = SITE.story.items.slice().reverse();
+  items.forEach((s, i) => {
+    const commit = el("article", "commit");
+    commit.style.setProperty("--d", i);
+    const line = el("p", "commit-line mono");
+    line.append(el("span", "commit-hash", hash(`${s.year}${s.title}`)));
+    if (i === 0) {
+      const refs = el("span", "commit-refs");
+      refs.append("(", el("b", "", "HEAD -> main"), ")");
+      line.appendChild(refs);
     }
-    body.append(title, el("p", "story-text", s.text));
-    // A row can open one of the gallery photos in the viewer
+    if (s.medals) line.appendChild(el("span", "commit-tag", `tag: v${s.year}-gold×${s.medals}`));
+    commit.appendChild(line);
+    const msg = el("p", "commit-msg");
+    msg.append(el("span", "commit-type mono", `${s.type || "feat"}:`), document.createTextNode(` ${s.title}`));
+    commit.appendChild(msg);
+    const when = [s.month, s.year].filter(Boolean).join(" ") + (s.until ? ` – ${s.until}` : "");
+    commit.appendChild(el("p", "commit-date mono", `Date: ${when}`));
+    commit.appendChild(el("p", "commit-body", s.text));
+    // a commit can open one of the gallery photos in the viewer
     const shot = s.photo ? (SITE.gallery || []).findIndex((g) => g.file === s.photo) : -1;
     if (shot >= 0) {
-      const open = el("button", "story-photo");
+      const open = el("button", "commit-photo mono", "git show --photo");
       open.type = "button";
-      const frame = el("span", "story-photo-thumb");
-      const thumb = el("img");
-      thumb.src = `assets/gallery/${s.photo}-400.webp`;
-      thumb.alt = "";
-      thumb.loading = "lazy";
-      frame.appendChild(thumb);
-      open.append(frame, el("span", "mono", "See the photo"));
       open.addEventListener("click", () => openShot(shot));
-      body.appendChild(open);
+      commit.appendChild(open);
     }
-    const year = el("span", "story-year", s.year);
-    if (s.month) year.prepend(el("span", "story-month mono", s.month)); // (a month, small over the year)
-    if (s.until) year.appendChild(el("span", "story-until mono", `to ${s.until}`));
-    li.append(year, body);
-    // `runner`: a tiny runner dashes along the row's line as it draws,
-    // Subway Surfers style: hopping now and then and grabbing the coins
-    if (s.runner) {
-      const runner = el("span", "story-runner");
-      runner.setAttribute("aria-hidden", "true");
-      li.appendChild(runner);
-      for (let k = 1; k <= 6; k++) {
-        const coin = el("span", "story-coin");
-        coin.setAttribute("aria-hidden", "true");
-        coin.style.setProperty("--at", (k / 7).toFixed(3));
-        li.appendChild(coin);
-      }
-    }
-    list.appendChild(li);
+    log.appendChild(commit);
   });
-  block.append(head, list);
+  block.append(head, log);
   $("about").appendChild(block);
 }
 
@@ -3421,7 +3423,9 @@ SITE.hobbies.forEach((h, i) => {
   const card = el("article", "hobby reveal");
   card.style.setProperty("--d", i);
   if (isTodo(h.title, h.text)) card.classList.add("todo");
-  card.append(el("span", "hobby-emoji", h.emoji), staggerWords(el("h3", "hobby-title", h.title)), el("p", "hobby-text", h.text));
+  const mark = el("span", "hobby-emoji");
+  mark.innerHTML = h.icon ? lineIcon(h.icon) : h.emoji || "";
+  card.append(mark, staggerWords(el("h3", "hobby-title", h.title)), el("p", "hobby-text", h.text));
   if (h.link) {
     const go = el("a", "hobby-link mono", `${h.linkText || "More"} ↗`);
     go.href = h.link; // same site, same tab (Airball has its own way back)

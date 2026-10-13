@@ -56,10 +56,10 @@ const SITE = {
   // Order = position: 1 top-left (tall), 2 top-right, 3 bottom-left (small
   // square), 4 bottom-right (wide). Photos face toward the name.
   floaters: [
-    { emoji: "🎨", photo: "assets/me-shop.webp", badge: "🎨" },
-    { emoji: "🎮", photo: "assets/me-cafe.webp", badge: "🎮" },
-    { emoji: "📷", photo: "assets/me-camera.webp", badge: "📷" },
-    { emoji: "🏀", photo: "assets/me-sofa.webp", badge: "🏀" }
+    { emoji: "🎨", photo: "assets/me-shop.webp", icon: "brush" },
+    { emoji: "🎮", photo: "assets/me-cafe.webp", icon: "controller" },
+    { emoji: "📷", photo: "assets/me-camera.webp", icon: "camera" },
+    { emoji: "🏀", photo: "assets/me-sofa.webp", icon: "ball" }
   ],
 
   marquee: ["C#", "Graphic design", "Basketball", "Valorant", "WinForms", "Photoshop", "Video editing", "Unity", "The Court's Coder"],
@@ -442,7 +442,7 @@ const SITE = {
     label: "The story so far",
     intro: "How I got here.",
     items: [
-      { year: "2021", title: "Pandemic days", text: "Senior high at STI, in the middle of the pandemic." },
+      { year: "2021", type: "init", title: "Pandemic days", text: "Senior high at STI, in the middle of the pandemic." },
       { year: "2022", title: "Coming of age", text: "After the pandemic, back in person. Where my adolescence really began." },
       {
         year: "2023",
@@ -465,10 +465,10 @@ const SITE = {
       },
       {
         year: "2025",
-        title: "The section switch",
+        type: "refactor", title: "The section switch",
         text: "First year, no coding yet, and I was already top 5 in our coding classes. So in third year I changed sections. If I'm top 5 in a class where I know how to code well, something is wrong. In the new one I met people better than me, in coding and in life, and it pushed me to level up. I don't want to be average. That's me: healthy competition."
       },
-      { year: "2026", title: "Malolos Rush", text: "Building my capstone game in Unity.", runner: true }
+      { year: "2026", type: "wip", title: "Malolos Rush", text: "Building my capstone game in Unity.", runner: true }
     ]
   },
 
@@ -571,10 +571,10 @@ const SITE = {
   hobbies: [
     // `link` + `linkText`: a small link under the card (here, the Airball
     // game on the site's 404 page: any address that doesn't exist)
-    { emoji: "🏀", title: "Basketball", text: "Where I switch off from code. Want to talk hoops? Message me.", link: "airball", linkText: "Take a shot" },
-    { emoji: "🖌️", title: "Graphic design", text: "Posters, layouts, and messing around in Photoshop." },
-    { emoji: "🎮", title: "Valorant", text: "Playing with friends and clipping the moments worth keeping, like using a teammate as a Sova drone." },
-    { emoji: "🎧", title: "Music", text: "Hip-hop on repeat, mostly Travis Scott, Drake, Mustard and Offset. Press play on my playlist below." }
+    { icon: "ball", title: "Basketball", text: "Where I switch off from code. Want to talk hoops? Message me.", link: "airball", linkText: "Take a shot" },
+    { icon: "brush", title: "Graphic design", text: "Posters, layouts, and messing around in Photoshop." },
+    { icon: "crosshair", title: "Valorant", text: "Playing with friends and clipping the moments worth keeping, like using a teammate as a Sova drone." },
+    { icon: "headphones", title: "Music", text: "Hip-hop on repeat, mostly Travis Scott, Drake, Mustard and Offset. Press play on my playlist below." }
   ],
 
   // Spotify player under the hobbies. Use the link from Share > Copy link
